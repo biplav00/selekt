@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Locator Generator - Information Dense UI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: #0d0d12;
+      color: #fff;
+      min-height: 100vh;
+      padding: 40px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #e2e4e8;
+    }
+    .subtitle { color: #666; margin-bottom: 40px; font-size: 13px; }
+
+    .section { margin-bottom: 48px; }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .tag {
+      background: #1a1a24;
+      color: #666;
+      font-size: 10px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      gap: 24px;
+    }
+
+    .sidebar {
+      width: 380px;
+      min-height: 560px;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      background: #0f1015;
+      border: 1px solid #1e2028;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .header {
+      background: #14151a;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #1e2028;
+    }
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .logo-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: #e2e4e8;
+    }
+    .stats {
+      font-size: 10px;
+      color: #4b5563;
+      display: flex;
+      gap: 12px;
+    }
+    .stats span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .settings-btn {
+      background: none;
+      border: none;
+      color: #6b7280;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: background-color 0.15s, color 0.15s;
+    }
+    .settings-btn:hover { color: #9ca3af; background: #1e2028; }
+    .settings-btn:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+
+    .tabs {
+      display: flex;
+      background: #0c0d10;
+      border-bottom: 1px solid #1e2028;
+    }
+    .tab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 500;
+      color: #6b7280;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .tab:hover { color: #9ca3af; }
+    .tab:focus-visible { outline: 2px solid #3b82f6; outline-offset: -2px; }
+    .tab.active {
+      color: #3b82f6;
+      border-bottom-color: #3b82f6;
+      background: #14151a;
+    }
+
+    .content {
+      padding: 16px;
+    }
+
+    .pick-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .pick-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+    .pick-btn:focus-visible {
+      outline: 2px solid #60a5fa;
+      outline-offset: 2px;
+    }
+
+    .divider {
+      height: 1px;
+      background: #1e2028;
+      margin: 16px 0;
+    }
+
+    .empty-state {
+      color: #4b5563;
+      font-size: 11px;
+      margin-top: 12px;
+    }
+
+    .element-card {
+      background: #14151a;
+      border: 1px solid #1e2028;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .element-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .element-tag {
+      font-size: 12px;
+      font-weight: 600;
+      color: #10b981;
+    }
+    .element-path {
+      font-size: 10px;
+      color: #4b5563;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .locator-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      background: #0c0d10;
+      border-radius: 6px;
+      margin-top: 8px;
+    }
+    .locator-type {
+      font-size: 9px;
+      font-weight: 600;
+      color: #6366f1;
+      min-width: 50px;
+      text-transform: uppercase;
+    }
+    .locator-value {
+      flex: 1;
+      font-size: 10px;
+      color: #9ca3af;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .copy-btn {
+      background: #1e2028;
+      border: none;
+      color: #6b7280;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 9px;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      transition: background-color 0.15s, color 0.15s;
+    }
+    .copy-btn:hover { color: #fff; background: #2d3038; }
+    .copy-btn:focus-visible { outline: 2px solid #3b82f6; outline-offset: 1px; }
+
+    .footer-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .action-btn {
+      flex: 1;
+      padding: 10px;
+      background: #14151a;
+      border: 1px solid #1e2028;
+      border-radius: 6px;
+      color: #9ca3af;
+      font-size: 11px;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      transition: background-color 0.15s, color 0.15s;
+    }
+    .action-btn:hover {
+      background: #1e2028;
+      color: #fff;
+    }
+    .action-btn:focus-visible { outline: 2px solid #3b82f6; outline-offset: 1px; }
+
+    /* Build View */
+    .build-field {
+      margin-bottom: 12px;
+    }
+    .build-field label {
+      display: block;
+      font-size: 10px;
+      color: #4b5563;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .build-field input,
+    .build-field select {
+      width: 100%;
+      padding: 10px;
+      background: #14151a;
+      border: 1px solid #1e2028;
+      border-radius: 6px;
+      color: #e2e4e8;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .build-field input:focus,
+    .build-field select:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+    .build-field input::placeholder {
+      color: #4b5563;
+    }
+
+    /* History */
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
+      background: #14151a;
+      border: 1px solid #1e2028;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background-color 0 border-color 0.15s,.15s;
+    }
+    .history-item:hover {
+      background: #1a1b21;
+      border-color: #2d3038;
+    }
+    .history-item:focus-visible { outline: 2px solid #3b82f6; outline-offset: 1px; }
+    .history-tag {
+      font-size: 11px;
+      font-weight: 500;
+      color: #10b981;
+      min-width: 80px;
+    }
+    .history-locator {
+      font-size: 10px;
+      color: #6b7280;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #historyEmpty {
+      text-align: center;
+      color: #4b5563;
+      font-size: 11px;
+      padding: 20px;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal {
+      width: 280px;
+      padding: 20px;
+      border-radius: 12px;
+      background: #14151a;
+      border: 1px solid #1e2028;
+    }
+    .modal-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #e2e4e8;
+    }
+    .modal-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .modal-row label {
+      font-size: 11px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .modal-row span {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    .modal-btn {
+      margin-top: 20px;
+      width: 100%;
+      padding: 10px;
+      background: #1e2028;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: background-color 0.15s;
+    }
+    .modal-btn:hover { background: #2d3038; }
+    .modal-btn:focus-visible { outline: 2px solid #3b82f6; outline-offset: 1px; }
+  </style>
+</head>
+<body>
+  <h1>Locator Generator</h1>
+  <p class="subtitle">Information Dense UI - All screen states</p>
+
+  <!-- Pick - Empty State -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Pick - Empty State</span>
+      <span class="tag">Default</span>
+    </div>
+    <div class="grid">
+      <div class="sidebar">
+        <div class="header">
+          <div class="logo-group">
+            <div class="logo-icon" aria-hidden="true">⚡</div>
+            <span class="logo-text">LOCATOR</span>
+          </div>
+          <div class="stats">
+            <span>▸ 0 elements</span>
+            <span>▸ 5 formats</span>
+          </div>
+          <button type="button" class="settings-btn" aria-label="Open settings">⚙</button>
+        </div>
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab active" role="tab" aria-selected="true" tabindex="0">Pick</button>
+          <button type="button" class="tab" role="tab" aria-selected="false" tabindex="-1">Build</button>
+          <button type="button" class="tab" role="tab" aria-selected="false" tabindex="-1">History</button>
+        </div>
+        <div class="content">
+          <button type="button" class="pick-btn">▸ Pick Element</button>
+          <div class="divider"></div>
+          <p class="empty-state">Select an element from the page to generate locators</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pick - Element Selected -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Pick - Element Selected</span>
+      <span class="tag">Active</span>
+    </div>
+    <div class="grid">
+      <div class="sidebar">
+        <div class="header">
+          <div class="logo-group">
+            <div class="logo-icon" aria-hidden="true">⚡</div>
+            <span class="logo-text">LOCATOR</span>
+          </div>
+          <div class="stats">
+            <span>▸ 3 elements</span>
+            <span>▸ 5 formats</span>
+          </div>
+          <button type="button" class="settings-btn" aria-label="Open settings">⚙</button>
+        </div>
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab active" role="tab" aria-selected="true" tabindex="0">Pick</button>
+          <button type="button" class="tab" role="tab" aria-selected="false" tabindex="-1">Build</button>
+          <button type="button" class="tab" role="tab" aria-selected="false" tabindex="-1">History</button>
+        </div>
+        <div class="content">
+          <button type="button" class="pick-btn">▸ Pick Element</button>
+          <div class="divider"></div>
+
+          <div class="element-card">
+            <div class="element-header">
+              <span class="element-tag">&lt;button&gt;</span>
+              <span class="element-path">#submit-btn → .btn.primary</span>
+            </div>
+          </div>
+
+          <div class="locator-row">
+            <span class="locator-type">CSS</span>
+            <span class="locator-value">button#submit-btn.btn.primary</span>
+            <button type="button" class="copy-btn" aria-label="Copy CSS selector">COPY</button>
+          </div>
+          <div class="locator-row">
+            <span class="locator-type">XPATH</span>
+            <span class="locator-value">//button[@id='submit-btn']</span>
+            <button type="button" class="copy-btn" aria-label="Copy XPath">COPY</button>
+          </div>
+          <div class="locator-row">
+            <span class="locator-type">PW</span>
+            <span class="locator-value">page.locator('button#submit-btn')</span>
+            <button type="button" class="copy-btn" aria-label="Copy Playwright selector">COPY</button>
+          </div>
+          <div class="locator-row">
+            <span class="locator-type">CY</span>
+            <span class="locator-value">cy.get('button#submit-btn')</span>
+            <button type="button" class="copy-btn" aria-label="Copy Cypress selector">COPY</button>
+          </div>
+          <div class="locator-row">
+            <span class="locator-type">SE</span>
+            <span class="locator-value">By.css("button#submit-btn")</span>
+            <button type="button" class="copy-btn" aria-label="Copy Selenium selector">COPY</button>
+          </div>
+
+          <div class="footer-actions">
+            <button type="button" class="action-btn" aria-label="Export locators to JSON">↓ Export</button>
+            <button type="button" class="action-btn" aria-label="Test selector on page">🧪 Test</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Build Screen -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Build Screen</span>
+      <span class="tag">Builder</span>
+    </div>
+    <div class="grid">
+      <div class="sidebar">
+        <div class="header">
+          <div class="logo-group">
+            <div class="logo-icon" aria-hidden="true">⚡</div>
+            <span class="logo-text">LOCATOR</span>
+          </div>
+          <div class="stats">
+            <span>▸ 3 elements</span>
+            <span>▸ 5 formats</span>
+          </div>
+          <button type="button" class="settings-btn" aria-label="Open settings">⚙</button>
+        </div>
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab" role="tab" aria-selected="false" tabindex="-1">Pick</button>
+          <button type="button" class="tab active" role="tab" aria-selected="true" tabindex="0">Build</button>
+          <button type="button" class="tab" role="tab" aria-selected="false" tabindex="-1">History</button>
+        </div>
+        <div class="content">
+          <div class="build-field">
+            <label for="buildTag">Tag</label>
+            <select id="buildTag">
+              <option>button</option>
+              <option>div</option>
+              <option>input</option>
+            </select>
+          </div>
+          <div class="build-field">
+            <label for="buildId">ID</label>
+            <input type="text" id="buildId" name="buildId" placeholder="submit-btn">
+          </div>
+          <div class="build-field">
+            <label for="buildClass">Class</label>
+            <input type="text" id="buildClass" name="buildClass" placeholder="btn primary">
+          </div>
+          <div class="build-field">
+            <label for="buildAttrName">Custom Attribute (name)</label>
+            <input type="text" id="buildAttrName" name="buildAttrName" placeholder="data-testid">
+          </div>
+          <div class="build-field">
+            <label for="buildAttrValue">Custom Attribute (value)</label>
+            <input type="text" id="buildAttrValue" name="buildAttrValue" placeholder="submit-button">
+          </div>
+          <button type="button" class="pick-btn">▸ Test on Page</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Screen -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">History Screen</span>
+      <span class="tag">Saved</span>
+    </div>
+    <div class="grid">
+      <div class="sidebar">
+        <div class="header">
+          <div class="logo-group">
+            <div class="logo-icon" aria-hidden="true">⚡</div>
+            <span class="logo-text">LOCATOR</span>
+          </div>
+          <div class="stats">
+            <span>▸ 3 elements</span>
+            <span>▸ 5 formats</span>
+          </div>
+          <button type="button" class="settings-btn" aria-label="Open settings">⚙</button>
+        </div>
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab" role="tab" aria-selected="false" tabindex="-1">Pick</button>
+          <button type="button" class="tab" role="tab" aria-selected="false" tabindex="-1">Build</button>
+          <button type="button" class="tab active" role="tab" aria-selected="true" tabindex="0">History</button>
+        </div>
+        <div class="content">
+          <button type="button" class="history-item" tabindex="0">
+            <span class="history-tag">&lt;button&gt;</span>
+            <span class="history-locator">button#submit-btn</span>
+          </button>
+          <button type="button" class="history-item" tabindex="0">
+            <span class="history-tag">&lt;input&gt;</span>
+            <span class="history-locator">input[data-testid='login']</span>
+          </button>
+          <button type="button" class="history-item" tabindex="0">
+            <span class="history-tag">&lt;a&gt;</span>
+            <span class="history-locator">a.nav-link.active</span>
+          </button>
+          <button type="button" class="action-btn" style="margin-top: 12px;" aria-label="Clear history">🗑 Clear History</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Settings Modal</span>
+      <span class="tag">Overlay</span>
+    </div>
+    <div class="grid">
+      <div class="sidebar" style="position: relative;">
+        <div class="header">
+          <div class="logo-group">
+            <div class="logo-icon" aria-hidden="true">⚡</div>
+            <span class="logo-text">LOCATOR</span>
+          </div>
+          <div class="stats">
+            <span>▸ 3 elements</span>
+            <span>▸ 5 formats</span>
+          </div>
+          <button type="button" class="settings-btn" aria-label="Open settings">⚙</button>
+        </div>
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab active" role="tab" aria-selected="true" tabindex="0">Pick</button>
+          <button type="button" class="tab" role="tab" aria-selected="false" tabindex="-1">Build</button>
+          <button type="button" class="tab" role="tab" aria-selected="false" tabindex="-1">History</button>
+        </div>
+        <div class="content">
+          <button type="button" class="pick-btn">▸ Pick Element</button>
+        </div>
+        <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+          <div class="modal">
+            <div class="modal-title" id="settingsTitle">⚙ Settings</div>
+            <div class="modal-row">
+              <label>Default Format</label>
+              <span>XPath</span>
+            </div>
+            <div class="modal-row">
+              <label>History Limit</label>
+              <span>50</span>
+            </div>
+            <div class="modal-row">
+              <label>Theme</label>
+              <span>Dark Blue</span>
+            </div>
+            <button type="button" class="modal-btn">Done</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

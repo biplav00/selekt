@@ -1,0 +1,14 @@
+{
+  "name": "locator-generator",
+  "version": "1.0.0",
+  "description": "Test automation locator generation tool for Chrome",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt dev",
+    "build": "wxt build",
+    "preview": "wxt preview"
+  },
+  "devDependencies": {
+    "wxt": "^0.20.18"
+  }
+}

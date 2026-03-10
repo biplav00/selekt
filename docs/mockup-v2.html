@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Locator Generator - UI Mockup v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #09090b;
+      --bg-secondary: #111114;
+      --bg-tertiary: #18181b;
+      --bg-elevated: #1c1c20;
+      --bg-hover: #232328;
+      --border: #27272a;
+      --border-subtle: #303036;
+      --border-accent: #3b82f620;
+      --text-primary: #fafafa;
+      --text-secondary: #a1a1aa;
+      --text-tertiary: #71717a;
+      --text-muted: #52525b;
+      --accent: #3b82f6;
+      --accent-soft: #3b82f618;
+      --accent-hover: #60a5fa;
+      --accent-glow: #3b82f630;
+      --success: #22c55e;
+      --success-soft: #22c55e15;
+      --error: #ef4444;
+      --error-soft: #ef444415;
+      --warning: #eab308;
+      --warning-soft: #eab30815;
+      --purple: #8b5cf6;
+      --purple-soft: #8b5cf615;
+      --cyan: #06b6d4;
+      --cyan-soft: #06b6d415;
+      --orange: #f97316;
+      --orange-soft: #f9731615;
+      --pink: #ec4899;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #000;
+      color: var(--text-primary);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 40px;
+      padding: 40px;
+      flex-wrap: wrap;
+      min-height: 100vh;
+    }
+
+    /* Mock container */
+    .mock-panel {
+      width: 380px;
+      min-height: 600px;
+      background: var(--bg-primary);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 20px 60px -12px rgba(0,0,0,0.7);
+      position: relative;
+    }
+
+    .mock-label {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .mock-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      background: var(--bg-secondary);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .logo-icon {
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+    }
+
+    .logo-icon svg { width: 16px; height: 16px; }
+
+    .logo-text {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: 0.5px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .header-btn {
+      background: none; border: none;
+      color: var(--text-tertiary); cursor: pointer;
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: var(--radius-sm);
+      transition: all 0.15s;
+    }
+    .header-btn:hover { color: var(--text-secondary); background: var(--bg-hover); }
+    .header-btn svg { width: 16px; height: 16px; }
+
+    /* ===== STATS BAR ===== */
+    .stats-bar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 8px 16px;
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--border);
+      font-size: 10px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .stat-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+    .stat-dot.warn { background: var(--warning); }
+    .stat-dot.off { background: var(--text-muted); }
+
+    /* ===== TABS ===== */
+    .tabs {
+      display: flex;
+      background: var(--bg-primary);
+      padding: 0 12px;
+      gap: 2px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px 8px;
+      text-align: center;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      border: none;
+      background: none;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+      position: relative;
+    }
+    .tab:hover { color: var(--text-secondary); }
+    .tab.active {
+      color: var(--text-primary);
+      border-bottom-color: var(--accent);
+    }
+    .tab-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 16px; height: 16px;
+      padding: 0 4px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 8px;
+      font-size: 9px;
+      font-weight: 600;
+      margin-left: 6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ===== CONTENT ===== */
+    .content { padding: 16px; }
+
+    /* ===== PICK BUTTON ===== */
+    .pick-btn {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s;
+    }
+    .pick-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-subtle);
+    }
+    .pick-btn svg { width: 18px; height: 18px; color: var(--accent); }
+
+    .pick-btn.active {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+      animation: pick-pulse 2s ease-in-out infinite;
+    }
+    @keyframes pick-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+      50% { box-shadow: 0 0 0 6px transparent; }
+    }
+
+    .pick-shortcut {
+      font-size: 10px;
+      color: var(--text-muted);
+      background: var(--bg-primary);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ===== ELEMENT CARD ===== */
+    .element-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-top: 14px;
+    }
+
+    .element-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .element-tag-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .element-tag-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--success);
+      background: var(--success-soft);
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    .element-selector {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    .copy-all-btn {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      background: var(--bg-hover);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .copy-all-btn:hover { color: var(--text-primary); border-color: var(--border-subtle); }
+
+    .element-attrs {
+      padding: 8px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .attr-chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: var(--text-tertiary);
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      padding: 3px 7px;
+      border-radius: 4px;
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .attr-chip .attr-key { color: var(--purple); }
+    .attr-chip .attr-val { color: var(--text-secondary); }
+
+    /* ===== LOCATOR ROWS ===== */
+    .locator-list { margin-top: 10px; }
+
+    .locator-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 4px;
+      cursor: pointer;
+      transition: all 0.12s;
+      border: 1px solid transparent;
+    }
+    .locator-row:hover {
+      background: var(--bg-secondary);
+      border-color: var(--border);
+    }
+    .locator-row.preferred {
+      background: var(--bg-secondary);
+      border-color: var(--border);
+    }
+
+    .locator-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 600;
+      min-width: 38px;
+      text-align: center;
+      padding: 3px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .locator-badge.css { color: var(--accent); background: var(--accent-soft); }
+    .locator-badge.xpath { color: var(--orange); background: var(--orange-soft); }
+    .locator-badge.pw { color: var(--success); background: var(--success-soft); }
+    .locator-badge.cy { color: var(--purple); background: var(--purple-soft); }
+    .locator-badge.se { color: var(--cyan); background: var(--cyan-soft); }
+
+    .locator-value {
+      flex: 1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-secondary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .copy-btn {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      padding: 3px 6px;
+      border-radius: 3px;
+      cursor: pointer;
+      opacity: 0;
+      transition: all 0.12s;
+    }
+    .locator-row:hover .copy-btn { opacity: 1; }
+    .copy-btn:hover { color: var(--text-primary); background: var(--bg-hover); }
+    .copy-btn.copied { color: var(--success); opacity: 1; }
+
+    /* ===== FOOTER ACTIONS ===== */
+    .footer-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 14px;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 8px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-tertiary);
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+    .action-btn:hover { color: var(--text-secondary); background: var(--bg-hover); border-color: var(--border-subtle); }
+    .action-btn svg { width: 14px; height: 14px; }
+
+    /* ===== HISTORY ===== */
+    .history-list { display: flex; flex-direction: column; gap: 4px; }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.12s;
+      position: relative;
+    }
+    .history-item:hover { background: var(--bg-hover); border-color: var(--border-subtle); }
+
+    .history-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--success);
+      background: var(--success-soft);
+      padding: 2px 7px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .history-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .history-selector {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-tertiary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .history-meta {
+      font-family: 'Inter', sans-serif;
+      font-size: 9px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .history-delete {
+      background: none; border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      width: 20px; height: 20px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 4px;
+      opacity: 0;
+      transition: all 0.12s;
+      font-size: 12px;
+    }
+    .history-item:hover .history-delete { opacity: 1; }
+    .history-delete:hover { color: var(--error); background: var(--error-soft); }
+
+    /* ===== BUILD VIEW ===== */
+    .segment-control {
+      display: flex;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 3px;
+      margin-bottom: 16px;
+    }
+    .segment-btn {
+      flex: 1;
+      padding: 8px;
+      text-align: center;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      background: none;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .segment-btn.active {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .form-field { margin-bottom: 12px; }
+    .form-label {
+      display: block;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      margin-bottom: 6px;
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 9px 12px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .form-input::placeholder, .form-textarea::placeholder {
+      color: var(--text-muted);
+    }
+
+    .generate-btn {
+      width: 100%;
+      padding: 11px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-md);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-top: 4px;
+    }
+    .generate-btn:hover { background: var(--accent-hover); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+
+    /* ===== SETTINGS MODAL ===== */
+    .modal-overlay {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex; align-items: center; justify-content: center;
+      border-radius: var(--radius-xl);
+    }
+    .modal {
+      width: 300px; padding: 24px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 24px 48px rgba(0,0,0,0.4);
+    }
+    .modal-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 15px; font-weight: 600;
+      margin-bottom: 20px;
+    }
+    .modal-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-row:last-of-type { border-bottom: none; }
+    .modal-row label {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .modal-row select {
+      padding: 5px 8px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-primary);
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .modal-done {
+      width: 100%;
+      margin-top: 20px;
+      padding: 10px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* ===== TOAST ===== */
+    .toast-mock {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .toast-mock .toast-icon { color: var(--success); font-size: 14px; }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--text-muted);
+    }
+    .empty-state-icon {
+      width: 48px; height: 48px;
+      margin: 0 auto 16px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .empty-state-icon svg { width: 24px; height: 24px; color: var(--text-muted); }
+    .empty-state-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      margin-bottom: 6px;
+    }
+    .empty-state-desc {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* ===== MATCH COUNT ===== */
+    .match-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      margin-top: 8px;
+    }
+    .match-pill.success { color: var(--success); background: var(--success-soft); border: 1px solid rgba(34, 197, 94, 0.2); }
+    .match-pill.error { color: var(--error); background: var(--error-soft); border: 1px solid rgba(239, 68, 68, 0.2); }
+    .match-pill .match-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  </style>
+</head>
+<body>
+
+<!-- ===================== MOCK 1: PICK VIEW (Element selected) ===================== -->
+<div class="mock-wrapper">
+  <div class="mock-label">Pick View - Element Selected</div>
+  <div class="mock-panel">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo-group">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+            <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </div>
+        <span class="logo-text">Locator</span>
+      </div>
+      <div class="header-actions">
+        <button class="header-btn" title="Keyboard shortcuts">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg>
+        </button>
+        <button class="header-btn" title="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat"><span class="stat-dot"></span> Connected</div>
+      <div class="stat">12 picked</div>
+      <div class="stat">5 formats</div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active">Pick</button>
+      <button class="tab">Build</button>
+      <button class="tab">History <span class="tab-badge">12</span></button>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+      <!-- Pick Button -->
+      <button class="pick-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 3a2 2 0 0 0-2 2m0 0v4m0-4h4m-4 14a2 2 0 0 0 2 2m-2-2v-4m0 4h4M19 3a2 2 0 0 1 2 2m0 0v4m0-4h-4m4 14a2 2 0 0 1-2 2m2-2v-4m0 4h-4"/></svg>
+        Pick Element
+        <span class="pick-shortcut">&#8984;&#8679;L</span>
+      </button>
+
+      <!-- Element Card -->
+      <div class="element-card">
+        <div class="element-card-header">
+          <div class="element-tag-group">
+            <span class="element-tag-badge">&lt;button&gt;</span>
+            <span class="element-selector">#submit-btn</span>
+          </div>
+          <button class="copy-all-btn">Copy All</button>
+        </div>
+        <div class="element-attrs">
+          <span class="attr-chip"><span class="attr-key">type</span>=<span class="attr-val">"submit"</span></span>
+          <span class="attr-chip"><span class="attr-key">data-testid</span>=<span class="attr-val">"submit"</span></span>
+          <span class="attr-chip"><span class="attr-key">aria-label</span>=<span class="attr-val">"Submit form"</span></span>
+          <span class="attr-chip"><span class="attr-key">disabled</span></span>
+        </div>
+      </div>
+
+      <!-- Locator Rows -->
+      <div class="locator-list">
+        <div class="locator-row preferred">
+          <span class="locator-badge xpath">xpath</span>
+          <span class="locator-value">//button[@id="submit-btn"]</span>
+          <button class="copy-btn copied">Copied</button>
+        </div>
+        <div class="locator-row">
+          <span class="locator-badge css">css</span>
+          <span class="locator-value">#submit-btn</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+        <div class="locator-row">
+          <span class="locator-badge pw">pw</span>
+          <span class="locator-value">page.getByTestId('submit')</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+        <div class="locator-row">
+          <span class="locator-badge cy">cy</span>
+          <span class="locator-value">cy.get('#submit-btn')</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+        <div class="locator-row">
+          <span class="locator-badge se">se</span>
+          <span class="locator-value">driver.findElement(By.id("submit-btn"))</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+      </div>
+
+      <!-- Footer Actions -->
+      <div class="footer-actions">
+        <button class="action-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Export
+        </button>
+        <button class="action-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
+          Test
+        </button>
+        <button class="action-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 17h2a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2"/><path d="M12 15v6"/><path d="m8 18 4 3 4-3"/><path d="M12 3v6"/></svg>
+          DOM Tree
+        </button>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-mock">
+      <span class="toast-icon">&#10003;</span>
+      XPath copied to clipboard
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MOCK 2: EMPTY STATE ===================== -->
+<div class="mock-wrapper">
+  <div class="mock-label">Pick View - Empty State</div>
+  <div class="mock-panel">
+    <div class="header">
+      <div class="logo-group">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+            <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </div>
+        <span class="logo-text">Locator</span>
+      </div>
+      <div class="header-actions">
+        <button class="header-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="stats-bar">
+      <div class="stat"><span class="stat-dot off"></span> No page</div>
+      <div class="stat">0 picked</div>
+    </div>
+    <div class="tabs">
+      <button class="tab active">Pick</button>
+      <button class="tab">Build</button>
+      <button class="tab">History</button>
+    </div>
+    <div class="content">
+      <button class="pick-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 3a2 2 0 0 0-2 2m0 0v4m0-4h4m-4 14a2 2 0 0 0 2 2m-2-2v-4m0 4h4M19 3a2 2 0 0 1 2 2m0 0v4m0-4h-4m4 14a2 2 0 0 1-2 2m2-2v-4m0 4h-4"/></svg>
+        Pick Element
+        <span class="pick-shortcut">&#8984;&#8679;L</span>
+      </button>
+
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 15 21 21M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14Z"/></svg>
+        </div>
+        <div class="empty-state-title">No element selected</div>
+        <div class="empty-state-desc">Click "Pick Element" and select any<br>element on the page to generate locators</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MOCK 3: BUILD VIEW ===================== -->
+<div class="mock-wrapper">
+  <div class="mock-label">Build View - Structured</div>
+  <div class="mock-panel">
+    <div class="header">
+      <div class="logo-group">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+            <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </div>
+        <span class="logo-text">Locator</span>
+      </div>
+      <div class="header-actions">
+        <button class="header-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="stats-bar">
+      <div class="stat"><span class="stat-dot"></span> Connected</div>
+      <div class="stat">12 picked</div>
+    </div>
+    <div class="tabs">
+      <button class="tab">Pick</button>
+      <button class="tab active">Build</button>
+      <button class="tab">History <span class="tab-badge">12</span></button>
+    </div>
+    <div class="content">
+      <!-- Segment Control -->
+      <div class="segment-control">
+        <button class="segment-btn active">Structured</button>
+        <button class="segment-btn">Freeform</button>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">Tag</label>
+        <select class="form-select">
+          <option>button</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">ID</label>
+        <input class="form-input" placeholder="e.g., submit-btn" value="submit-btn">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Class</label>
+        <input class="form-input" placeholder="e.g., btn primary">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Attribute</label>
+        <div style="display: flex; gap: 8px;">
+          <input class="form-input" placeholder="name" style="flex:1" value="data-testid">
+          <input class="form-input" placeholder="value" style="flex:1" value="submit">
+        </div>
+      </div>
+
+      <button class="generate-btn">Generate Locators</button>
+
+      <div style="margin-top: 12px;">
+        <div class="match-pill success"><span class="match-dot"></span> 1 element found</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MOCK 4: HISTORY VIEW ===================== -->
+<div class="mock-wrapper">
+  <div class="mock-label">History View</div>
+  <div class="mock-panel">
+    <div class="header">
+      <div class="logo-group">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+            <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </div>
+        <span class="logo-text">Locator</span>
+      </div>
+      <div class="header-actions">
+        <button class="header-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="stats-bar">
+      <div class="stat"><span class="stat-dot"></span> Connected</div>
+      <div class="stat">12 picked</div>
+    </div>
+    <div class="tabs">
+      <button class="tab">Pick</button>
+      <button class="tab">Build</button>
+      <button class="tab active">History <span class="tab-badge">12</span></button>
+    </div>
+    <div class="content">
+      <div class="history-list">
+        <div class="history-item">
+          <span class="history-tag">&lt;button&gt;</span>
+          <div class="history-info">
+            <div class="history-selector">#submit-btn</div>
+            <div class="history-meta">2m ago &middot; 5 locators</div>
+          </div>
+          <button class="history-delete">&times;</button>
+        </div>
+        <div class="history-item">
+          <span class="history-tag">&lt;input&gt;</span>
+          <div class="history-info">
+            <div class="history-selector">[data-testid="email-input"]</div>
+            <div class="history-meta">5m ago &middot; 5 locators</div>
+          </div>
+          <button class="history-delete">&times;</button>
+        </div>
+        <div class="history-item">
+          <span class="history-tag">&lt;div&gt;</span>
+          <div class="history-info">
+            <div class="history-selector">div.modal-overlay</div>
+            <div class="history-meta">12m ago &middot; 5 locators</div>
+          </div>
+          <button class="history-delete">&times;</button>
+        </div>
+        <div class="history-item">
+          <span class="history-tag">&lt;a&gt;</span>
+          <div class="history-info">
+            <div class="history-selector">a[href="/dashboard"]</div>
+            <div class="history-meta">1h ago &middot; 5 locators</div>
+          </div>
+          <button class="history-delete">&times;</button>
+        </div>
+        <div class="history-item">
+          <span class="history-tag">&lt;nav&gt;</span>
+          <div class="history-info">
+            <div class="history-selector">nav.sidebar</div>
+            <div class="history-meta">1h ago &middot; 5 locators</div>
+          </div>
+          <button class="history-delete">&times;</button>
+        </div>
+        <div class="history-item">
+          <span class="history-tag">&lt;span&gt;</span>
+          <div class="history-info">
+            <div class="history-selector">[role="status"]</div>
+            <div class="history-meta">2h ago &middot; 5 locators</div>
+          </div>
+          <button class="history-delete">&times;</button>
+        </div>
+      </div>
+
+      <button class="action-btn" style="width: 100%; margin-top: 12px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:14px;height:14px"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+        Clear History
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MOCK 5: SETTINGS MODAL ===================== -->
+<div class="mock-wrapper">
+  <div class="mock-label">Settings Modal</div>
+  <div class="mock-panel" style="min-height: 400px;">
+    <div class="header" style="opacity: 0.3;">
+      <div class="logo-group">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+            <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </div>
+        <span class="logo-text">Locator</span>
+      </div>
+    </div>
+    <div class="tabs" style="opacity: 0.3;">
+      <button class="tab active">Pick</button>
+      <button class="tab">Build</button>
+      <button class="tab">History</button>
+    </div>
+    <div class="content" style="opacity: 0.1; min-height: 200px;"></div>
+
+    <div class="modal-overlay">
+      <div class="modal">
+        <div class="modal-title">Settings</div>
+        <div class="modal-row">
+          <label>Default Format</label>
+          <select><option>XPath</option></select>
+        </div>
+        <div class="modal-row">
+          <label>History Limit</label>
+          <select><option>50</option></select>
+        </div>
+        <div class="modal-row">
+          <label>Theme</label>
+          <select><option>Dark</option></select>
+        </div>
+        <button class="modal-done">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
