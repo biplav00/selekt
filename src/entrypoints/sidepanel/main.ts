@@ -115,7 +115,6 @@ const freeformInput = document.getElementById('freeformInput') as HTMLTextAreaEl
 const freeformType = document.getElementById('freeformType') as HTMLSelectElement;
 const suggestionsEl = document.getElementById('suggestions')!;
 const matchCountEl = document.getElementById('matchCount')!;
-const buildModeToggle = document.getElementById('buildModeToggle') as HTMLElement;
 const structuredFields = document.getElementById('structuredFields') as HTMLElement;
 const freeformFields = document.getElementById('freeformFields') as HTMLElement;
 const structuredLabel = document.getElementById('structuredLabel') as HTMLElement;
