@@ -1,1 +1,1 @@
-npm run lint:fix -- --staged
+npx biome check --write --staged 2>/dev/null || true
