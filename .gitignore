@@ -1,1 +1,26 @@
-.worktrees/
+# Dependencies
+node_modules/
+
+# Build output
+output/
+dev/.wxt/
+.wxt/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local

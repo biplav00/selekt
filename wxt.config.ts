@@ -4,7 +4,7 @@ export default defineConfig({
   srcDir: 'src',
   outDir: 'output',
   manifest: {
-    name: 'Locator Generator',
+    name: 'Selekt',
     description: 'Test automation locator generation tool for Chrome',
     version: '1.0.0',
     permissions: ['activeTab', 'scripting', 'tabs', 'storage', 'sidePanel'],
@@ -12,7 +12,7 @@ export default defineConfig({
       default_path: 'sidepanel.html',
     },
     action: {
-      default_title: 'Locator Generator',
+      default_title: 'Selekt',
     },
     commands: {
       'toggle-picker': {

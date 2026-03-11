@@ -1,5 +1,5 @@
 {
-  "name": "locator-generator",
+  "name": "selekt",
   "version": "1.0.0",
   "description": "Test automation locator generation tool for Chrome",
   "type": "module",

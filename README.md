@@ -1,36 +1,21 @@
-# Locator Generator - Chrome Extension
+# Selekt
 
-A test automation locator generation tool for Chrome that generates XPath, CSS, and framework-specific selectors (Playwright, Cypress, Selenium).
+A Chrome extension for test automation that generates XPath, CSS, and framework-specific selectors (Playwright, Cypress, Selenium).
 
 ## Features
 
 - **Click-to-Select**: Click any element on a webpage to generate locators
 - **Multi-format Output**: XPath, CSS, Playwright, Cypress, Selenium
-- **Interactive Builder**: Test and refine selectors
+- **Interactive Builder**: Build and test selectors
 - **History**: Save and manage previously generated locators
 - **Export**: Copy to clipboard or export as JSON
+- **Keyboard Shortcuts**: Cmd+Shift+L to toggle picker
 
 ## Tech Stack
 
-- **Framework**: WXT (Chrome Extension Framework)
-- **UI**: React + TypeScript
+- **Framework**: [WXT](https://wxt.dev/) (Chrome Extension Framework)
+- **UI**: Vanilla TypeScript
 - **Build**: Vite
-- **Styling**: Tailwind CSS
-
-## Development Stages
-
-| Stage | Description | Status |
-|-------|-------------|--------|
-| 1 | Project Setup & Skills Installation | [ ] |
-| 2 | WXT Project Scaffolding | [ ] |
-| 3 | Core Locator Generation Logic | [ ] |
-| 4 | Element Picker (Content Script) | [ ] |
-| 5 | Popup UI Components | [ ] |
-| 6 | Multi-format Export | [ ] |
-| 7 | History & Storage | [ ] |
-| 8 | Build & Testing | [ ] |
-
-See [STAGES.md](./STAGES.md) for detailed stage-by-stage progress.
 
 ## Getting Started
 
@@ -43,18 +28,23 @@ npm run dev
 
 # Build for production
 npm run build
-
-# Load extension in Chrome
-# 1. Open chrome://extensions
-# 2. Enable "Developer mode"
-# 3. Click "Load unpacked"
-# 4. Select the dist folder
 ```
+
+## Loading the Extension
+
+1. Open `chrome://extensions`
+2. Enable "Developer mode"
+3. Click "Load unpacked"
+4. Select the `output/chrome-mv3` folder
 
 ## Usage
 
-1. Click the extension icon in Chrome toolbar
+1. Click the extension icon in Chrome toolbar (or use Cmd+Shift+L)
 2. Click "Pick Element" button
 3. Click any element on the webpage
 4. View generated locators in multiple formats
 5. Copy individual locators or export as JSON
+
+## Version
+
+See [CHANGELOG.md](./CHANGELOG.md) for version history.

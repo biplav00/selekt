@@ -119,6 +119,8 @@ const structuredFields = document.getElementById('structuredFields') as HTMLElem
 const freeformFields = document.getElementById('freeformFields') as HTMLElement;
 const structuredLabel = document.getElementById('structuredLabel') as HTMLElement;
 const freeformLabel = document.getElementById('freeformLabel') as HTMLElement;
+const connectionDot = document.getElementById('connectionDot')!;
+const connectionStatus = document.getElementById('connectionStatus')!;
 
 // --- Tab Navigation ---
 tabs.forEach(tab => {
@@ -161,8 +163,12 @@ function updateTabAccessibility() {
 // --- Element Picking ---
 pickBtn.addEventListener('click', async () => {
   pickBtn.disabled = true;
-  pickBtn.classList.add('picking');
-  pickBtn.textContent = 'Click element on page...';
+  pickBtn.classList.add('active');
+  pickBtn.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 3a2 2 0 0 0-2 2m0 0v4m0-4h4m-4 14a2 2 0 0 0 2 2m-2-2v-4m0 4h4M19 3a2 2 0 0 1 2 2m0 0v4m0-4h-4m4 14a2 2 0 0 1-2 2m2-2v-4m0 4h-4"/></svg>
+    Picking...
+    <span class="pick-shortcut">ESC</span>
+  `;
 
   // Auto-reset after 30s in case content script never responds
   pickTimeout = setTimeout(() => {
@@ -184,8 +190,12 @@ function resetPickButton() {
     pickTimeout = null;
   }
   pickBtn.disabled = false;
-  pickBtn.classList.remove('picking');
-  pickBtn.textContent = 'Pick Element';
+  pickBtn.classList.remove('active');
+  pickBtn.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 3a2 2 0 0 0-2 2m0 0v4m0-4h4m-4 14a2 2 0 0 0 2 2m-2-2v-4m0 4h4M19 3a2 2 0 0 1 2 2m0 0v4m0-4h-4m4 14a2 2 0 0 1-2 2m2-2v-4m0 4h-4"/></svg>
+    Pick Element
+    <span class="pick-shortcut">&#8984;&#8679;L</span>
+  `;
 }
 
 chrome.runtime.onMessage.addListener((message) => {
@@ -342,16 +352,16 @@ function renderElementInfo() {
   elementInfoEl.innerHTML = `
     <div class="element-card">
       <div class="element-card-header">
-        <div class="element-tag">
-          <span class="tag-name">&lt;${escapeHtml(currentElement.tagName)}&gt;</span>
-          <span class="element-id">${escapeHtml(path || 'no id/class')}</span>
+        <div class="element-tag-group">
+          <span class="element-tag-badge">&lt;${escapeHtml(currentElement.tagName)}&gt;</span>
+          <span class="element-selector">${escapeHtml(path || 'no id/class')}</span>
         </div>
         <button type="button" class="copy-all-btn" id="copyAllBtn">Copy All</button>
       </div>
       ${displayAttrs.length > 0 ? `
-        <div class="attributes">
+        <div class="element-attrs">
           ${displayAttrs.map(([key, val]) => `
-            <span class="attr-chip" title="${escapeAttr(key)}=&quot;${escapeAttr(val)}&quot;">${escapeHtml(key)}="${escapeHtml(String(val).substring(0, 30))}"</span>
+            <span class="attr-chip"><span class="attr-key">${escapeHtml(key)}</span>=<span class="attr-val">"${escapeHtml(String(val).substring(0, 30))}"</span></span>
           `).join('')}
           ${moreCount > 0 ? `<span class="attr-chip">+${moreCount} more</span>` : ''}
         </div>
@@ -367,7 +377,7 @@ function renderLocatorRows(container: HTMLElement, locators: Locators, formats?:
 
   container.innerHTML = fmts.map(f => `
     <div class="locator-row ${f.key === activeFormat ? 'preferred' : ''}" data-format="${f.key}">
-      <span class="locator-type ${f.key}">${f.label}</span>
+      <span class="locator-badge ${f.key === 'playwright' ? 'pw' : f.key === 'cypress' ? 'cy' : f.key === 'selenium' ? 'se' : f.key}">${f.label}</span>
       <span class="locator-value" title="${escapeAttr(locators[f.key])}">${escapeHtml(locators[f.key])}</span>
       <button type="button" class="copy-btn" data-format="${f.key}">Copy</button>
     </div>
@@ -420,14 +430,24 @@ function copyAllLocators() {
 
 // --- Stats ---
 function updateStats() {
-  elementCount.textContent = `${locatorHistory.length} elements`;
+  elementCount.textContent = `${locatorHistory.length}`;
+  const historyBadge = document.getElementById('historyBadge');
+  if (historyBadge) {
+    if (locatorHistory.length > 0) {
+      historyBadge.textContent = `${locatorHistory.length}`;
+      historyBadge.style.display = 'inline-flex';
+    } else {
+      historyBadge.style.display = 'none';
+    }
+  }
 }
 
 // --- Toast ---
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 function showToast(message: string) {
   if (toastTimer) clearTimeout(toastTimer);
-  toast.textContent = message;
+  const toastMessage = document.getElementById('toastMessage');
+  if (toastMessage) toastMessage.textContent = message;
   toast.classList.add('show');
   toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
 }
@@ -479,9 +499,11 @@ function renderHistory() {
   list.innerHTML = locatorHistory.slice(0, 15).map(item => `
     <div class="history-item" data-id="${escapeAttr(item.id)}" tabindex="0">
       <span class="history-tag">&lt;${escapeHtml(item.element.tagName)}&gt;</span>
-      <span class="history-locator">${escapeHtml(item.locators.css)}</span>
-      <span class="history-time">${escapeHtml(getRelativeTime(item.timestamp))}</span>
-      <button type="button" class="history-delete" data-id="${escapeAttr(item.id)}" aria-label="Delete" title="Delete">&#10005;</button>
+      <div class="history-info">
+        <div class="history-selector">${escapeHtml(item.locators.css)}</div>
+        <div class="history-meta">${escapeHtml(getRelativeTime(item.timestamp))} &middot; 5 locators</div>
+      </div>
+      <button type="button" class="history-delete" data-id="${escapeAttr(item.id)}" aria-label="Delete" title="Delete">&times;</button>
     </div>
   `).join('');
 
@@ -1032,5 +1054,27 @@ document.addEventListener('visibilitychange', async () => {
 fetchPageSuggestions().then(s => { pageSuggestionsCache = s; });
 
 // --- Init ---
+async function checkConnection() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('about:')) {
+      connectionDot.classList.remove('warn', 'off');
+      connectionStatus.textContent = 'Connected';
+    } else {
+      connectionDot.classList.add('off');
+      connectionDot.classList.remove('warn');
+      connectionStatus.textContent = 'No page';
+    }
+  } catch {
+    connectionDot.classList.add('off');
+    connectionDot.classList.remove('warn');
+    connectionStatus.textContent = 'No page';
+  }
+}
+
+checkConnection();
 loadHistory();
 loadSettings();
+
+chrome.tabs.onActivated.addListener(checkConnection);
+chrome.tabs.onUpdated.addListener(checkConnection);
