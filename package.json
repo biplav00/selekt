@@ -6,9 +6,18 @@
   "scripts": {
     "dev": "wxt dev",
     "build": "wxt build",
-    "preview": "wxt preview"
+    "preview": "wxt preview",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "icons": "node scripts/generate-icons.js",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "husky": "^9.1.0",
+    "semantic-release": "^24.0.0",
+    "sharp": "^0.34.5",
     "wxt": "^0.20.18"
   }
 }

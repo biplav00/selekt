@@ -44,7 +44,11 @@ function escapeHtml(str: string): string {
 }
 
 function escapeAttr(str: string): string {
-  return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 function cssEscape(value: string): string {
@@ -63,9 +67,9 @@ async function ensureContentScript(tabId: number): Promise<boolean> {
     try {
       await chrome.scripting.executeScript({
         target: { tabId },
-        files: ['content-scripts/content.js']
+        files: ['content-scripts/content.js'],
       });
-      await new Promise(r => setTimeout(r, 150));
+      await new Promise((r) => setTimeout(r, 150));
       return true;
     } catch {
       return false;
@@ -123,11 +127,11 @@ const connectionDot = document.getElementById('connectionDot')!;
 const connectionStatus = document.getElementById('connectionStatus')!;
 
 // --- Tab Navigation ---
-tabs.forEach(tab => {
+tabs.forEach((tab) => {
   tab.addEventListener('click', () => {
     const target = tab.getAttribute('data-tab');
-    tabs.forEach(t => t.classList.remove('active'));
-    views.forEach(v => v.classList.remove('active'));
+    tabs.forEach((t) => t.classList.remove('active'));
+    views.forEach((v) => v.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById(`${target}-view`)?.classList.add('active');
     updateTabAccessibility();
@@ -139,7 +143,8 @@ tabs.forEach(tab => {
     let newIndex = currentIndex;
 
     if (e.key === 'ArrowRight') newIndex = (currentIndex + 1) % tabArray.length;
-    else if (e.key === 'ArrowLeft') newIndex = (currentIndex - 1 + tabArray.length) % tabArray.length;
+    else if (e.key === 'ArrowLeft')
+      newIndex = (currentIndex - 1 + tabArray.length) % tabArray.length;
     else if (e.key === 'Home') newIndex = 0;
     else if (e.key === 'End') newIndex = tabArray.length - 1;
     else return;
@@ -152,7 +157,7 @@ tabs.forEach(tab => {
 });
 
 function updateTabAccessibility() {
-  tabs.forEach(t => {
+  tabs.forEach((t) => {
     const tabEl = t as HTMLElement;
     const isActive = tabEl.classList.contains('active');
     tabEl.setAttribute('aria-selected', isActive ? 'true' : 'false');
@@ -233,7 +238,7 @@ function generateLocators(element: ElementInfo): Locators {
   } else if (attrs.name) {
     css = `${tag}[name="${attrs.name}"]`;
   } else if (attrs.class) {
-    const first = attrs.class.split(' ').filter(c => c)[0];
+    const first = attrs.class.split(' ').filter((c) => c)[0];
     if (first) css = `${tag}.${cssEscape(first)}`;
   } else if (attrs.role) {
     css = `${tag}[role="${attrs.role}"]`;
@@ -250,7 +255,7 @@ function generateLocators(element: ElementInfo): Locators {
   } else if (attrs.name) {
     xpath = `//${tag}[@name="${attrs.name}"]`;
   } else if (attrs.class) {
-    const first = attrs.class.split(' ').filter(c => c)[0];
+    const first = attrs.class.split(' ').filter((c) => c)[0];
     xpath = first ? `//${tag}[contains(@class,"${first}")]` : `//${tag}`;
   } else if (text && text.length <= 30 && !text.includes('\n')) {
     xpath = `//${tag}[text()="${text}"]`;
@@ -287,7 +292,12 @@ function generateLocators(element: ElementInfo): Locators {
   let cypress: string;
   if (attrs['data-testid']) {
     cypress = `cy.get('[data-testid="${attrs['data-testid']}"]')`;
-  } else if (text && text.length <= 30 && !text.includes('\n') && (tag === 'button' || tag === 'a')) {
+  } else if (
+    text &&
+    text.length <= 30 &&
+    !text.includes('\n') &&
+    (tag === 'button' || tag === 'a')
+  ) {
     cypress = `cy.contains('${tag}', '${text}')`;
   } else {
     cypress = `cy.get('${css}')`;
@@ -300,7 +310,7 @@ function generateLocators(element: ElementInfo): Locators {
   } else if (attrs.name) {
     selenium = `driver.findElement(By.name("${attrs.name.replace(/"/g, '\\"')}"))`;
   } else if (attrs.class) {
-    const first = attrs.class.split(' ').filter(c => c)[0];
+    const first = attrs.class.split(' ').filter((c) => c)[0];
     selenium = first
       ? `driver.findElement(By.className("${first.replace(/"/g, '\\"')}"))`
       : `driver.findElement(By.cssSelector("${css.replace(/"/g, '\\"')}"))`;
@@ -317,14 +327,14 @@ const FORMAT_ORDER: Array<{ key: keyof Locators; label: string }> = [
   { key: 'xpath', label: 'XPATH' },
   { key: 'playwright', label: 'PW' },
   { key: 'cypress', label: 'CY' },
-  { key: 'selenium', label: 'SE' }
+  { key: 'selenium', label: 'SE' },
 ];
 
 function getOrderedFormats(): Array<{ key: keyof Locators; label: string }> {
   // Put active format first
-  const preferred = FORMAT_ORDER.find(f => f.key === activeFormat);
+  const preferred = FORMAT_ORDER.find((f) => f.key === activeFormat);
   if (!preferred) return FORMAT_ORDER;
-  return [preferred, ...FORMAT_ORDER.filter(f => f.key !== activeFormat)];
+  return [preferred, ...FORMAT_ORDER.filter((f) => f.key !== activeFormat)];
 }
 
 function renderElementInfo() {
@@ -343,8 +353,8 @@ function renderElementInfo() {
   if (attrs.id) path = `#${attrs.id}`;
   else if (attrs.class) path = `.${attrs.class.split(' ').slice(0, 2).join('.')}`;
 
-  const attrEntries = Object.entries(attrs).filter(([key]) =>
-    !['class', 'id', 'style', 'href', 'src'].includes(key)
+  const attrEntries = Object.entries(attrs).filter(
+    ([key]) => !['class', 'id', 'style', 'href', 'src'].includes(key)
   );
   const displayAttrs = attrEntries.slice(0, 12);
   const moreCount = attrEntries.length - 12;
@@ -358,33 +368,49 @@ function renderElementInfo() {
         </div>
         <button type="button" class="copy-all-btn" id="copyAllBtn">Copy All</button>
       </div>
-      ${displayAttrs.length > 0 ? `
+      ${
+        displayAttrs.length > 0
+          ? `
         <div class="element-attrs">
-          ${displayAttrs.map(([key, val]) => `
+          ${displayAttrs
+            .map(
+              ([key, val]) => `
             <span class="attr-chip"><span class="attr-key">${escapeHtml(key)}</span>=<span class="attr-val">"${escapeHtml(String(val).substring(0, 30))}"</span></span>
-          `).join('')}
+          `
+            )
+            .join('')}
           ${moreCount > 0 ? `<span class="attr-chip">+${moreCount} more</span>` : ''}
         </div>
-      ` : ''}
+      `
+          : ''
+      }
     </div>
   `;
 
   document.getElementById('copyAllBtn')?.addEventListener('click', copyAllLocators);
 }
 
-function renderLocatorRows(container: HTMLElement, locators: Locators, formats?: Array<{ key: keyof Locators; label: string }>) {
+function renderLocatorRows(
+  container: HTMLElement,
+  locators: Locators,
+  formats?: Array<{ key: keyof Locators; label: string }>
+) {
   const fmts = formats || getOrderedFormats();
 
-  container.innerHTML = fmts.map(f => `
+  container.innerHTML = fmts
+    .map(
+      (f) => `
     <div class="locator-row ${f.key === activeFormat ? 'preferred' : ''}" data-format="${f.key}">
       <span class="locator-badge ${f.key === 'playwright' ? 'pw' : f.key === 'cypress' ? 'cy' : f.key === 'selenium' ? 'se' : f.key}">${f.label}</span>
       <span class="locator-value" title="${escapeAttr(locators[f.key])}">${escapeHtml(locators[f.key])}</span>
       <button type="button" class="copy-btn" data-format="${f.key}">Copy</button>
     </div>
-  `).join('');
+  `
+    )
+    .join('');
 
   // Click-to-copy on the entire row
-  container.querySelectorAll('.locator-row').forEach(row => {
+  container.querySelectorAll('.locator-row').forEach((row) => {
     const format = (row as HTMLElement).dataset.format as keyof Locators;
     const copyBtn = row.querySelector('.copy-btn') as HTMLElement;
 
@@ -465,7 +491,7 @@ function saveToHistory(element: ElementInfo, locators: Locators) {
     id: crypto.randomUUID(),
     timestamp: Date.now(),
     element,
-    locators
+    locators,
   };
   locatorHistory.unshift(item);
   if (locatorHistory.length > historyLimit) {
@@ -496,7 +522,10 @@ function renderHistory() {
   }
 
   empty.style.display = 'none';
-  list.innerHTML = locatorHistory.slice(0, 15).map(item => `
+  list.innerHTML = locatorHistory
+    .slice(0, 15)
+    .map(
+      (item) => `
     <div class="history-item" data-id="${escapeAttr(item.id)}" tabindex="0">
       <span class="history-tag">&lt;${escapeHtml(item.element.tagName)}&gt;</span>
       <div class="history-info">
@@ -505,15 +534,17 @@ function renderHistory() {
       </div>
       <button type="button" class="history-delete" data-id="${escapeAttr(item.id)}" aria-label="Delete" title="Delete">&times;</button>
     </div>
-  `).join('');
+  `
+    )
+    .join('');
 
   // Click item to restore locators
-  list.querySelectorAll('.history-item').forEach(el => {
+  list.querySelectorAll('.history-item').forEach((el) => {
     el.addEventListener('click', (e) => {
       // Don't restore if clicking delete button
       if ((e.target as HTMLElement).closest('.history-delete')) return;
       const id = el.getAttribute('data-id');
-      const item = locatorHistory.find(h => h.id === id);
+      const item = locatorHistory.find((h) => h.id === id);
       if (item) {
         currentElement = item.element;
         currentLocators = item.locators;
@@ -525,10 +556,10 @@ function renderHistory() {
   });
 
   // Delete single item
-  list.querySelectorAll('.history-delete').forEach(btn => {
+  list.querySelectorAll('.history-delete').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const id = (btn as HTMLElement).dataset.id;
-      locatorHistory = locatorHistory.filter(h => h.id !== id);
+      locatorHistory = locatorHistory.filter((h) => h.id !== id);
       await chrome.storage.local.set({ locatorHistory });
       updateStats();
       renderHistory();
@@ -556,7 +587,7 @@ document.getElementById('exportBtn')?.addEventListener('click', () => {
   const data = {
     element: currentElement,
     locators: currentLocators,
-    exportedAt: new Date().toISOString()
+    exportedAt: new Date().toISOString(),
   };
 
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -577,7 +608,7 @@ document.getElementById('testBtn')?.addEventListener('click', async () => {
   try {
     await sendToTab({
       type: 'TEST_SELECTOR',
-      selector: currentLocators.css
+      selector: currentLocators.css,
     });
     showToast('Testing on page!');
   } catch {
@@ -605,7 +636,7 @@ function saveSettings() {
   const formatSelect = document.getElementById('defaultFormat') as HTMLSelectElement;
   const limitSelect = document.getElementById('historyLimitSelect') as HTMLSelectElement;
   const defaultFormat = formatSelect?.value || 'xpath';
-  const newLimit = parseInt(limitSelect?.value || '50', 10);
+  const newLimit = Number.parseInt(limitSelect?.value || '50', 10);
 
   chrome.storage.local.set({ defaultFormat, historyLimit: newLimit });
   activeFormat = defaultFormat as keyof Locators;
@@ -676,13 +707,17 @@ function buildDomTreeHtml(node: DomTreeNode): string {
   let html = '';
   const indent = node.depth * 14;
   const expandSymbol = node.hasChildren ? '&#9660;' : '&middot;';
-  const childInfo = node.childCount && node.childCount > 0 ? ` <span style="color:var(--text-muted);font-size:9px">(${node.childCount})</span>` : '';
+  const childInfo =
+    node.childCount && node.childCount > 0
+      ? ` <span style="color:var(--text-muted);font-size:9px">(${node.childCount})</span>`
+      : '';
 
   html += `<div class="dom-node" data-tag="${escapeAttr(node.tag)}" data-id="${escapeAttr(node.id || '')}" data-class="${escapeAttr(node.className || '')}" style="padding-left: ${indent}px">`;
   html += `<span class="dom-expand">${expandSymbol}</span>`;
   html += `<span class="dom-tag">${escapeHtml(node.tag)}</span>`;
   if (node.id) html += `<span class="dom-attr">#${escapeHtml(node.id)}</span>`;
-  if (node.className) html += `<span class="dom-attr">.${escapeHtml(node.className.split(' ')[0])}</span>`;
+  if (node.className)
+    html += `<span class="dom-attr">.${escapeHtml(node.className.split(' ')[0])}</span>`;
   html += childInfo;
   html += `</div>`;
 
@@ -704,13 +739,13 @@ domTreeEl.addEventListener('click', (e) => {
   const id = nodeEl.dataset.id;
   const className = nodeEl.dataset.class;
 
-  domTreeEl.querySelectorAll('.dom-node').forEach(n => n.classList.remove('selected'));
+  domTreeEl.querySelectorAll('.dom-node').forEach((n) => n.classList.remove('selected'));
   nodeEl.classList.add('selected');
 
   const info: ElementInfo = {
     tagName: tag,
     text: '',
-    attributes: {}
+    attributes: {},
   };
   if (id) info.attributes.id = id;
   if (className) info.attributes.class = className;
@@ -757,7 +792,7 @@ document.getElementById('buildGenerateBtn')?.addEventListener('click', () => {
   const element: ElementInfo = {
     tagName: tag,
     text: '',
-    attributes: {}
+    attributes: {},
   };
   if (id) element.attributes.id = id;
   if (className) element.attributes.class = className;
@@ -799,7 +834,11 @@ const suggestionsByType: Record<string, Suggestion[]> = {
   ],
   playwright: [
     { type: 'locator', label: "page.locator('')", code: "page.locator('')" },
-    { type: 'role', label: "getByRole('button', { name: '' })", code: "page.getByRole('button', { name: '' })" },
+    {
+      type: 'role',
+      label: "getByRole('button', { name: '' })",
+      code: "page.getByRole('button', { name: '' })",
+    },
     { type: 'label', label: "getByLabel('')", code: "page.getByLabel('')" },
     { type: 'placeholder', label: "getByPlaceholder('')", code: "page.getByPlaceholder('')" },
     { type: 'text', label: "getByText('')", code: "page.getByText('')" },
@@ -810,7 +849,7 @@ const suggestionsByType: Record<string, Suggestion[]> = {
   cypress: [
     { type: 'get', label: "cy.get('')", code: "cy.get('')" },
     { type: 'contains', label: "cy.contains('')", code: "cy.contains('')" },
-    { type: 'get', label: "cy.get('[data-testid=\"\"]')", code: "cy.get('[data-testid=\"\"]')" },
+    { type: 'get', label: 'cy.get(\'[data-testid=""]\')', code: 'cy.get(\'[data-testid=""]\')' },
   ],
   selenium: [
     { type: 'css', label: 'By.cssSelector("")', code: 'driver.findElement(By.cssSelector(""))' },
@@ -829,10 +868,9 @@ function getSuggestions(input: string, type: string): Suggestion[] {
     results = baseSuggestions.slice(0, 8);
   } else {
     const lower = input.toLowerCase();
-    results = baseSuggestions.filter(s =>
-      s.label.toLowerCase().includes(lower) ||
-      s.code.toLowerCase().includes(lower)
-    ).slice(0, 8);
+    results = baseSuggestions
+      .filter((s) => s.label.toLowerCase().includes(lower) || s.code.toLowerCase().includes(lower))
+      .slice(0, 8);
   }
 
   // Merge page-aware suggestions
@@ -845,9 +883,9 @@ function getSuggestions(input: string, type: string): Suggestion[] {
       const items = pageSuggestionsCache[category];
       if (items) {
         items
-          .filter(s => s.code.toLowerCase().includes(lower))
+          .filter((s) => s.code.toLowerCase().includes(lower))
           .slice(0, limit)
-          .forEach(s => pageSuggestions.push({ ...s, type: `page` }));
+          .forEach((s) => pageSuggestions.push({ ...s, type: `page` }));
       }
     }
 
@@ -865,15 +903,19 @@ function renderSuggestions(items: Suggestion[]) {
     return;
   }
 
-  suggestionsEl.innerHTML = items.map(item => `
+  suggestionsEl.innerHTML = items
+    .map(
+      (item) => `
     <div class="suggestion-item" data-code="${escapeAttr(item.code)}">
       <span class="suggestion-type">${escapeHtml(item.type)}</span> ${escapeHtml(item.label)}
     </div>
-  `).join('');
+  `
+    )
+    .join('');
 
   suggestionsEl.style.display = 'block';
 
-  suggestionsEl.querySelectorAll('.suggestion-item').forEach(el => {
+  suggestionsEl.querySelectorAll('.suggestion-item').forEach((el) => {
     el.addEventListener('click', () => {
       const code = (el as HTMLElement).dataset.code || '';
       freeformInput.value = code;
@@ -960,10 +1002,13 @@ async function testFreeformLocator() {
     const result = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: (sel: string) => {
-        try { return document.querySelectorAll(sel).length; }
-        catch { return -1; }
+        try {
+          return document.querySelectorAll(sel).length;
+        } catch {
+          return -1;
+        }
       },
-      args: [cssSelector]
+      args: [cssSelector],
     });
 
     const count = result[0].result;
@@ -997,46 +1042,66 @@ async function fetchPageSuggestions(): Promise<Record<string, Suggestion[]> | nu
       target: { tabId: tab.id },
       func: () => {
         const suggestions: Record<string, Array<{ type: string; label: string; code: string }>> = {
-          id: [], class: [], testid: [], role: []
+          id: [],
+          class: [],
+          testid: [],
+          role: [],
         };
 
-        document.querySelectorAll('[id]').forEach(el => {
+        document.querySelectorAll('[id]').forEach((el) => {
           if (el.id && !el.id.includes(' ') && el.id.length < 50) {
             suggestions.id.push({ type: 'ID', label: `#${el.id}`, code: `#${el.id}` });
           }
         });
 
-        document.querySelectorAll('[data-testid]').forEach(el => {
+        document.querySelectorAll('[data-testid]').forEach((el) => {
           const val = el.getAttribute('data-testid');
-          if (val) suggestions.testid.push({ type: 'testid', label: `[data-testid="${val}"]`, code: `[data-testid="${val}"]` });
+          if (val)
+            suggestions.testid.push({
+              type: 'testid',
+              label: `[data-testid="${val}"]`,
+              code: `[data-testid="${val}"]`,
+            });
         });
-        document.querySelectorAll('[data-test]').forEach(el => {
+        document.querySelectorAll('[data-test]').forEach((el) => {
           const val = el.getAttribute('data-test');
-          if (val) suggestions.testid.push({ type: 'testid', label: `[data-test="${val}"]`, code: `[data-test="${val}"]` });
+          if (val)
+            suggestions.testid.push({
+              type: 'testid',
+              label: `[data-test="${val}"]`,
+              code: `[data-test="${val}"]`,
+            });
         });
 
         const seen = new Set<string>();
-        document.querySelectorAll('[class]').forEach(el => {
+        document.querySelectorAll('[class]').forEach((el) => {
           const cn = el.className;
           if (typeof cn === 'string') {
-            cn.split(' ').filter(c => c && c.length < 30 && !seen.has(c)).slice(0, 2).forEach(c => {
-              seen.add(c);
-              suggestions.class.push({ type: 'class', label: `.${c}`, code: `.${c}` });
-            });
+            cn.split(' ')
+              .filter((c) => c && c.length < 30 && !seen.has(c))
+              .slice(0, 2)
+              .forEach((c) => {
+                seen.add(c);
+                suggestions.class.push({ type: 'class', label: `.${c}`, code: `.${c}` });
+              });
           }
         });
 
         const roles = new Set<string>();
-        document.querySelectorAll('[role]').forEach(el => {
+        document.querySelectorAll('[role]').forEach((el) => {
           const role = el.getAttribute('role');
           if (role && !roles.has(role)) {
             roles.add(role);
-            suggestions.role.push({ type: 'role', label: `[role="${role}"]`, code: `[role="${role}"]` });
+            suggestions.role.push({
+              type: 'role',
+              label: `[role="${role}"]`,
+              code: `[role="${role}"]`,
+            });
           }
         });
 
         return suggestions;
-      }
+      },
     });
 
     return result[0].result;
@@ -1051,7 +1116,9 @@ document.addEventListener('visibilitychange', async () => {
   }
 });
 
-fetchPageSuggestions().then(s => { pageSuggestionsCache = s; });
+fetchPageSuggestions().then((s) => {
+  pageSuggestionsCache = s;
+});
 
 // --- Init ---
 async function checkConnection() {

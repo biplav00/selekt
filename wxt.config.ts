@@ -7,12 +7,21 @@ export default defineConfig({
     name: 'Selekt',
     description: 'Test automation locator generation tool for Chrome',
     version: '1.0.0',
+    icons: {
+      16: 'icons/16.png',
+      48: 'icons/48.png',
+      128: 'icons/128.png',
+    },
     permissions: ['activeTab', 'scripting', 'tabs', 'storage', 'sidePanel'],
     side_panel: {
       default_path: 'sidepanel.html',
     },
     action: {
       default_title: 'Selekt',
+      default_icon: {
+        16: 'icons/16.png',
+        48: 'icons/48.png',
+      },
     },
     commands: {
       'toggle-picker': {

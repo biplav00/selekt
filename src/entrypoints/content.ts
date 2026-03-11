@@ -79,7 +79,7 @@ export default defineContentScript({
 
       const cls = element.getAttribute('class');
       if (cls) {
-        const first = cls.split(' ').filter(c => c)[0];
+        const first = cls.split(' ').filter((c) => c)[0];
         if (first) return `${tag}.${first}`;
       }
 
@@ -103,7 +103,7 @@ export default defineContentScript({
     }
 
     function getDomTree(): DomTreeNode | null {
-      function buildTree(node: Element, depth: number = 0, maxDepth: number = 5): DomTreeNode | null {
+      function buildTree(node: Element, depth = 0, maxDepth = 5): DomTreeNode | null {
         if (depth > maxDepth || !node) return null;
 
         const tag = node.tagName.toLowerCase();
@@ -120,7 +120,7 @@ export default defineContentScript({
           depth,
           hasChildren: node.children.length > 0,
           children: [],
-          childCount: node.children.length
+          childCount: node.children.length,
         };
 
         const children = Array.from(node.children).slice(0, 20);
@@ -263,7 +263,7 @@ export default defineContentScript({
         clearTimeout(highlightTimeout);
         highlightTimeout = null;
       }
-      document.querySelectorAll('[data-locator-highlight]').forEach(el => {
+      document.querySelectorAll('[data-locator-highlight]').forEach((el) => {
         el.removeAttribute('data-locator-highlight');
         (el as HTMLElement).style.outline = '';
         (el as HTMLElement).style.outlineOffset = '';
@@ -276,7 +276,7 @@ export default defineContentScript({
 
       try {
         const elements = document.querySelectorAll(selector);
-        elements.forEach(el => {
+        elements.forEach((el) => {
           (el as HTMLElement).style.outline = '2px solid #10B981';
           (el as HTMLElement).style.outlineOffset = '2px';
           el.setAttribute('data-locator-highlight', 'true');
@@ -284,7 +284,7 @@ export default defineContentScript({
 
         chrome.runtime.sendMessage({
           type: 'SELECTOR_TESTED',
-          count: elements.length
+          count: elements.length,
         });
 
         // Auto-clear highlights after 5 seconds
@@ -295,7 +295,7 @@ export default defineContentScript({
         chrome.runtime.sendMessage({
           type: 'SELECTOR_TESTED',
           count: -1,
-          error: 'Invalid selector'
+          error: 'Invalid selector',
         });
       }
     }
