@@ -6,8 +6,21 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    // Apply theme before first paint to prevent flash
+    (function() {
+      try {
+        const stored = localStorage.getItem('selekt-theme');
+        if (stored === 'light') document.documentElement.setAttribute('data-theme', 'light');
+        else if (stored === 'system') {
+          if (window.matchMedia('(prefers-color-scheme: light)').matches)
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+      } catch(e) {}
+    })();
+  </script>
   <style>
-    :root {
+    :root, :root[data-theme="dark"] {
       --bg-primary: #09090b;
       --bg-secondary: #111114;
       --bg-tertiary: #18181b;
@@ -18,8 +31,8 @@
       --border-accent: #3b82f620;
       --text-primary: #fafafa;
       --text-secondary: #a1a1aa;
-      --text-tertiary: #71717a;
-      --text-muted: #52525b;
+      --text-tertiary: #8b8b93;
+      --text-muted: #71717a;
       --accent: #3b82f6;
       --accent-soft: #3b82f618;
       --accent-hover: #60a5fa;
@@ -41,6 +54,40 @@
       --radius-md: 8px;
       --radius-lg: 12px;
       --radius-xl: 16px;
+      color-scheme: dark;
+    }
+
+    :root[data-theme="light"] {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f4f4f5;
+      --bg-tertiary: #e4e4e7;
+      --bg-elevated: #fafafa;
+      --bg-hover: #e4e4e7;
+      --border: #d4d4d8;
+      --border-subtle: #a1a1aa;
+      --border-accent: #3b82f620;
+      --text-primary: #09090b;
+      --text-secondary: #3f3f46;
+      --text-tertiary: #52525b;
+      --text-muted: #71717a;
+      --accent: #2563eb;
+      --accent-soft: #2563eb15;
+      --accent-hover: #3b82f6;
+      --accent-glow: #2563eb25;
+      --success: #16a34a;
+      --success-soft: #16a34a12;
+      --error: #dc2626;
+      --error-soft: #dc262612;
+      --warning: #ca8a04;
+      --warning-soft: #ca8a0412;
+      --purple: #7c3aed;
+      --purple-soft: #7c3aed12;
+      --cyan: #0891b2;
+      --cyan-soft: #0891b212;
+      --orange: #ea580c;
+      --orange-soft: #ea580c12;
+      --pink: #db2777;
+      color-scheme: light;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -49,7 +96,8 @@
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background: var(--bg-primary);
       color: var(--text-primary);
-      width: 380px;
+      width: 100%;
+      max-width: 380px;
       min-height: 600px;
       font-size: 12px;
       line-height: 1.5;
@@ -57,9 +105,6 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
-      border-radius: var(--radius-xl);
-      border: 1px solid var(--border);
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 20px 60px -12px rgba(0,0,0,0.7);
     }
 
     /* ===== HEADER ===== */
@@ -122,7 +167,7 @@
       padding: 8px 16px;
       background: var(--bg-primary);
       border-bottom: 1px solid var(--border);
-      font-size: 10px;
+      font-size: 11px;
       color: var(--text-muted);
       font-family: 'JetBrains Mono', monospace;
     }
@@ -184,7 +229,7 @@
     }
 
     /* ===== CONTENT ===== */
-    .content { padding: 16px; }
+    .content { padding: 16px; overflow-y: auto; max-height: calc(100vh - 130px); }
 
     /* ===== PICK BUTTON ===== */
     .pick-btn {
@@ -402,7 +447,8 @@
     .action-btn svg { width: 14px; height: 14px; }
 
     /* ===== HISTORY ===== */
-    .history-list { display: flex; flex-direction: column; gap: 4px; }
+    .history-list { display: flex; flex-direction: column; gap: 6px; }
+    #historyList { max-height: calc(100vh - 250px); overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
 
     .history-item {
       display: flex;
@@ -435,7 +481,7 @@
     }
     .history-selector {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 10px;
+      font-size: 11px;
       color: var(--text-tertiary);
       overflow: hidden;
       text-overflow: ellipsis;
@@ -443,7 +489,7 @@
     }
     .history-meta {
       font-family: 'Inter', sans-serif;
-      font-size: 9px;
+      font-size: 10px;
       color: var(--text-muted);
       margin-top: 2px;
     }
@@ -455,7 +501,7 @@
       width: 20px; height: 20px;
       display: flex; align-items: center; justify-content: center;
       border-radius: 4px;
-      opacity: 0;
+      opacity: 0.4;
       transition: all 0.12s;
       font-size: 12px;
     }
@@ -518,6 +564,9 @@
       background-position: right 10px center;
       padding-right: 30px;
     }
+    :root[data-theme="light"] .form-select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2352525b' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    }
     .form-input:focus, .form-select:focus, .form-textarea:focus {
       outline: none;
       border-color: var(--accent);
@@ -545,13 +594,15 @@
 
     /* ===== SETTINGS MODAL ===== */
     .modal-overlay {
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0, 0, 0, 0.7);
-      display: none;
+      display: flex;
       align-items: center; justify-content: center;
       border-radius: var(--radius-xl);
+      pointer-events: none;
+      visibility: hidden;
     }
-    .modal-overlay.open { display: flex; }
+    .modal-overlay.open { pointer-events: auto; visibility: visible; }
     .modal {
       width: 300px; padding: 24px;
       background: var(--bg-secondary);
@@ -602,10 +653,10 @@
 
     /* ===== TOAST ===== */
     .toast-mock {
-      position: absolute;
+      position: fixed;
       bottom: 16px;
       left: 50%;
-      transform: translateX(-50%);
+      z-index: 10000;
       background: var(--bg-elevated);
       color: var(--text-primary);
       border: 1px solid var(--border-subtle);
@@ -615,11 +666,13 @@
       font-size: 11px;
       font-weight: 500;
       box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-      display: none;
+      display: flex;
       align-items: center;
       gap: 8px;
+      pointer-events: none;
+      visibility: hidden;
     }
-    .toast-mock.show { display: flex; }
+    .toast-mock.show { pointer-events: auto; visibility: visible; }
     .toast-mock .toast-icon { color: var(--success); font-size: 14px; }
 
     /* ===== EMPTY STATE ===== */
@@ -673,7 +726,7 @@
       font-weight: 500;
       margin-top: 8px;
     }
-    .match-pill.success { color: var(--success); background: var(--success-soft); border: 1px solid rgba(34, 197, 94, 0.2); }
+    .match-pill { color: var(--success); background: var(--success-soft); border: 1px solid rgba(34, 197, 94, 0.2); }
     .match-pill.error { color: var(--error); background: var(--error-soft); border: 1px solid rgba(239, 68, 68, 0.2); }
     .match-pill .match-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
@@ -687,30 +740,65 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
       margin-top: 12px;
-      max-height: 250px;
+      max-height: min(300px, calc(100vh - 380px));
       display: flex;
       flex-direction: column;
     }
     .dom-tree-header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 8px 12px;
+      gap: 6px;
+      padding: 6px 10px;
       border-bottom: 1px solid var(--border);
       font-size: 11px;
       font-weight: 500;
       color: var(--text-secondary);
     }
-    .dom-tree-refresh {
+    .dom-tree-header-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .dom-tree-count {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .dom-tree-search {
+      flex: 1;
+      min-width: 0;
+      margin: 0 4px;
+      font-size: 10px;
+      padding: 4px 8px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .dom-tree-search:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+    .dom-tree-search::placeholder { color: var(--text-muted); }
+    .dom-tree-actions {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .dom-tree-toolbar-btn {
       background: none;
       border: none;
       color: var(--text-tertiary);
       cursor: pointer;
       font-size: 14px;
-      padding: 2px;
+      padding: 2px 4px;
       border-radius: 4px;
+      line-height: 1;
     }
-    .dom-tree-refresh:hover { color: var(--text-primary); background: var(--bg-hover); }
+    .dom-tree-toolbar-btn:hover { color: var(--text-primary); background: var(--bg-hover); }
     .dom-tree {
       flex: 1;
       overflow-y: auto;
@@ -718,19 +806,46 @@
     }
     .dom-node {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 10px;
+      font-size: 11px;
       color: var(--text-secondary);
-      padding: 3px 8px;
+      padding: 4px 8px;
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 4px;
+      transition: background 0.1s;
     }
     .dom-node:hover { background: var(--bg-hover); }
-    .dom-node.selected { background: var(--accent-soft); color: var(--accent); }
-    .dom-expand { color: var(--text-muted); width: 12px; }
+    .dom-node.selected { background: var(--accent-soft); color: var(--accent); border-left: 2px solid var(--accent); }
+    .dom-node.search-match { background: var(--warning-soft); border-left: 2px solid var(--warning); }
+    .dom-node.filtered-out { display: none; }
+    .dom-expand { color: var(--text-tertiary); width: 20px; text-align: center; font-size: 9px; cursor: pointer; user-select: none; flex-shrink: 0; }
+    .dom-children { border-left: 1px dotted var(--border-subtle); margin-left: 10px; }
     .dom-tag { color: var(--purple); }
     .dom-attr { color: var(--cyan); }
+    .dom-text {
+      color: var(--text-muted);
+      font-style: italic;
+      font-size: 10px;
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .dom-depth-stub, .dom-more {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+      padding: 3px 8px 3px 28px;
+      cursor: pointer;
+      transition: color 0.1s;
+    }
+    .dom-depth-stub:hover, .dom-more:hover { color: var(--accent); }
+    @keyframes domSlideDown {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .dom-children.expanding { animation: domSlideDown 0.15s ease-out; }
 
     /* ===== SUGGESTIONS ===== */
     .suggestions {
@@ -759,8 +874,116 @@
       border-radius: 3px;
     }
 
+    /* ===== CHAIN STEPS ===== */
+    .structured-framework-fields { margin-bottom: 4px; }
+    .pw-method-fields, .cy-method-fields { margin-top: 4px; }
+    .chain-section, .freeform-chain-section { margin-bottom: 12px; }
+    .chain-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .chain-add-btn {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border: 1px solid var(--border-accent);
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .chain-add-btn:hover { background: var(--accent-glow); }
+    .chain-steps { display: flex; flex-direction: column; gap: 6px; }
+    .chain-step {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .chain-step select, .chain-step input {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 4px 6px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-primary);
+    }
+    .chain-step select { width: 80px; }
+    .chain-step input { flex: 1; min-width: 0; }
+    .chain-step-remove {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0 2px;
+      line-height: 1;
+    }
+    .chain-step-remove:hover { color: var(--error); }
+
     /* ===== BUILD RESULT ===== */
     .build-result { margin-top: 12px; }
+
+    /* ===== UX: VIEW TRANSITIONS ===== */
+    .view { transition: opacity 0.15s ease; }
+    .view:not(.active) { opacity: 0; position: absolute; pointer-events: none; }
+
+    /* ===== UX: BUTTON PRESS FEEDBACK ===== */
+    .pick-btn:active, .action-btn:active, .generate-btn:active, .modal-done:active,
+    .header-btn:active, .segment-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* ===== UX: TOAST ANIMATION ===== */
+    .toast-mock {
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      opacity: 0;
+      transform: translateX(-50%) translateY(8px);
+    }
+    .toast-mock.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ===== UX: FOCUS RINGS ===== */
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .tab:focus-visible, .header-btn:focus-visible, .pick-btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+
+    /* ===== UX: MODAL BACKDROP TRANSITION ===== */
+    .modal-overlay {
+      transition: opacity 0.2s ease;
+      opacity: 0;
+    }
+    .modal-overlay.open { opacity: 1; }
+    .modal-overlay .modal {
+      transition: transform 0.2s ease;
+      transform: scale(0.95);
+    }
+    .modal-overlay.open .modal { transform: scale(1); }
+
+    /* ===== UX: HISTORY ITEM HOVER ===== */
+    .history-item { transition: all 0.12s ease, transform 0.1s ease; }
+    .history-item:active { transform: scale(0.99); }
+
+    /* ===== UX: SCROLLBAR ===== */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-subtle); }
   </style>
 </head>
 <body>
@@ -774,7 +997,10 @@
       <span class="logo-text">SELEKT</span>
     </div>
     <div class="header-actions">
-      <button type="button" class="header-btn" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">
+      <button type="button" class="header-btn" id="themeToggle" title="Toggle theme" aria-label="Toggle theme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><title>Toggle theme</title><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <button type="button" class="header-btn" id="shortcutsBtn" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><title>Keyboard shortcuts</title><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg>
       </button>
       <button type="button" class="header-btn" id="settingsBtn" title="Settings" aria-label="Open settings">
@@ -812,8 +1038,14 @@
       <div id="elementInfo"></div>
       <div id="locatorDisplay" class="locator-list"></div>
       <div class="footer-actions" id="footerActions" style="display: none;">
-        <button type="button" class="action-btn" id="exportBtn" aria-label="Export locators to JSON">Export</button>
-        <button type="button" class="action-btn" id="testBtn" aria-label="Test selector on page">Test</button>
+        <button type="button" class="action-btn" id="exportBtn" aria-label="Export locators to JSON">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Export
+        </button>
+        <button type="button" class="action-btn" id="testBtn" aria-label="Test selector on page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
+          Test
+        </button>
         <button type="button" class="action-btn" id="domTreeBtn" aria-label="Toggle DOM Tree">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M17 17h2a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2"/><path d="M12 15v6"/><path d="m8 18 4 3 4-3"/><path d="M12 3v6"/></svg>
           DOM Tree
@@ -821,8 +1053,16 @@
       </div>
       <div id="domTreeContainer" class="dom-tree-container" style="display: none;">
         <div class="dom-tree-header">
-          <span>DOM Tree</span>
-          <button type="button" class="dom-tree-refresh" id="refreshDomTree" aria-label="Refresh DOM Tree">&#8635;</button>
+          <div class="dom-tree-header-left">
+            <span>DOM Tree</span>
+            <span class="dom-tree-count" id="domTreeCount"></span>
+          </div>
+          <input type="text" class="dom-tree-search" id="domTreeSearch" placeholder="Filter..." autocomplete="off" spellcheck="false">
+          <div class="dom-tree-actions">
+            <button type="button" class="dom-tree-toolbar-btn" id="collapseAllDom" title="Collapse all" aria-label="Collapse all">&minus;</button>
+            <button type="button" class="dom-tree-toolbar-btn" id="expandAllDom" title="Expand all" aria-label="Expand all">+</button>
+            <button type="button" class="dom-tree-toolbar-btn" id="refreshDomTree" title="Refresh" aria-label="Refresh DOM Tree">&#8635;</button>
+          </div>
         </div>
         <div id="domTree" class="dom-tree"></div>
       </div>
@@ -831,58 +1071,12 @@
     <!-- Build View -->
     <div class="view" id="build-view" role="tabpanel">
       <div class="segment-control">
-        <button type="button" class="segment-btn active" id="structuredLabel" aria-pressed="true">Structured</button>
-        <button type="button" class="segment-btn" id="freeformLabel" aria-pressed="false">Freeform</button>
+        <button type="button" class="segment-btn active" id="freeformLabel" aria-pressed="true">Freeform</button>
+        <button type="button" class="segment-btn" id="structuredLabel" aria-pressed="false">Structured</button>
       </div>
-      <div id="structuredFields">
+      <div id="freeformFields">
         <div class="form-field">
-          <label for="buildTag">Tag</label>
-          <select id="buildTag" class="form-select">
-            <option value="">Select tag...</option>
-            <option value="*">Any (*)</option>
-            <option value="a">a (link)</option>
-            <option value="button">button</option>
-            <option value="div">div</option>
-            <option value="form">form</option>
-            <option value="h1">h1</option>
-            <option value="h2">h2</option>
-            <option value="h3">h3</option>
-            <option value="input">input</option>
-            <option value="span">span</option>
-            <option value="img">img</option>
-            <option value="label">label</option>
-            <option value="li">li</option>
-            <option value="nav">nav</option>
-            <option value="p">p</option>
-            <option value="section">section</option>
-            <option value="select">select</option>
-            <option value="table">table</option>
-            <option value="textarea">textarea</option>
-            <option value="ul">ul</option>
-          </select>
-        </div>
-        <div class="form-field">
-          <label for="buildId">ID</label>
-          <input type="text" id="buildId" name="buildId" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., submit-btn">
-        </div>
-        <div class="form-field">
-          <label for="buildClass">Class</label>
-          <input type="text" id="buildClass" name="buildClass" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., btn primary">
-        </div>
-        <div class="form-field">
-          <label for="buildAttrName">Attribute Name</label>
-          <input type="text" id="buildAttrName" name="buildAttrName" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., data-testid">
-        </div>
-        <div class="form-field">
-          <label for="buildAttrValue">Attribute Value</label>
-          <input type="text" id="buildAttrValue" name="buildAttrValue" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., submit">
-        </div>
-        <button type="button" class="generate-btn" id="buildGenerateBtn">Generate Locators</button>
-        <div id="buildResult" class="build-result"></div>
-      </div>
-      <div id="freeformFields" style="display: none;">
-        <div class="form-field">
-          <label for="freeformType">Type</label>
+          <label for="freeformType" class="form-label">Type</label>
           <select id="freeformType" class="form-select">
             <option value="css">CSS</option>
             <option value="xpath">XPath</option>
@@ -892,12 +1086,353 @@
           </select>
         </div>
         <div class="form-field freeform-field">
-          <label for="freeformInput">Locator</label>
+          <label for="freeformInput" class="form-label">Locator</label>
           <textarea id="freeformInput" name="freeformInput" class="form-textarea" spellcheck="false" placeholder="Type selector or use suggestions..." rows="3"></textarea>
           <div id="suggestions" class="suggestions" style="display: none;"></div>
         </div>
-        <div id="matchCount" class="match-pill" style="display: none;">0 elements found</div>
-        <button type="button" class="generate-btn" id="testFreeformBtn" style="margin-top: 8px;">Test on Page</button>
+        <div id="matchCount" class="match-pill" style="display: none;"></div>
+        <button type="button" class="generate-btn" id="testFreeformBtn">Test on Page</button>
+      </div>
+      <div id="structuredFields" style="display: none;">
+        <div class="form-field">
+          <label for="structuredType" class="form-label">Framework</label>
+          <select id="structuredType" class="form-select">
+            <option value="playwright">Playwright</option>
+            <option value="css">CSS</option>
+            <option value="xpath">XPath</option>
+            <option value="cypress">Cypress</option>
+            <option value="selenium">Selenium</option>
+          </select>
+        </div>
+
+        <!-- Playwright fields -->
+        <div id="sf-playwright" class="structured-framework-fields">
+          <div class="form-field">
+            <label for="pwMethod" class="form-label">Method</label>
+            <select id="pwMethod" class="form-select">
+              <option value="getByRole">getByRole</option>
+              <option value="getByText">getByText</option>
+              <option value="getByTestId">getByTestId</option>
+              <option value="getByLabel">getByLabel</option>
+              <option value="getByPlaceholder">getByPlaceholder</option>
+              <option value="getByAltText">getByAltText</option>
+              <option value="getByTitle">getByTitle</option>
+              <option value="locator">locator</option>
+            </select>
+          </div>
+          <div id="pw-getByRole-fields" class="pw-method-fields">
+            <div class="form-field">
+              <label class="form-label">Role</label>
+              <select id="pwRole" class="form-select">
+                <option value="">Select role...</option>
+                <option value="alert">alert</option>
+                <option value="alertdialog">alertdialog</option>
+                <option value="application">application</option>
+                <option value="article">article</option>
+                <option value="banner">banner</option>
+                <option value="blockquote">blockquote</option>
+                <option value="button">button</option>
+                <option value="caption">caption</option>
+                <option value="cell">cell</option>
+                <option value="checkbox">checkbox</option>
+                <option value="code">code</option>
+                <option value="columnheader">columnheader</option>
+                <option value="combobox">combobox</option>
+                <option value="complementary">complementary</option>
+                <option value="contentinfo">contentinfo</option>
+                <option value="definition">definition</option>
+                <option value="deletion">deletion</option>
+                <option value="dialog">dialog</option>
+                <option value="directory">directory</option>
+                <option value="document">document</option>
+                <option value="emphasis">emphasis</option>
+                <option value="feed">feed</option>
+                <option value="figure">figure</option>
+                <option value="form">form</option>
+                <option value="generic">generic</option>
+                <option value="grid">grid</option>
+                <option value="gridcell">gridcell</option>
+                <option value="group">group</option>
+                <option value="heading">heading</option>
+                <option value="img">img</option>
+                <option value="insertion">insertion</option>
+                <option value="link">link</option>
+                <option value="list">list</option>
+                <option value="listbox">listbox</option>
+                <option value="listitem">listitem</option>
+                <option value="log">log</option>
+                <option value="main">main</option>
+                <option value="marquee">marquee</option>
+                <option value="math">math</option>
+                <option value="menu">menu</option>
+                <option value="menubar">menubar</option>
+                <option value="menuitem">menuitem</option>
+                <option value="menuitemcheckbox">menuitemcheckbox</option>
+                <option value="menuitemradio">menuitemradio</option>
+                <option value="meter">meter</option>
+                <option value="navigation">navigation</option>
+                <option value="none">none</option>
+                <option value="note">note</option>
+                <option value="option">option</option>
+                <option value="paragraph">paragraph</option>
+                <option value="presentation">presentation</option>
+                <option value="progressbar">progressbar</option>
+                <option value="radio">radio</option>
+                <option value="radiogroup">radiogroup</option>
+                <option value="region">region</option>
+                <option value="row">row</option>
+                <option value="rowgroup">rowgroup</option>
+                <option value="rowheader">rowheader</option>
+                <option value="scrollbar">scrollbar</option>
+                <option value="search">search</option>
+                <option value="searchbox">searchbox</option>
+                <option value="separator">separator</option>
+                <option value="slider">slider</option>
+                <option value="spinbutton">spinbutton</option>
+                <option value="status">status</option>
+                <option value="strong">strong</option>
+                <option value="subscript">subscript</option>
+                <option value="superscript">superscript</option>
+                <option value="switch">switch</option>
+                <option value="tab">tab</option>
+                <option value="table">table</option>
+                <option value="tablist">tablist</option>
+                <option value="tabpanel">tabpanel</option>
+                <option value="term">term</option>
+                <option value="textbox">textbox</option>
+                <option value="time">time</option>
+                <option value="timer">timer</option>
+                <option value="toolbar">toolbar</option>
+                <option value="tooltip">tooltip</option>
+                <option value="tree">tree</option>
+                <option value="treegrid">treegrid</option>
+                <option value="treeitem">treeitem</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="form-label">Name (optional)</label>
+              <input type="text" id="pwRoleName" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., Submit">
+            </div>
+            <div class="form-field" style="display:flex;align-items:center;gap:8px;">
+              <input type="checkbox" id="pwRoleExact"> <label for="pwRoleExact" class="form-label" style="margin-bottom:0;">Exact match</label>
+            </div>
+          </div>
+          <div id="pw-getByText-fields" class="pw-method-fields" style="display:none;">
+            <div class="form-field">
+              <label class="form-label">Text</label>
+              <input type="text" id="pwText" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., Submit">
+            </div>
+            <div class="form-field" style="display:flex;align-items:center;gap:8px;">
+              <input type="checkbox" id="pwTextExact"> <label for="pwTextExact" class="form-label" style="margin-bottom:0;">Exact match</label>
+            </div>
+          </div>
+          <div id="pw-getByTestId-fields" class="pw-method-fields" style="display:none;">
+            <div class="form-field">
+              <label class="form-label">Test ID</label>
+              <input type="text" id="pwTestId" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., submit-btn">
+            </div>
+          </div>
+          <div id="pw-getByLabel-fields" class="pw-method-fields" style="display:none;">
+            <div class="form-field">
+              <label class="form-label">Label</label>
+              <input type="text" id="pwLabel" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., Email">
+            </div>
+            <div class="form-field" style="display:flex;align-items:center;gap:8px;">
+              <input type="checkbox" id="pwLabelExact"> <label for="pwLabelExact" class="form-label" style="margin-bottom:0;">Exact match</label>
+            </div>
+          </div>
+          <div id="pw-getByPlaceholder-fields" class="pw-method-fields" style="display:none;">
+            <div class="form-field">
+              <label class="form-label">Placeholder</label>
+              <input type="text" id="pwPlaceholder" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., Enter email">
+            </div>
+            <div class="form-field" style="display:flex;align-items:center;gap:8px;">
+              <input type="checkbox" id="pwPlaceholderExact"> <label for="pwPlaceholderExact" class="form-label" style="margin-bottom:0;">Exact match</label>
+            </div>
+          </div>
+          <div id="pw-getByAltText-fields" class="pw-method-fields" style="display:none;">
+            <div class="form-field">
+              <label class="form-label">Alt Text</label>
+              <input type="text" id="pwAltText" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., Logo">
+            </div>
+            <div class="form-field" style="display:flex;align-items:center;gap:8px;">
+              <input type="checkbox" id="pwAltTextExact"> <label for="pwAltTextExact" class="form-label" style="margin-bottom:0;">Exact match</label>
+            </div>
+          </div>
+          <div id="pw-getByTitle-fields" class="pw-method-fields" style="display:none;">
+            <div class="form-field">
+              <label class="form-label">Title</label>
+              <input type="text" id="pwTitle" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., Close dialog">
+            </div>
+            <div class="form-field" style="display:flex;align-items:center;gap:8px;">
+              <input type="checkbox" id="pwTitleExact"> <label for="pwTitleExact" class="form-label" style="margin-bottom:0;">Exact match</label>
+            </div>
+          </div>
+          <div id="pw-locator-fields" class="pw-method-fields" style="display:none;">
+            <div class="form-field">
+              <label class="form-label">Selector</label>
+              <input type="text" id="pwLocatorSelector" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., #submit-btn, .btn">
+            </div>
+          </div>
+        </div>
+
+        <!-- CSS fields -->
+        <div id="sf-css" class="structured-framework-fields" style="display:none;">
+          <div class="form-field">
+            <label for="cssTag" class="form-label">Tag</label>
+            <select id="cssTag" class="form-select">
+              <option value="">Any</option>
+              <option value="*">* (all)</option>
+              <option value="a">a</option>
+              <option value="button">button</option>
+              <option value="div">div</option>
+              <option value="form">form</option>
+              <option value="h1">h1</option>
+              <option value="h2">h2</option>
+              <option value="h3">h3</option>
+              <option value="input">input</option>
+              <option value="span">span</option>
+              <option value="img">img</option>
+              <option value="label">label</option>
+              <option value="li">li</option>
+              <option value="nav">nav</option>
+              <option value="p">p</option>
+              <option value="section">section</option>
+              <option value="select">select</option>
+              <option value="table">table</option>
+              <option value="textarea">textarea</option>
+              <option value="ul">ul</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="cssId" class="form-label">ID</label>
+            <input type="text" id="cssId" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., submit-btn">
+          </div>
+          <div class="form-field">
+            <label for="cssClass" class="form-label">Class</label>
+            <input type="text" id="cssClass" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., btn primary">
+          </div>
+          <div class="form-field">
+            <label for="cssAttrName" class="form-label">Attribute Name</label>
+            <input type="text" id="cssAttrName" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., data-testid">
+          </div>
+          <div class="form-field">
+            <label for="cssAttrValue" class="form-label">Attribute Value</label>
+            <input type="text" id="cssAttrValue" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., submit">
+          </div>
+        </div>
+
+        <!-- XPath fields -->
+        <div id="sf-xpath" class="structured-framework-fields" style="display:none;">
+          <div class="form-field">
+            <label for="xpathAxis" class="form-label">Axis</label>
+            <select id="xpathAxis" class="form-select">
+              <option value="//">//</option>
+              <option value="/">/</option>
+              <option value="ancestor::">ancestor::</option>
+              <option value="descendant::">descendant::</option>
+              <option value="following-sibling::">following-sibling::</option>
+              <option value="preceding-sibling::">preceding-sibling::</option>
+              <option value="parent::">parent::</option>
+              <option value="self::">self::</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="xpathTag" class="form-label">Element / Tag</label>
+            <input type="text" id="xpathTag" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., button, input, *">
+          </div>
+          <div class="form-field">
+            <label for="xpathPredicate" class="form-label">Predicate (without brackets)</label>
+            <input type="text" id="xpathPredicate" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., @id='submit'">
+          </div>
+        </div>
+
+        <!-- Cypress fields -->
+        <div id="sf-cypress" class="structured-framework-fields" style="display:none;">
+          <div class="form-field">
+            <label for="cyMethod" class="form-label">Method</label>
+            <select id="cyMethod" class="form-select">
+              <option value="cy.get">cy.get</option>
+              <option value="cy.contains">cy.contains</option>
+              <option value="cy.findByRole">cy.findByRole</option>
+              <option value="cy.findByText">cy.findByText</option>
+              <option value="cy.findByTestId">cy.findByTestId</option>
+            </select>
+          </div>
+          <div id="cy-get-fields" class="cy-method-fields">
+            <div class="form-field">
+              <label class="form-label">Selector</label>
+              <input type="text" id="cyGetSelector" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., .btn, #submit">
+            </div>
+          </div>
+          <div id="cy-contains-fields" class="cy-method-fields" style="display:none;">
+            <div class="form-field">
+              <label class="form-label">Tag (optional)</label>
+              <input type="text" id="cyContainsTag" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., button">
+            </div>
+            <div class="form-field">
+              <label class="form-label">Text</label>
+              <input type="text" id="cyContainsText" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., Submit">
+            </div>
+          </div>
+          <div id="cy-findByRole-fields" class="cy-method-fields" style="display:none;">
+            <div class="form-field">
+              <label class="form-label">Role</label>
+              <input type="text" id="cyFindByRoleRole" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., button">
+            </div>
+            <div class="form-field">
+              <label class="form-label">Name (optional)</label>
+              <input type="text" id="cyFindByRoleName" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., Submit">
+            </div>
+          </div>
+          <div id="cy-findByText-fields" class="cy-method-fields" style="display:none;">
+            <div class="form-field">
+              <label class="form-label">Text</label>
+              <input type="text" id="cyFindByTextText" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., Submit">
+            </div>
+          </div>
+          <div id="cy-findByTestId-fields" class="cy-method-fields" style="display:none;">
+            <div class="form-field">
+              <label class="form-label">Test ID</label>
+              <input type="text" id="cyFindByTestIdValue" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., submit-btn">
+            </div>
+          </div>
+        </div>
+
+        <!-- Selenium fields -->
+        <div id="sf-selenium" class="structured-framework-fields" style="display:none;">
+          <div class="form-field">
+            <label for="seStrategy" class="form-label">Strategy</label>
+            <select id="seStrategy" class="form-select">
+              <option value="By.cssSelector">By.cssSelector</option>
+              <option value="By.xpath">By.xpath</option>
+              <option value="By.id">By.id</option>
+              <option value="By.name">By.name</option>
+              <option value="By.className">By.className</option>
+              <option value="By.tagName">By.tagName</option>
+              <option value="By.linkText">By.linkText</option>
+              <option value="By.partialLinkText">By.partialLinkText</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="seValue" class="form-label">Value</label>
+            <input type="text" id="seValue" class="form-input" autocomplete="off" spellcheck="false" placeholder="e.g., #submit, //button">
+          </div>
+        </div>
+
+        <!-- Chain steps (shared, options change per framework) -->
+        <div class="chain-section">
+          <div class="chain-header">
+            <label class="form-label" style="margin-bottom:0;">Chain Steps</label>
+            <button type="button" class="chain-add-btn" id="addStructuredChainStep">+ Add Step</button>
+          </div>
+          <div id="structuredChainSteps" class="chain-steps"></div>
+        </div>
+
+        <button type="button" class="generate-btn" id="structuredGenerateBtn">Generate Locator</button>
+        <button type="button" class="action-btn" id="structuredGenerateAllBtn" style="margin-top:6px;width:100%;">Generate All Formats</button>
+        <div id="structuredMatchCount" class="match-pill" style="display:none;"></div>
+        <div id="structuredResult" class="build-result"></div>
       </div>
     </div>
 
@@ -905,7 +1440,10 @@
     <div class="view" id="history-view" role="tabpanel">
       <div id="historyEmpty" class="history-empty">No history yet. Pick some elements!</div>
       <div id="historyList"></div>
-      <button type="button" class="action-btn" id="clearHistoryBtn" style="margin-top: 12px; width: 100%;" aria-label="Clear history">Clear History</button>
+      <button type="button" class="action-btn" id="clearHistoryBtn" style="margin-top: 12px; width: 100%;" aria-label="Clear history">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        Clear History
+      </button>
     </div>
   </div>
 
