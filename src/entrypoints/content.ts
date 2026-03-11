@@ -12,8 +12,34 @@ export default defineContentScript({
     let hoveredElement: HTMLElement | null = null;
     let tooltip: HTMLElement | null = null;
     let highlightTimeout: ReturnType<typeof setTimeout> | null = null;
+    const savedOutlines = new WeakMap<HTMLElement, { outline: string; outlineOffset: string }>();
+
+    function saveOutline(el: HTMLElement) {
+      if (!savedOutlines.has(el)) {
+        savedOutlines.set(el, {
+          outline: el.style.outline,
+          outlineOffset: el.style.outlineOffset,
+        });
+      }
+    }
+
+    function restoreOutline(el: HTMLElement) {
+      const saved = savedOutlines.get(el);
+      if (saved) {
+        el.style.outline = saved.outline;
+        el.style.outlineOffset = saved.outlineOffset;
+        savedOutlines.delete(el);
+      } else {
+        el.style.outline = '';
+        el.style.outlineOffset = '';
+      }
+    }
 
     chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+      if (message.type === 'PING') {
+        sendResponse({ pong: true });
+        return;
+      }
       if (message.type === 'START_PICKING') {
         startElementPicker();
         sendResponse({ success: true });
@@ -21,7 +47,7 @@ export default defineContentScript({
         stopElementPicker();
         sendResponse({ success: true });
       } else if (message.type === 'TEST_SELECTOR') {
-        testSelector(message.selector);
+        testSelector(message.selector, message.selectorType);
         sendResponse({ success: true });
       } else if (message.type === 'CLEAR_HIGHLIGHTS') {
         clearHighlights();
@@ -29,6 +55,15 @@ export default defineContentScript({
       } else if (message.type === 'GET_DOM_TREE') {
         const tree = getDomTree();
         sendResponse({ tree });
+      } else if (message.type === 'GET_DOM_CHILDREN') {
+        const children = getDomChildren(message.path);
+        sendResponse({ children });
+      } else if (message.type === 'HIGHLIGHT_ELEMENT') {
+        highlightElementByPath(message.path);
+        sendResponse({ success: true });
+      } else if (message.type === 'CLEAR_HIGHLIGHT') {
+        clearHighlightOverlay();
+        sendResponse({ success: true });
       }
       return true;
     });
@@ -96,45 +131,177 @@ export default defineContentScript({
       tag: string;
       id: string;
       className: string;
+      textContent: string;
       depth: number;
       hasChildren: boolean;
       children: DomTreeNode[];
       childCount: number;
+      path: number[];
+      loaded: boolean;
+      totalChildren: number;
+    }
+
+    const SKIP_TAGS = new Set(['script', 'style', 'noscript', 'link', 'meta', 'svg']);
+
+    function getFilteredChildren(el: Element): Element[] {
+      return Array.from(el.children).filter((child) => !SKIP_TAGS.has(child.tagName.toLowerCase()));
+    }
+
+    function getDirectTextContent(el: Element): string {
+      let text = '';
+      for (const child of el.childNodes) {
+        if (child.nodeType === Node.TEXT_NODE) {
+          text += child.textContent || '';
+        }
+      }
+      return text.trim().substring(0, 40);
     }
 
     function getDomTree(): DomTreeNode | null {
-      function buildTree(node: Element, depth = 0, maxDepth = 5): DomTreeNode | null {
-        if (depth > maxDepth || !node) return null;
+      function buildTree(
+        node: Element,
+        depth: number,
+        maxDepth: number,
+        path: number[]
+      ): DomTreeNode | null {
+        if (!node) return null;
 
         const tag = node.tagName.toLowerCase();
-        // Skip script, style, svg internals, and hidden elements
-        if (['script', 'style', 'noscript', 'link', 'meta'].includes(tag)) return null;
+        if (SKIP_TAGS.has(tag)) return null;
 
         const id = node.id || '';
         const classList = node.classList ? Array.from(node.classList).slice(0, 3).join(' ') : '';
+        const filteredChildren = getFilteredChildren(node);
+        const isLoaded = depth < maxDepth;
 
         const nodeData: DomTreeNode = {
           tag,
           id,
           className: classList,
+          textContent: getDirectTextContent(node),
           depth,
-          hasChildren: node.children.length > 0,
+          hasChildren: filteredChildren.length > 0,
           children: [],
-          childCount: node.children.length,
+          childCount: filteredChildren.length,
+          path,
+          loaded: isLoaded,
+          totalChildren: filteredChildren.length,
         };
 
-        const children = Array.from(node.children).slice(0, 20);
-        for (const child of children) {
-          const childData = buildTree(child, depth + 1, maxDepth);
-          if (childData) {
-            nodeData.children.push(childData);
+        if (isLoaded) {
+          for (let i = 0; i < filteredChildren.length; i++) {
+            const childPath = [...path, i];
+            const childData = buildTree(filteredChildren[i], depth + 1, maxDepth, childPath);
+            if (childData) {
+              nodeData.children.push(childData);
+            }
           }
         }
 
         return nodeData;
       }
 
-      return buildTree(document.body);
+      return buildTree(document.body, 0, 2, []);
+    }
+
+    function getDomChildren(path: number[]): DomTreeNode[] {
+      let current: Element = document.body;
+      for (const index of path) {
+        const filtered = getFilteredChildren(current);
+        if (index >= filtered.length) return [];
+        current = filtered[index];
+      }
+
+      const filteredChildren = getFilteredChildren(current);
+      const results: DomTreeNode[] = [];
+      const childDepth = path.length + 1;
+      const maxDepth = path.length + 3;
+
+      for (let i = 0; i < filteredChildren.length; i++) {
+        const childPath = [...path, i];
+        const node = buildChildTree(filteredChildren[i], childDepth, maxDepth, childPath);
+        if (node) results.push(node);
+      }
+
+      return results;
+    }
+
+    function buildChildTree(
+      node: Element,
+      depth: number,
+      maxDepth: number,
+      path: number[]
+    ): DomTreeNode | null {
+      if (!node) return null;
+      const tag = node.tagName.toLowerCase();
+      if (SKIP_TAGS.has(tag)) return null;
+
+      const id = node.id || '';
+      const classList = node.classList ? Array.from(node.classList).slice(0, 3).join(' ') : '';
+      const filteredChildren = getFilteredChildren(node);
+      const isLoaded = depth < maxDepth;
+
+      const nodeData: DomTreeNode = {
+        tag,
+        id,
+        className: classList,
+        textContent: getDirectTextContent(node),
+        depth,
+        hasChildren: filteredChildren.length > 0,
+        children: [],
+        childCount: filteredChildren.length,
+        path,
+        loaded: isLoaded,
+        totalChildren: filteredChildren.length,
+      };
+
+      if (isLoaded) {
+        for (let i = 0; i < filteredChildren.length; i++) {
+          const childPath = [...path, i];
+          const childData = buildChildTree(filteredChildren[i], depth + 1, maxDepth, childPath);
+          if (childData) {
+            nodeData.children.push(childData);
+          }
+        }
+      }
+
+      return nodeData;
+    }
+
+    // --- Highlight overlay for hover-to-highlight ---
+    let highlightOverlay: HTMLElement | null = null;
+
+    function highlightElementByPath(path: number[]): void {
+      clearHighlightOverlay();
+      let current: Element = document.body;
+      for (const index of path) {
+        const filtered = getFilteredChildren(current);
+        if (index >= filtered.length) return;
+        current = filtered[index];
+      }
+
+      const rect = current.getBoundingClientRect();
+      highlightOverlay = document.createElement('div');
+      highlightOverlay.style.cssText = `
+        position: fixed;
+        top: ${rect.top}px;
+        left: ${rect.left}px;
+        width: ${rect.width}px;
+        height: ${rect.height}px;
+        background: rgba(59, 130, 246, 0.15);
+        border: 2px solid rgba(59, 130, 246, 0.6);
+        pointer-events: none;
+        z-index: 2147483646;
+        border-radius: 2px;
+      `;
+      document.body.appendChild(highlightOverlay);
+    }
+
+    function clearHighlightOverlay(): void {
+      if (highlightOverlay) {
+        highlightOverlay.remove();
+        highlightOverlay = null;
+      }
     }
 
     function startElementPicker() {
@@ -160,11 +327,11 @@ export default defineContentScript({
 
       // Remove previous highlight
       if (hoveredElement && hoveredElement !== target) {
-        hoveredElement.style.outline = '';
-        hoveredElement.style.outlineOffset = '';
+        restoreOutline(hoveredElement);
       }
 
       hoveredElement = target;
+      saveOutline(target);
       target.style.outline = '2px solid #3B82F6';
       target.style.outlineOffset = '2px';
 
@@ -175,21 +342,26 @@ export default defineContentScript({
         tooltip.textContent = locator;
         tooltip.style.display = 'block';
 
-        // Position tooltip near element (fixed positioning)
-        const rect = target.getBoundingClientRect();
-        const tooltipHeight = 32;
-        let top = rect.bottom + 6;
-        let left = rect.left;
+        // Position tooltip using rAF to avoid layout thrashing
+        const currentTooltip = tooltip;
+        requestAnimationFrame(() => {
+          const rect = target.getBoundingClientRect();
+          const tooltipHeight = 32;
+          let top = rect.bottom + 6;
+          let left = rect.left;
 
-        // If tooltip would go below viewport, show above
-        if (top + tooltipHeight > window.innerHeight) {
-          top = rect.top - tooltipHeight - 6;
-        }
-        // Keep within viewport horizontally
-        left = Math.max(4, Math.min(left, window.innerWidth - 300));
+          // If tooltip would go below viewport, show above
+          if (top + tooltipHeight > window.innerHeight) {
+            top = rect.top - tooltipHeight - 6;
+          }
+          // Keep within viewport vertically
+          top = Math.max(4, top);
+          // Keep within viewport horizontally
+          left = Math.max(4, Math.min(left, window.innerWidth - 300));
 
-        tooltip.style.left = `${left}px`;
-        tooltip.style.top = `${top}px`;
+          currentTooltip.style.left = `${left}px`;
+          currentTooltip.style.top = `${top}px`;
+        });
       }
     }
 
@@ -198,8 +370,7 @@ export default defineContentScript({
       const target = e.target as HTMLElement;
 
       if (hoveredElement === target) {
-        target.style.outline = '';
-        target.style.outlineOffset = '';
+        restoreOutline(target);
         hoveredElement = null;
         if (tooltip) tooltip.style.display = 'none';
       }
@@ -247,8 +418,7 @@ export default defineContentScript({
       document.removeEventListener('keydown', handleKeyDown, true);
 
       if (hoveredElement) {
-        hoveredElement.style.outline = '';
-        hoveredElement.style.outlineOffset = '';
+        restoreOutline(hoveredElement);
         hoveredElement = null;
       }
 
@@ -265,38 +435,49 @@ export default defineContentScript({
       }
       document.querySelectorAll('[data-locator-highlight]').forEach((el) => {
         el.removeAttribute('data-locator-highlight');
-        (el as HTMLElement).style.outline = '';
-        (el as HTMLElement).style.outlineOffset = '';
+        restoreOutline(el as HTMLElement);
       });
     }
 
-    function testSelector(selector: string) {
+    function testSelector(selector: string, selectorType?: string) {
       // Clear previous highlights
       clearHighlights();
 
       try {
-        const elements = document.querySelectorAll(selector);
+        let elements: Element[];
+
+        if (selectorType === 'xpath') {
+          elements = [];
+          const result = document.evaluate(
+            selector,
+            document,
+            null,
+            XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+            null
+          );
+          for (let i = 0; i < result.snapshotLength; i++) {
+            const node = result.snapshotItem(i);
+            if (node instanceof Element) {
+              elements.push(node);
+            }
+          }
+        } else {
+          elements = Array.from(document.querySelectorAll(selector));
+        }
+
         elements.forEach((el) => {
+          saveOutline(el as HTMLElement);
           (el as HTMLElement).style.outline = '2px solid #10B981';
           (el as HTMLElement).style.outlineOffset = '2px';
           el.setAttribute('data-locator-highlight', 'true');
-        });
-
-        chrome.runtime.sendMessage({
-          type: 'SELECTOR_TESTED',
-          count: elements.length,
         });
 
         // Auto-clear highlights after 5 seconds
         highlightTimeout = setTimeout(() => {
           clearHighlights();
         }, 5000);
-      } catch (e) {
-        chrome.runtime.sendMessage({
-          type: 'SELECTOR_TESTED',
-          count: -1,
-          error: 'Invalid selector',
-        });
+      } catch {
+        // Invalid selector — silently ignore
       }
     }
   },
