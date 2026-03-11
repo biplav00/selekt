@@ -716,9 +716,8 @@
     <!-- Build View -->
     <div class="view" id="build-view" role="tabpanel">
       <div class="segment-control">
-        <span class="build-toggle-label active" id="structuredLabel">Structured</span>
-        <div class="toggle-switch" id="buildModeToggle" role="switch" aria-checked="false" tabindex="0" aria-label="Toggle between structured and freeform mode"></div>
-        <span class="build-toggle-label" id="freeformLabel">Freeform</span>
+        <button type="button" class="segment-btn active" id="structuredLabel" aria-pressed="true">Structured</button>
+        <button type="button" class="segment-btn" id="freeformLabel" aria-pressed="false">Freeform</button>
       </div>
       <div id="structuredFields">
         <div class="form-field">

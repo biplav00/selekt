@@ -699,21 +699,24 @@ domTreeEl.addEventListener('click', (e) => {
 });
 
 // --- Build Mode Toggle ---
-buildModeToggle?.addEventListener('click', () => {
-  isFreeformMode = !isFreeformMode;
-  buildModeToggle.classList.toggle('active', isFreeformMode);
-  buildModeToggle.setAttribute('aria-checked', isFreeformMode ? 'true' : 'false');
-  structuredFields.style.display = isFreeformMode ? 'none' : 'block';
-  freeformFields.style.display = isFreeformMode ? 'block' : 'none';
-  structuredLabel?.classList.toggle('active', !isFreeformMode);
-  freeformLabel?.classList.toggle('active', isFreeformMode);
+structuredLabel?.addEventListener('click', () => {
+  isFreeformMode = false;
+  structuredLabel.classList.add('active');
+  structuredLabel.setAttribute('aria-pressed', 'true');
+  freeformLabel?.classList.remove('active');
+  freeformLabel?.setAttribute('aria-pressed', 'false');
+  structuredFields.style.display = 'block';
+  freeformFields.style.display = 'none';
 });
 
-buildModeToggle?.addEventListener('keydown', (e: KeyboardEvent) => {
-  if (e.key === 'Enter' || e.key === ' ') {
-    e.preventDefault();
-    buildModeToggle.click();
-  }
+freeformLabel?.addEventListener('click', () => {
+  isFreeformMode = true;
+  freeformLabel.classList.add('active');
+  freeformLabel.setAttribute('aria-pressed', 'true');
+  structuredLabel?.classList.remove('active');
+  structuredLabel?.setAttribute('aria-pressed', 'false');
+  structuredFields.style.display = 'none';
+  freeformFields.style.display = 'block';
 });
 
 // --- Structured Build ---
