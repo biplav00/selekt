@@ -342,7 +342,7 @@ function renderElementInfo() {
 
   elementInfoEl.innerHTML = `
     <div class="element-card">
-      <div class="element-header">
+      <div class="element-card-header">
         <div class="element-tag">
           <span class="tag-name">&lt;${escapeHtml(currentElement.tagName)}&gt;</span>
           <span class="element-id">${escapeHtml(path || 'no id/class')}</span>
