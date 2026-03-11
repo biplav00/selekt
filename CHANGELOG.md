@@ -1,3 +1,9 @@
+## [1.0.1](https://github.com/biplav00/selekt/compare/v1.0.0...v1.0.1) (2026-03-11)
+
+### Bug Fixes
+
+* Add PING handler and SELECTOR_TESTED listener for locator testing ([f57053a](https://github.com/biplav00/selekt/commit/f57053abd1a962d96524e863db4bb933a77d27cb))
+
 ## 1.0.0 (2026-03-11)
 
 ### Features
