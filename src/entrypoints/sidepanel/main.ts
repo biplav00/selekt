@@ -91,6 +91,19 @@ async function sendToTab(message: Record<string, unknown>): Promise<any> {
   return chrome.tabs.sendMessage(tab.id, message);
 }
 
+// --- Message Listener ---
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === 'SELECTOR_TESTED') {
+    if (message.count === -1) {
+      showToast('Invalid selector');
+    } else if (message.count === 0) {
+      showToast('No elements found');
+    } else {
+      showToast(`Found ${message.count} element${message.count === 1 ? '' : 's'}`);
+    }
+  }
+});
+
 // --- State ---
 let currentElement: ElementInfo | null = null;
 let currentLocators: Locators | null = null;

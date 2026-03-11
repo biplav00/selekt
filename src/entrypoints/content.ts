@@ -14,7 +14,9 @@ export default defineContentScript({
     let highlightTimeout: ReturnType<typeof setTimeout> | null = null;
 
     chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-      if (message.type === 'START_PICKING') {
+      if (message.type === 'PING') {
+        sendResponse({ success: true });
+      } else if (message.type === 'START_PICKING') {
         startElementPicker();
         sendResponse({ success: true });
       } else if (message.type === 'STOP_PICKING') {
