@@ -663,14 +663,26 @@
 <body>
   <div class="header">
     <div class="logo-group">
-      <div class="logo-icon" aria-hidden="true">&#9889;</div>
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+      </div>
       <span class="logo-text">LOCATOR</span>
     </div>
-    <div class="stats-bar">
-      <span id="elementCount">0 elements</span>
-      <span>5 formats</span>
+    <div class="header-actions">
+      <button type="button" class="header-btn" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><title>Keyboard shortcuts</title><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg>
+      </button>
+      <button type="button" class="header-btn" id="settingsBtn" title="Settings" aria-label="Open settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><title>Settings</title><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
     </div>
-    <button type="button" class="header-btn" id="settingsBtn" aria-label="Open settings">&#9881;</button>
+  </div>
+  <div class="stats-bar">
+    <div class="stat"><span class="stat-dot"></span> Connected</div>
+    <div class="stat" id="elementCount">0 elements</div>
+    <div class="stat">5 formats</div>
   </div>
 
   <div class="tabs" role="tablist" aria-label="Main navigation">
