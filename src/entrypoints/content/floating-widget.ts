@@ -277,67 +277,84 @@ const WIDGET_CSS = `
   :host {
     all: initial;
     font-family: 'IBM Plex Mono', 'SF Mono', 'Cascadia Code', monospace;
-    font-size: 12px;
-    line-height: 1.4;
-    color: #e4e4e7;
+    font-size: 12px; line-height: 1.4;
     -webkit-font-smoothing: antialiased;
+
+    /* Dark (default) */
+    --bg: #0a0a0c; --bg2: #111116; --bg3: #18181d;
+    --border: #1e1e24; --border2: #27272d;
+    --text: #e4e4e7; --text2: #a1a1aa; --text3: #52525b;
+    --accent: #3b82f6; --accent-h: #2563eb;
+    --ok: #22c55e; --err: #ef4444;
+    --shadow: 0 20px 60px rgba(0,0,0,0.7), 0 4px 16px rgba(0,0,0,0.5);
+    --input-bg: #07070a;
+    color: var(--text);
   }
+
+  :host(.light) {
+    --bg: #ffffff; --bg2: #f4f4f5; --bg3: #e4e4e7;
+    --border: #d4d4d8; --border2: #a1a1aa;
+    --text: #18181b; --text2: #3f3f46; --text3: #71717a;
+    --accent: #2563eb; --accent-h: #1d4ed8;
+    --ok: #16a34a; --err: #dc2626;
+    --shadow: 0 20px 60px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.08);
+    --input-bg: #ffffff;
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   .widget {
     position: fixed; right: 16px; bottom: 16px;
-    width: 360px;
-    background: #0a0a0c;
-    border: 1px solid #1e1e24;
-    border-radius: 8px;
-    box-shadow:
-      0 0 0 1px rgba(59, 130, 246, 0.08),
-      0 20px 60px rgba(0, 0, 0, 0.7),
-      0 4px 16px rgba(0, 0, 0, 0.5),
-      inset 0 1px 0 rgba(255, 255, 255, 0.03);
-    z-index: 2147483646;
-    overflow: hidden;
-    backdrop-filter: blur(20px);
+    width: 360px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: var(--shadow);
+    z-index: 2147483646; overflow: hidden;
   }
 
-  /* ── Header ── */
+  /* ── Header: [Pick] ──drag area── [expand][close] ── */
   .header {
     display: flex; align-items: stretch;
-    background: linear-gradient(180deg, #111116 0%, #0d0d10 100%);
-    border-bottom: 1px solid #1e1e24;
-    cursor: grab; min-height: 34px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    min-height: 34px;
   }
-  .header:active { cursor: grabbing; }
+
+  .pick-col {
+    display: flex; align-items: stretch;
+  }
 
   .pick-btn {
     padding: 0 14px;
-    background: #3b82f6;
-    color: #fff; border: none;
-    font-family: inherit;
-    font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
-    cursor: pointer;
+    background: var(--accent); color: #fff; border: none;
+    font-family: inherit; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.02em; cursor: pointer;
     display: flex; align-items: center; gap: 5px;
     transition: background 0.15s;
-    border-right: 1px solid rgba(0,0,0,0.3);
     text-transform: uppercase;
+    border-right: 1px solid rgba(0,0,0,0.15);
   }
-  .pick-btn:hover { background: #2563eb; }
+  .pick-btn:hover { background: var(--accent-h); }
   .pick-btn.picking { background: #7c3aed; }
   .pick-btn svg { width: 11px; height: 11px; opacity: 0.9; }
 
-  .header-spacer { flex: 1; }
+  .drag-area { flex: 1; cursor: grab; min-width: 20px; }
+  .drag-area:active { cursor: grabbing; }
 
-  .header-actions { display: flex; align-items: center; gap: 1px; padding: 0 4px; }
+  .actions-col {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 1px; padding: 2px 4px;
+    border-left: 1px solid var(--border);
+  }
 
   .icon-btn {
-    width: 26px; height: 26px;
+    width: 22px; height: 22px;
     display: flex; align-items: center; justify-content: center;
-    border-radius: 4px; background: transparent;
-    border: none; color: #52525b; cursor: pointer; padding: 0;
+    border-radius: 3px; background: transparent;
+    border: none; color: var(--text3); cursor: pointer; padding: 0;
     transition: background 0.15s, color 0.15s;
   }
-  .icon-btn:hover { background: rgba(255,255,255,0.05); color: #a1a1aa; }
-  .icon-btn svg { width: 13px; height: 13px; }
+  .icon-btn:hover { background: var(--bg3); color: var(--text2); }
+  .icon-btn svg { width: 12px; height: 12px; }
 
   /* ── Body ── */
   .body {
@@ -345,89 +362,62 @@ const WIDGET_CSS = `
     display: flex; flex-direction: column; gap: 8px;
   }
 
-  /* ── Input ── */
   .locator-input {
     width: 100%; padding: 7px 10px;
-    background: #07070a;
-    border: 1px solid #1e1e24;
-    border-radius: 5px;
-    color: #e4e4e7;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11.5px;
+    background: var(--input-bg);
+    border: 1px solid var(--border); border-radius: 5px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
-    caret-color: #3b82f6;
+    caret-color: var(--accent);
   }
   .locator-input:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12), inset 0 0 8px rgba(59, 130, 246, 0.04);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(59,130,246,0.12);
   }
-  .locator-input::placeholder { color: #3f3f46; font-style: italic; }
+  .locator-input::placeholder { color: var(--text3); font-style: italic; }
 
-  /* ── Controls row ── */
-  .controls-row {
-    display: flex; align-items: center; gap: 6px;
-  }
+  .controls-row { display: flex; align-items: center; gap: 6px; }
 
   .format-select {
-    padding: 3px 6px;
-    background: #111116;
-    border: 1px solid #1e1e24;
-    border-radius: 4px;
-    color: #a1a1aa;
-    font-family: inherit;
-    font-size: 10px; font-weight: 500;
-    cursor: pointer; outline: none;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    transition: border-color 0.15s;
+    padding: 3px 6px; background: var(--bg2);
+    border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text2); font-family: inherit;
+    font-size: 10px; font-weight: 500; cursor: pointer; outline: none;
+    letter-spacing: 0.04em; text-transform: uppercase;
   }
-  .format-select:focus { border-color: #3b82f6; }
+  .format-select:focus { border-color: var(--accent); }
 
   .match-pill {
-    font-size: 10px;
-    padding: 2px 7px;
-    border-radius: 10px;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-    background: #111116;
-    border: 1px solid #1e1e24;
-    color: #52525b;
-    transition: all 0.2s;
-    white-space: nowrap;
+    font-size: 10px; padding: 2px 7px; border-radius: 10px;
+    font-weight: 500; letter-spacing: 0.02em;
+    background: var(--bg2); border: 1px solid var(--border);
+    color: var(--text3); transition: all 0.2s; white-space: nowrap;
   }
   .match-pill.found {
-    color: #22c55e;
-    border-color: rgba(34, 197, 94, 0.25);
-    background: rgba(34, 197, 94, 0.06);
-    box-shadow: 0 0 6px rgba(34, 197, 94, 0.1);
+    color: var(--ok); border-color: rgba(34,197,94,0.25);
+    background: rgba(34,197,94,0.06);
   }
   .match-pill.none {
-    color: #ef4444;
-    border-color: rgba(239, 68, 68, 0.2);
-    background: rgba(239, 68, 68, 0.04);
+    color: var(--err); border-color: rgba(239,68,68,0.2);
+    background: rgba(239,68,68,0.04);
   }
 
   .spacer { flex: 1; }
 
   .copy-btn {
-    padding: 3px 10px;
-    background: #111116;
-    border: 1px solid #1e1e24;
-    border-radius: 4px;
-    color: #71717a;
-    font-family: inherit;
-    font-size: 10px; font-weight: 500;
-    cursor: pointer;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    padding: 3px 10px; background: var(--bg2);
+    border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text3); font-family: inherit;
+    font-size: 10px; font-weight: 500; cursor: pointer;
+    letter-spacing: 0.04em; text-transform: uppercase;
     transition: all 0.15s;
   }
-  .copy-btn:hover { background: #1e1e24; color: #e4e4e7; border-color: #27272a; }
-  .copy-btn.ok {
-    color: #22c55e; border-color: rgba(34, 197, 94, 0.3);
-    background: rgba(34, 197, 94, 0.08);
-  }
+  .copy-btn:hover { background: var(--bg3); color: var(--text); }
+  .copy-btn.ok { color: var(--ok); border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.08); }
+
+  .theme-btn { margin-top: 1px; }
 `;
 
 // ---------------------------------------------------------------------------
@@ -438,14 +428,19 @@ function buildWidgetHTML(): string {
   return `
     <div class="widget" id="widget">
       <div class="header" id="drag-handle">
-        <button class="pick-btn" id="pick-btn">
-          <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><path d="M8 1v2.5M8 12.5V15M1 8h2.5M12.5 8H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Pick
-        </button>
-        <div class="header-spacer"></div>
-        <div class="header-actions">
+        <div class="pick-col">
+          <button class="pick-btn" id="pick-btn">
+            <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><path d="M8 1v2.5M8 12.5V15M1 8h2.5M12.5 8H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Pick
+          </button>
+        </div>
+        <div class="drag-area" id="drag-area"></div>
+        <div class="actions-col">
           <button class="icon-btn" id="expand-btn" title="Open sidepanel">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+          </button>
+          <button class="icon-btn theme-btn" id="theme-btn" title="Toggle theme">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
           </button>
           <button class="icon-btn" id="close-btn" title="Close">
             <svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -499,6 +494,8 @@ export class FloatingWidget {
   private closeCb: (() => void) | null = null;
   private expandCb: (() => void) | null = null;
 
+  private isDark = true;
+
   constructor() {
     this.host = document.createElement('div');
     this.host.id = 'selekt-floating-host';
@@ -530,6 +527,38 @@ export class FloatingWidget {
     this.boundDragEnd = () => this.stopDrag();
     this.bindEvents();
     this.host.style.display = 'none';
+
+    // Load theme from storage
+    try {
+      chrome.storage.local.get('theme', (result) => {
+        const theme = result?.theme;
+        if (theme === 'light') this.setTheme(false);
+        else if (theme === 'system') {
+          this.setTheme(!window.matchMedia('(prefers-color-scheme: dark)').matches);
+        }
+      });
+    } catch {
+      // Not in extension context
+    }
+  }
+
+  private setTheme(dark: boolean): void {
+    this.isDark = dark;
+    if (dark) {
+      this.host.classList.remove('light');
+    } else {
+      this.host.classList.add('light');
+    }
+  }
+
+  private toggleTheme(): void {
+    this.setTheme(!this.isDark);
+    // Persist
+    try {
+      chrome.storage.local.set({ theme: this.isDark ? 'dark' : 'light' });
+    } catch {
+      // Not in extension context
+    }
   }
 
   show(): void {
@@ -714,7 +743,12 @@ export class FloatingWidget {
   }
 
   private bindEvents(): void {
-    this.$('drag-handle')?.addEventListener('mousedown', (e) => this.startDrag(e as MouseEvent));
+    this.$('drag-area')?.addEventListener('mousedown', (e) => this.startDrag(e as MouseEvent));
+    // Also allow dragging from the header edges (but not buttons)
+    this.$('drag-handle')?.addEventListener('mousedown', (e) => {
+      if (!(e.target as HTMLElement).closest('button, select, input, .drag-area')) return;
+      // drag-area handles it
+    });
 
     this.$('pick-btn')?.addEventListener('click', () => {
       if (!this.isPicking) {
@@ -759,6 +793,7 @@ export class FloatingWidget {
     });
 
     this.$('expand-btn')?.addEventListener('click', () => this.expandCb?.());
+    this.$('theme-btn')?.addEventListener('click', () => this.toggleTheme());
     this.$('close-btn')?.addEventListener('click', () => {
       this.hide();
       this.closeCb?.();
