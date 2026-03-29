@@ -227,6 +227,11 @@ export class SelektApp extends LitElement {
     await this._checkConnection();
   }
 
+  private _activateFloating() {
+    chrome.runtime.sendMessage({ type: 'ACTIVATE_FLOATING' });
+    this._showToast('Switched to floating mode');
+  }
+
   private _showToast(message: string) {
     const toast = this.shadowRoot?.querySelector<SelektToast>('selekt-toast');
     toast?.show(message);
@@ -295,6 +300,18 @@ export class SelektApp extends LitElement {
             @click=${this._cycleTheme}
           >
             ${this._renderThemeIcon()}
+          </button>
+          <button
+            type="button"
+            class="header-btn"
+            title="Switch to floating widget"
+            aria-label="Switch to floating widget"
+            @click=${this._activateFloating}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <rect x="5" y="5" width="14" height="14" rx="2"/>
+              <path d="M9 3h6M9 21h6M3 9v6M21 9v6"/>
+            </svg>
           </button>
           <button
             type="button"
