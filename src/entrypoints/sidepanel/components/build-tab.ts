@@ -1,4 +1,4 @@
-import type { ScoredSelector, SelectorFormat } from '@/types';
+import type { PageElement, ScoredSelector, SelectorFormat } from '@/types';
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { countMatches, fetchPageElements, testSelector } from '../services/messaging.js';
@@ -675,7 +675,7 @@ export class BuildTab extends LitElement {
   @state() private _matchLoading = false;
   @state() private _scored: ScoredSelector | null = null;
   @state() private _showSuggestions = false;
-  @state() private _pageSuggestions: Suggestion[] = [];
+  @state() private _pageElements: PageElement[] = [];
 
   // ── Structured state ──
   @state() private _structFramework: SelectorFormat = 'playwright';
@@ -735,31 +735,7 @@ export class BuildTab extends LitElement {
 
   private async _loadPageSuggestions() {
     try {
-      const elements = await fetchPageElements();
-      const suggestions: Suggestion[] = [];
-      for (const el of elements) {
-        if (el.testId) {
-          suggestions.push({
-            type: 'testid',
-            label: `[data-testid="${el.testId}"]`,
-            code: `[data-testid="${el.testId}"]`,
-          });
-        } else if (el.id) {
-          suggestions.push({ type: 'ID', label: `#${el.id}`, code: `#${el.id}` });
-        } else if (el.role) {
-          const label = el.ariaLabel
-            ? `[role="${el.role}"][aria-label="${el.ariaLabel}"]`
-            : `[role="${el.role}"]`;
-          suggestions.push({ type: 'role', label, code: label });
-        } else if (el.name) {
-          const label = `[name="${el.name}"]`;
-          suggestions.push({ type: 'name', label, code: label });
-        } else if (el.classes.length > 0) {
-          const label = `.${el.classes[0]}`;
-          suggestions.push({ type: 'class', label, code: label });
-        }
-      }
-      this._pageSuggestions = suggestions;
+      this._pageElements = await fetchPageElements();
     } catch {
       // silently ignore
     }
@@ -768,6 +744,82 @@ export class BuildTab extends LitElement {
   // ---------------------------------------------------------------------------
   // Freeform helpers
   // ---------------------------------------------------------------------------
+
+  private _onFreeformKeydown(e: KeyboardEvent) {
+    const ta = e.target as HTMLTextAreaElement;
+    const pairs: Record<string, string> = {
+      '(': ')',
+      '[': ']',
+      '{': '}',
+      "'": "'",
+      '"': '"',
+      '`': '`',
+    };
+
+    const closing = pairs[e.key];
+    if (closing) {
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+
+      // If text is selected, wrap it
+      if (start !== end) {
+        e.preventDefault();
+        const selected = ta.value.substring(start, end);
+        const replacement = e.key + selected + closing;
+        ta.setRangeText(replacement, start, end, 'end');
+        // Place cursor after the selected text, before closing char
+        ta.setSelectionRange(start + 1, start + 1 + selected.length);
+        ta.dispatchEvent(new Event('input', { bubbles: true }));
+        return;
+      }
+
+      // For quotes: if cursor is right before the same quote, just move past it
+      if ((e.key === "'" || e.key === '"' || e.key === '`') && ta.value[start] === e.key) {
+        e.preventDefault();
+        ta.setSelectionRange(start + 1, start + 1);
+        return;
+      }
+
+      // Auto-insert closing character
+      e.preventDefault();
+      ta.setRangeText(e.key + closing, start, end, 'end');
+      ta.setSelectionRange(start + 1, start + 1);
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+      return;
+    }
+
+    // If typing a closing bracket/quote and it already exists at cursor, skip over it
+    const closingChars = [')', ']', '}'];
+    if (closingChars.includes(e.key) && ta.value[ta.selectionStart] === e.key) {
+      e.preventDefault();
+      ta.setSelectionRange(ta.selectionStart + 1, ta.selectionStart + 1);
+      return;
+    }
+
+    // Backspace: if deleting an opening bracket/quote with its matching close right after, delete both
+    if (e.key === 'Backspace') {
+      const pos = ta.selectionStart;
+      if (pos > 0 && pos === ta.selectionEnd) {
+        const before = ta.value[pos - 1];
+        const after = ta.value[pos];
+        if (pairs[before] && pairs[before] === after) {
+          e.preventDefault();
+          ta.setRangeText('', pos - 1, pos + 1, 'end');
+          ta.setSelectionRange(pos - 1, pos - 1);
+          ta.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+    }
+
+    // Tab key inserts 2 spaces instead of changing focus
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = ta.selectionStart;
+      ta.setRangeText('  ', start, ta.selectionEnd, 'end');
+      ta.setSelectionRange(start + 2, start + 2);
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
 
   private _onFreeformInput(e: Event) {
     const val = (e.target as HTMLTextAreaElement).value;
@@ -848,6 +900,195 @@ export class BuildTab extends LitElement {
     this._scheduleMatchCount();
   }
 
+  private _pageElementsToSuggestions(format: SelectorFormat): Suggestion[] {
+    const results: Suggestion[] = [];
+    for (const el of this._pageElements) {
+      const sug = this._elementToSuggestions(el, format);
+      results.push(...sug);
+    }
+    return results;
+  }
+
+  private _elementToSuggestions(el: PageElement, format: SelectorFormat): Suggestion[] {
+    const out: Suggestion[] = [];
+    const tag = el.tag;
+
+    if (format === 'css') {
+      if (el.testId)
+        out.push({
+          type: 'testid',
+          label: `${tag}[data-testid="${el.testId}"]`,
+          code: `[data-testid="${el.testId}"]`,
+        });
+      if (el.id) out.push({ type: 'id', label: `#${el.id}`, code: `#${el.id}` });
+      if (el.ariaLabel)
+        out.push({
+          type: 'aria',
+          label: `${tag}[aria-label="${el.ariaLabel}"]`,
+          code: `[aria-label="${el.ariaLabel}"]`,
+        });
+      if (el.role)
+        out.push({ type: 'role', label: `${tag}[role="${el.role}"]`, code: `[role="${el.role}"]` });
+      if (el.name)
+        out.push({ type: 'name', label: `${tag}[name="${el.name}"]`, code: `[name="${el.name}"]` });
+      if (el.placeholder)
+        out.push({
+          type: 'ph',
+          label: `${tag}[placeholder="${el.placeholder}"]`,
+          code: `[placeholder="${el.placeholder}"]`,
+        });
+      for (const c of el.classes.slice(0, 2)) {
+        out.push({ type: 'class', label: `${tag}.${c}`, code: `.${c}` });
+      }
+    } else if (format === 'xpath') {
+      if (el.testId)
+        out.push({
+          type: 'testid',
+          label: `//${tag}[@data-testid="${el.testId}"]`,
+          code: `//${tag}[@data-testid="${el.testId}"]`,
+        });
+      if (el.id)
+        out.push({
+          type: 'id',
+          label: `//${tag}[@id="${el.id}"]`,
+          code: `//${tag}[@id="${el.id}"]`,
+        });
+      if (el.ariaLabel)
+        out.push({
+          type: 'aria',
+          label: `//${tag}[@aria-label="${el.ariaLabel}"]`,
+          code: `//${tag}[@aria-label="${el.ariaLabel}"]`,
+        });
+      if (el.role)
+        out.push({
+          type: 'role',
+          label: `//${tag}[@role="${el.role}"]`,
+          code: `//${tag}[@role="${el.role}"]`,
+        });
+      if (el.text)
+        out.push({
+          type: 'text',
+          label: `//${tag}[text()="${el.text}"]`,
+          code: `//${tag}[text()="${el.text}"]`,
+        });
+      if (el.name)
+        out.push({
+          type: 'name',
+          label: `//${tag}[@name="${el.name}"]`,
+          code: `//${tag}[@name="${el.name}"]`,
+        });
+    } else if (format === 'playwright') {
+      if (el.testId)
+        out.push({
+          type: 'testid',
+          label: `page.getByTestId('${el.testId}')`,
+          code: `page.getByTestId('${el.testId}')`,
+        });
+      if (el.role) {
+        const nameOpt = el.ariaLabel
+          ? `, { name: '${el.ariaLabel}' }`
+          : el.text
+            ? `, { name: '${el.text}' }`
+            : '';
+        out.push({
+          type: 'role',
+          label: `page.getByRole('${el.role}'${nameOpt})`,
+          code: `page.getByRole('${el.role}'${nameOpt})`,
+        });
+      }
+      if (el.ariaLabel)
+        out.push({
+          type: 'label',
+          label: `page.getByLabel('${el.ariaLabel}')`,
+          code: `page.getByLabel('${el.ariaLabel}')`,
+        });
+      if (el.placeholder)
+        out.push({
+          type: 'ph',
+          label: `page.getByPlaceholder('${el.placeholder}')`,
+          code: `page.getByPlaceholder('${el.placeholder}')`,
+        });
+      if (el.text && el.text.length <= 30)
+        out.push({
+          type: 'text',
+          label: `page.getByText('${el.text}')`,
+          code: `page.getByText('${el.text}')`,
+        });
+      if (el.altText)
+        out.push({
+          type: 'alt',
+          label: `page.getByAltText('${el.altText}')`,
+          code: `page.getByAltText('${el.altText}')`,
+        });
+      if (el.title)
+        out.push({
+          type: 'title',
+          label: `page.getByTitle('${el.title}')`,
+          code: `page.getByTitle('${el.title}')`,
+        });
+    } else if (format === 'cypress') {
+      if (el.testId)
+        out.push({
+          type: 'testid',
+          label: `cy.get('[data-testid="${el.testId}"]')`,
+          code: `cy.get('[data-testid="${el.testId}"]')`,
+        });
+      if (el.id)
+        out.push({ type: 'id', label: `cy.get('#${el.id}')`, code: `cy.get('#${el.id}')` });
+      if (el.text && el.text.length <= 30)
+        out.push({
+          type: 'text',
+          label: `cy.contains('${tag}', '${el.text}')`,
+          code: `cy.contains('${tag}', '${el.text}')`,
+        });
+      if (el.role)
+        out.push({
+          type: 'role',
+          label: `cy.findByRole('${el.role}')`,
+          code: `cy.findByRole('${el.role}')`,
+        });
+      if (el.testId)
+        out.push({
+          type: 'testid',
+          label: `cy.findByTestId('${el.testId}')`,
+          code: `cy.findByTestId('${el.testId}')`,
+        });
+    } else if (format === 'selenium') {
+      if (el.id)
+        out.push({
+          type: 'id',
+          label: `By.id("${el.id}")`,
+          code: `driver.findElement(By.id("${el.id}"))`,
+        });
+      if (el.name)
+        out.push({
+          type: 'name',
+          label: `By.name("${el.name}")`,
+          code: `driver.findElement(By.name("${el.name}"))`,
+        });
+      if (el.testId)
+        out.push({
+          type: 'css',
+          label: `By.css [data-testid="${el.testId}"]`,
+          code: `driver.findElement(By.cssSelector("[data-testid='${el.testId}']"))`,
+        });
+      if (el.classes.length > 0)
+        out.push({
+          type: 'class',
+          label: `By.className("${el.classes[0]}")`,
+          code: `driver.findElement(By.className("${el.classes[0]}"))`,
+        });
+      if (el.tag)
+        out.push({
+          type: 'tag',
+          label: `By.tagName("${el.tag}")`,
+          code: `driver.findElement(By.tagName("${el.tag}"))`,
+        });
+    }
+
+    return out;
+  }
+
   private _allSuggestions(): Suggestion[] {
     let base: Suggestion[];
     switch (this._freeformFormat) {
@@ -866,15 +1107,21 @@ export class BuildTab extends LitElement {
       default:
         base = STATIC_CSS_SUGGESTIONS;
     }
-    // Page-aware suggestions are CSS-based, include for css/xpath/selenium(css)/cypress(get)
-    const includePageSuggestions =
-      this._freeformFormat === 'css' || this._freeformFormat === 'xpath';
-    const combined = includePageSuggestions ? [...base, ...this._pageSuggestions] : base;
+    const pageSuggestions = this._pageElementsToSuggestions(this._freeformFormat);
+    // Page suggestions first (real elements from the DOM), then static templates
+    const combined = [...pageSuggestions, ...base];
     const query = this._freeformSelector.toLowerCase();
-    if (!query) return combined.slice(0, 20);
+    if (!query) return combined.slice(0, 25);
+
+    // Deduplicate by code
+    const seen = new Set<string>();
     return combined
-      .filter((s) => s.label.toLowerCase().includes(query) || s.code.toLowerCase().includes(query))
-      .slice(0, 20);
+      .filter((s) => {
+        if (seen.has(s.code)) return false;
+        seen.add(s.code);
+        return s.label.toLowerCase().includes(query) || s.code.toLowerCase().includes(query);
+      })
+      .slice(0, 25);
   }
 
   // ---------------------------------------------------------------------------
@@ -1224,6 +1471,7 @@ export class BuildTab extends LitElement {
           .value=${this._freeformSelector}
           placeholder="Type a CSS selector, XPath, or framework locator..."
           @input=${this._onFreeformInput}
+          @keydown=${this._onFreeformKeydown}
           @focus=${() => {
             this._showSuggestions = true;
           }}
