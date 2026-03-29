@@ -313,43 +313,39 @@ const WIDGET_CSS = `
 
   /* ── Header: [Pick] ──drag area── [expand][close] ── */
   .header {
-    display: flex; align-items: stretch;
+    display: flex; align-items: center;
     background: var(--bg2);
     border-bottom: 1px solid var(--border);
-    min-height: 34px;
+    height: 32px;
   }
 
-  .pick-col {
-    display: flex; align-items: stretch;
-  }
+  .pick-col { display: flex; align-items: center; }
 
   .pick-btn {
-    padding: 0 14px;
+    height: 32px; padding: 0 12px;
     background: var(--accent); color: #fff; border: none;
-    font-family: inherit; font-size: 11px; font-weight: 600;
-    letter-spacing: 0.02em; cursor: pointer;
-    display: flex; align-items: center; gap: 5px;
+    font-family: inherit; font-size: 10px; font-weight: 600;
+    letter-spacing: 0.04em; cursor: pointer;
+    display: flex; align-items: center; gap: 4px;
     transition: background 0.15s;
-    text-transform: uppercase;
-    border-right: 1px solid rgba(0,0,0,0.15);
+    text-transform: uppercase; border-radius: 0;
   }
   .pick-btn:hover { background: var(--accent-h); }
   .pick-btn.picking { background: #7c3aed; }
   .pick-btn svg { width: 11px; height: 11px; opacity: 0.9; }
 
-  .drag-area { flex: 1; cursor: grab; min-width: 20px; }
+  .drag-area { flex: 1; cursor: grab; height: 32px; min-width: 20px; }
   .drag-area:active { cursor: grabbing; }
 
   .actions-col {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; gap: 1px; padding: 2px 4px;
-    border-left: 1px solid var(--border);
+    display: flex; align-items: center;
+    gap: 2px; padding: 0 4px;
   }
 
   .icon-btn {
-    width: 22px; height: 22px;
+    width: 24px; height: 24px;
     display: flex; align-items: center; justify-content: center;
-    border-radius: 3px; background: transparent;
+    border-radius: 4px; background: transparent;
     border: none; color: var(--text3); cursor: pointer; padding: 0;
     transition: background 0.15s, color 0.15s;
   }
