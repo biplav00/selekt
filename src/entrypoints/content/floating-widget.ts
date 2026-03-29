@@ -276,7 +276,7 @@ function detectFormat(input: string): SelectorFormat {
 const WIDGET_CSS = `
   :host {
     all: initial;
-    font-family: 'IBM Plex Mono', 'SF Mono', 'Cascadia Code', monospace;
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', 'Liberation Mono', ui-monospace, monospace;
     font-size: 12px; line-height: 1.4;
     -webkit-font-smoothing: antialiased;
 
@@ -363,7 +363,7 @@ const WIDGET_CSS = `
     background: var(--input-bg);
     border: 1px solid var(--border); border-radius: 5px;
     color: var(--text);
-    font-family: 'IBM Plex Mono', monospace; font-size: 11.5px;
+    font-family: inherit; font-size: 11.5px;
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
     caret-color: var(--accent);
@@ -508,16 +508,6 @@ export class FloatingWidget {
     this.widget = this.shadow.getElementById('widget')!;
 
     (document.documentElement || document.body).appendChild(this.host);
-
-    // Load font into the page head (Shadow DOM can't @import external CSS)
-    if (!document.querySelector('link[data-selekt-font]')) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href =
-        'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap';
-      link.setAttribute('data-selekt-font', '1');
-      document.head.appendChild(link);
-    }
 
     this.boundDragMove = (ev) => this.onDragMove(ev);
     this.boundDragEnd = () => this.stopDrag();
