@@ -186,11 +186,15 @@ export class SelektApp extends LitElement {
   }
 
   private async _init() {
-    initDomMonitor();
-    await migrateHistoryToWorkspace();
-    this._settings = await loadSettings();
-    this._applyTheme();
-    await this._checkConnection();
+    try {
+      initDomMonitor();
+      await migrateHistoryToWorkspace();
+      this._settings = await loadSettings();
+      this._applyTheme();
+      await this._checkConnection();
+    } catch (e) {
+      console.error('[selekt] Init failed:', e);
+    }
   }
 
   private _applyTheme() {
