@@ -1,9 +1,9 @@
-import { LitElement, html, css, nothing } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { sharedStyles } from '../styles/shared.js';
-import { loadWorkspace, removeFavorite, clearRecent } from '../services/storage.js';
-import { testSelector } from '../services/messaging.js';
 import type { SavedSelector, WorkspaceData } from '@/types';
+import { LitElement, css, html, nothing } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
+import { testSelector } from '../services/messaging.js';
+import { clearRecent, loadWorkspace, removeFavorite } from '../services/storage.js';
+import { sharedStyles } from '../styles/shared.js';
 import './selector-card.js';
 
 const FORMAT_CHIPS = [
@@ -213,7 +213,9 @@ export class WorkspaceTab extends LitElement {
   }
 
   private _emitToast(message: string) {
-    this.dispatchEvent(new CustomEvent('toast', { detail: message, bubbles: true, composed: true }));
+    this.dispatchEvent(
+      new CustomEvent('toast', { detail: message, bubbles: true, composed: true })
+    );
   }
 
   private _getRelativeTime(timestamp: number): string {

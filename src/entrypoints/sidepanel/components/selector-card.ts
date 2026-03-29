@@ -1,6 +1,6 @@
+import type { ScoredSelector } from '@/types';
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import type { ScoredSelector } from '@/types';
 import { sharedStyles } from '../styles/shared.js';
 
 const FORMAT_LABEL: Record<string, string> = {
@@ -161,21 +161,27 @@ export class SelectorCard extends LitElement {
     // Don't copy when clicking action buttons
     if ((e.target as HTMLElement).closest('.actions')) return;
     if (this.data) {
-      this.dispatchEvent(new CustomEvent('copy', { detail: this.data, bubbles: true, composed: true }));
+      this.dispatchEvent(
+        new CustomEvent('copy', { detail: this.data, bubbles: true, composed: true })
+      );
     }
   }
 
   private _onTest(e: Event) {
     e.stopPropagation();
     if (this.data) {
-      this.dispatchEvent(new CustomEvent('test', { detail: this.data, bubbles: true, composed: true }));
+      this.dispatchEvent(
+        new CustomEvent('test', { detail: this.data, bubbles: true, composed: true })
+      );
     }
   }
 
   private _onStar(e: Event) {
     e.stopPropagation();
     if (this.data) {
-      this.dispatchEvent(new CustomEvent('star', { detail: this.data, bubbles: true, composed: true }));
+      this.dispatchEvent(
+        new CustomEvent('star', { detail: this.data, bubbles: true, composed: true })
+      );
     }
   }
 
@@ -192,9 +198,11 @@ export class SelectorCard extends LitElement {
         <span class="score-badge ${scoreClass}">${score}</span>
         <span class="badge ${formatBadgeClass}">${formatLabel}</span>
         <span class="selector-text">${selector}</span>
-        ${this.status !== 'normal' && this.statusText
-          ? html`<span class="status-badge status-${this.status}">${this.statusText}</span>`
-          : nothing}
+        ${
+          this.status !== 'normal' && this.statusText
+            ? html`<span class="status-badge status-${this.status}">${this.statusText}</span>`
+            : nothing
+        }
         <div class="actions">
           <button class="action-btn" title="Test on page" @click=${this._onTest}>▶</button>
           <button
@@ -204,16 +212,18 @@ export class SelectorCard extends LitElement {
           >★</button>
         </div>
       </div>
-      ${warnings && warnings.length > 0
-        ? warnings.map(
-            (w) => html`
+      ${
+        warnings && warnings.length > 0
+          ? warnings.map(
+              (w) => html`
               <div class="warning-row">
                 <span>⚠</span>
                 <span>${w}</span>
               </div>
-            `,
-          )
-        : nothing}
+            `
+            )
+          : nothing
+      }
     `;
   }
 }

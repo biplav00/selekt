@@ -162,7 +162,7 @@ export class SettingsModal extends LitElement {
     const card = this.shadowRoot?.querySelector<HTMLElement>('.card');
     if (!card) return;
     const focusable = Array.from(
-      card.querySelectorAll<HTMLElement>('button, select, input, [tabindex]:not([tabindex="-1"])'),
+      card.querySelectorAll<HTMLElement>('button, select, input, [tabindex]:not([tabindex="-1"])')
     ).filter((el) => !el.hasAttribute('disabled'));
     if (focusable.length === 0) return;
     const first = focusable[0];
@@ -196,7 +196,7 @@ export class SettingsModal extends LitElement {
         detail: { ...this._draft },
         bubbles: true,
         composed: true,
-      }),
+      })
     );
     this._close();
   }
