@@ -1,12 +1,14 @@
+import type { DomTreeNode } from '@/types';
 import { defineContentScript } from 'wxt/utils/define-content-script';
 
 export default defineContentScript({
   matches: ['<all_urls>'],
   runAt: 'document_start',
   main() {
-    // Guard against duplicate injection
-    if ((window as any).__locatorGenLoaded) return;
-    (window as any).__locatorGenLoaded = true;
+    // Guard against duplicate injection using a namespaced symbol
+    const GUARD_KEY = '__selekt_content_loaded__';
+    if ((window as any)[GUARD_KEY]) return;
+    (window as any)[GUARD_KEY] = true;
 
     let isPicking = false;
     let hoveredElement: HTMLElement | null = null;
@@ -63,6 +65,26 @@ export default defineContentScript({
         sendResponse({ success: true });
       } else if (message.type === 'CLEAR_HIGHLIGHT') {
         clearHighlightOverlay();
+        sendResponse({ success: true });
+      } else if (message.type === 'WATCH_SELECTORS') {
+        const newSelectors = message.selectors as Array<{
+          id: string;
+          selector: string;
+          type: 'css' | 'xpath';
+        }>;
+        for (const s of newSelectors) {
+          if (!watchedSelectors.find((w) => w.id === s.id)) {
+            watchedSelectors.push(s);
+            selectorCounts.set(s.id, countSelectorMatches(s.selector, s.type));
+          }
+        }
+        if (watchedSelectors.length > 0) startObserving();
+        sendResponse({ success: true });
+      } else if (message.type === 'UNWATCH_SELECTORS') {
+        const ids = new Set(message.ids as string[]);
+        watchedSelectors = watchedSelectors.filter((w) => !ids.has(w.id));
+        for (const id of ids) selectorCounts.delete(id);
+        if (watchedSelectors.length === 0) stopObserving();
         sendResponse({ success: true });
       }
       return true;
@@ -127,20 +149,6 @@ export default defineContentScript({
       return tag;
     }
 
-    interface DomTreeNode {
-      tag: string;
-      id: string;
-      className: string;
-      textContent: string;
-      depth: number;
-      hasChildren: boolean;
-      children: DomTreeNode[];
-      childCount: number;
-      path: number[];
-      loaded: boolean;
-      totalChildren: number;
-    }
-
     const SKIP_TAGS = new Set(['script', 'style', 'noscript', 'link', 'meta', 'svg']);
 
     function getFilteredChildren(el: Element): Element[] {
@@ -157,76 +165,7 @@ export default defineContentScript({
       return text.trim().substring(0, 40);
     }
 
-    function getDomTree(): DomTreeNode | null {
-      function buildTree(
-        node: Element,
-        depth: number,
-        maxDepth: number,
-        path: number[]
-      ): DomTreeNode | null {
-        if (!node) return null;
-
-        const tag = node.tagName.toLowerCase();
-        if (SKIP_TAGS.has(tag)) return null;
-
-        const id = node.id || '';
-        const classList = node.classList ? Array.from(node.classList).slice(0, 3).join(' ') : '';
-        const filteredChildren = getFilteredChildren(node);
-        const isLoaded = depth < maxDepth;
-
-        const nodeData: DomTreeNode = {
-          tag,
-          id,
-          className: classList,
-          textContent: getDirectTextContent(node),
-          depth,
-          hasChildren: filteredChildren.length > 0,
-          children: [],
-          childCount: filteredChildren.length,
-          path,
-          loaded: isLoaded,
-          totalChildren: filteredChildren.length,
-        };
-
-        if (isLoaded) {
-          for (let i = 0; i < filteredChildren.length; i++) {
-            const childPath = [...path, i];
-            const childData = buildTree(filteredChildren[i], depth + 1, maxDepth, childPath);
-            if (childData) {
-              nodeData.children.push(childData);
-            }
-          }
-        }
-
-        return nodeData;
-      }
-
-      return buildTree(document.body, 0, 2, []);
-    }
-
-    function getDomChildren(path: number[]): DomTreeNode[] {
-      let current: Element = document.body;
-      for (const index of path) {
-        const filtered = getFilteredChildren(current);
-        if (index >= filtered.length) return [];
-        current = filtered[index];
-      }
-
-      const filteredChildren = getFilteredChildren(current);
-      const results: DomTreeNode[] = [];
-      const childDepth = path.length + 1;
-      const maxDepth = path.length + 3;
-
-      for (let i = 0; i < filteredChildren.length; i++) {
-        const childPath = [...path, i];
-        const node = buildChildTree(filteredChildren[i], childDepth, maxDepth, childPath);
-        if (node) results.push(node);
-      }
-
-      return results;
-    }
-
-    function buildChildTree(
+    function buildNodeTree(
       node: Element,
       depth: number,
       maxDepth: number,
@@ -258,7 +197,7 @@ export default defineContentScript({
       if (isLoaded) {
         for (let i = 0; i < filteredChildren.length; i++) {
           const childPath = [...path, i];
-          const childData = buildChildTree(filteredChildren[i], depth + 1, maxDepth, childPath);
+          const childData = buildNodeTree(filteredChildren[i], depth + 1, maxDepth, childPath);
           if (childData) {
             nodeData.children.push(childData);
           }
@@ -266,6 +205,32 @@ export default defineContentScript({
       }
 
       return nodeData;
+    }
+
+    function getDomTree(): DomTreeNode | null {
+      return buildNodeTree(document.body, 0, 2, []);
+    }
+
+    function getDomChildren(path: number[]): DomTreeNode[] {
+      let current: Element = document.body;
+      for (const index of path) {
+        const filtered = getFilteredChildren(current);
+        if (index >= filtered.length) return [];
+        current = filtered[index];
+      }
+
+      const filteredChildren = getFilteredChildren(current);
+      const results: DomTreeNode[] = [];
+      const childDepth = path.length + 1;
+      const maxDepth = path.length + 3;
+
+      for (let i = 0; i < filteredChildren.length; i++) {
+        const childPath = [...path, i];
+        const node = buildNodeTree(filteredChildren[i], childDepth, maxDepth, childPath);
+        if (node) results.push(node);
+      }
+
+      return results;
     }
 
     // --- Highlight overlay for hover-to-highlight ---
@@ -437,6 +402,74 @@ export default defineContentScript({
         el.removeAttribute('data-locator-highlight');
         restoreOutline(el as HTMLElement);
       });
+    }
+
+    // --- Selector Watching (DOM Change Detection) ---
+    let watchedSelectors: Array<{ id: string; selector: string; type: 'css' | 'xpath' }> = [];
+    const selectorCounts: Map<string, number> = new Map();
+    let mutationObserver: MutationObserver | null = null;
+    let mutationDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function countSelectorMatches(selector: string, type: 'css' | 'xpath'): number {
+      try {
+        if (type === 'xpath') {
+          const result = document.evaluate(
+            selector,
+            document,
+            null,
+            XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+            null
+          );
+          return result.snapshotLength;
+        }
+        return document.querySelectorAll(selector).length;
+      } catch {
+        return -1;
+      }
+    }
+
+    function checkSelectorChanges() {
+      for (const watched of watchedSelectors) {
+        const newCount = countSelectorMatches(watched.selector, watched.type);
+        const oldCount = selectorCounts.get(watched.id) ?? -1;
+
+        if (oldCount !== -1 && newCount !== oldCount) {
+          chrome.runtime
+            .sendMessage({
+              type: 'SELECTOR_STATUS_CHANGED',
+              id: watched.id,
+              oldCount,
+              newCount,
+            })
+            .catch(() => {});
+        }
+
+        selectorCounts.set(watched.id, newCount);
+      }
+    }
+
+    function startObserving() {
+      if (mutationObserver) return;
+      mutationObserver = new MutationObserver(() => {
+        if (mutationDebounceTimer) clearTimeout(mutationDebounceTimer);
+        mutationDebounceTimer = setTimeout(checkSelectorChanges, 500);
+      });
+      mutationObserver.observe(document.body, {
+        childList: true,
+        attributes: true,
+        subtree: true,
+      });
+    }
+
+    function stopObserving() {
+      if (mutationObserver) {
+        mutationObserver.disconnect();
+        mutationObserver = null;
+      }
+      if (mutationDebounceTimer) {
+        clearTimeout(mutationDebounceTimer);
+        mutationDebounceTimer = null;
+      }
     }
 
     function testSelector(selector: string, selectorType?: string) {
