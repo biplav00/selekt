@@ -442,12 +442,6 @@ export default defineContentScript({
       testSelector(selector, selectorType);
     });
 
-    floatingWidget.onExpandToSidepanel(() => {
-      isFloatingMode = false;
-      floatingWidget.hide();
-      chrome.runtime.sendMessage({ type: 'ACTIVATE_SIDEPANEL' });
-    });
-
     floatingWidget.onClose(() => {
       isFloatingMode = false;
       floatingWidget.hide();

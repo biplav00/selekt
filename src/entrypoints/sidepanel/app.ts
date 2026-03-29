@@ -229,7 +229,8 @@ export class SelektApp extends LitElement {
 
   private _activateFloating() {
     chrome.runtime.sendMessage({ type: 'ACTIVATE_FLOATING' });
-    this._showToast('Switched to floating mode');
+    // Close the sidepanel by closing its window
+    window.close();
   }
 
   private _showToast(message: string) {
