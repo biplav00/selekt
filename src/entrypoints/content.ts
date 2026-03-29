@@ -1,5 +1,6 @@
 import type { DomTreeNode } from '@/types';
 import { defineContentScript } from 'wxt/utils/define-content-script';
+import { FloatingWidget } from './content/floating-widget';
 
 export default defineContentScript({
   matches: ['<all_urls>'],
@@ -9,6 +10,9 @@ export default defineContentScript({
     const GUARD_KEY = '__selekt_content_loaded__';
     if ((window as any)[GUARD_KEY]) return;
     (window as any)[GUARD_KEY] = true;
+
+    const floatingWidget = new FloatingWidget();
+    let isFloatingMode = false;
 
     let isPicking = false;
     let hoveredElement: HTMLElement | null = null;
@@ -85,6 +89,14 @@ export default defineContentScript({
         watchedSelectors = watchedSelectors.filter((w) => !ids.has(w.id));
         for (const id of ids) selectorCounts.delete(id);
         if (watchedSelectors.length === 0) stopObserving();
+        sendResponse({ success: true });
+      } else if (message.type === 'ACTIVATE_FLOATING') {
+        isFloatingMode = true;
+        floatingWidget.show();
+        sendResponse({ success: true });
+      } else if (message.type === 'DEACTIVATE_FLOATING') {
+        isFloatingMode = false;
+        floatingWidget.hide();
         sendResponse({ success: true });
       }
       return true;
@@ -373,6 +385,10 @@ export default defineContentScript({
 
       stopElementPicker();
 
+      if (isFloatingMode) {
+        floatingWidget.setElementData(elementInfo);
+      }
+
       chrome.runtime.sendMessage({
         type: 'ELEMENT_SELECTED',
         element: elementInfo,
@@ -416,6 +432,26 @@ export default defineContentScript({
         restoreOutline(el as HTMLElement);
       });
     }
+
+    // --- Floating Widget Callbacks ---
+    floatingWidget.onPick(() => {
+      startElementPicker();
+    });
+
+    floatingWidget.onTest((selector, selectorType) => {
+      testSelector(selector, selectorType);
+    });
+
+    floatingWidget.onExpandToSidepanel(() => {
+      isFloatingMode = false;
+      floatingWidget.hide();
+      chrome.runtime.sendMessage({ type: 'ACTIVATE_SIDEPANEL' });
+    });
+
+    floatingWidget.onClose(() => {
+      isFloatingMode = false;
+      floatingWidget.hide();
+    });
 
     // --- Selector Watching (DOM Change Detection) ---
     let watchedSelectors: Array<{ id: string; selector: string; type: 'css' | 'xpath' }> = [];
