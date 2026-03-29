@@ -91,6 +91,23 @@ export interface SelectorStatusChange {
   newCount: number;
 }
 
+// --- Page Scraper ---
+
+export interface PageElement {
+  tag: string;
+  id: string;
+  classes: string[];
+  testId: string;
+  role: string;
+  ariaLabel: string;
+  name: string;
+  placeholder: string;
+  title: string;
+  altText: string;
+  text: string;
+  matchCount: number;
+}
+
 // --- Messages ---
 
 export type MessageType =

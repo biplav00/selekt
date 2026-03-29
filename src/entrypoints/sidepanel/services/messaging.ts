@@ -1,4 +1,4 @@
-import type { WatchedSelector } from '@/types';
+import type { PageElement, WatchedSelector } from '@/types';
 import { ensureContentScript } from '@/utils/content-script';
 
 async function getActiveTab(): Promise<chrome.tabs.Tab> {
@@ -90,89 +90,116 @@ export async function countMatches(selector: string, selectorType = 'css'): Prom
   return result?.[0]?.result ?? -1;
 }
 
-export async function fetchPageSuggestions(): Promise<Record<
-  string,
-  Array<{ type: string; label: string; code: string }>
-> | null> {
+export async function fetchPageElements(): Promise<PageElement[]> {
   try {
     const tab = await getActiveTab();
     const result = await chrome.scripting.executeScript({
       target: { tabId: tab.id! },
       func: () => {
-        const MAX_PER_CATEGORY = 50;
-        const suggestions: Record<string, Array<{ type: string; label: string; code: string }>> = {
-          id: [],
-          class: [],
-          testid: [],
-          role: [],
-        };
+        const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'LINK', 'META', 'SVG', 'HEAD']);
+        const MAX_ELEMENTS = 200;
+        const MAX_CLASSES = 5;
+        const TEXT_MAX = 40;
 
-        const idEls = document.querySelectorAll('[id]');
-        for (let i = 0; i < idEls.length && suggestions.id.length < MAX_PER_CATEGORY; i++) {
-          const el = idEls[i];
-          if (el.id && !el.id.includes(' ') && el.id.length < 50) {
-            suggestions.id.push({ type: 'ID', label: `#${el.id}`, code: `#${el.id}` });
-          }
+        interface PE {
+          tag: string;
+          id: string;
+          classes: string[];
+          testId: string;
+          role: string;
+          ariaLabel: string;
+          name: string;
+          placeholder: string;
+          title: string;
+          altText: string;
+          text: string;
+          matchCount: number;
         }
 
-        document.querySelectorAll('[data-testid]').forEach((el) => {
-          if (suggestions.testid.length >= MAX_PER_CATEGORY) return;
-          const val = el.getAttribute('data-testid');
-          if (val)
-            suggestions.testid.push({
-              type: 'testid',
-              label: `[data-testid="${val}"]`,
-              code: `[data-testid="${val}"]`,
-            });
-        });
+        // First pass: collect raw data
+        const raw: PE[] = [];
+        const seen = new Map<string, number>(); // dedup key -> index in raw
 
-        document.querySelectorAll('[data-test]').forEach((el) => {
-          if (suggestions.testid.length >= MAX_PER_CATEGORY) return;
-          const val = el.getAttribute('data-test');
-          if (val)
-            suggestions.testid.push({
-              type: 'testid',
-              label: `[data-test="${val}"]`,
-              code: `[data-test="${val}"]`,
-            });
-        });
+        const all = document.querySelectorAll('*');
+        for (let i = 0; i < all.length; i++) {
+          const el = all[i] as HTMLElement;
+          if (SKIP_TAGS.has(el.tagName)) continue;
 
-        const seen = new Set<string>();
-        const classEls = document.querySelectorAll('[class]');
-        for (let i = 0; i < classEls.length && suggestions.class.length < MAX_PER_CATEGORY; i++) {
-          const cn = classEls[i].className;
-          if (typeof cn === 'string') {
-            cn.split(' ')
-              .filter((c) => c && c.length < 30 && !seen.has(c))
-              .slice(0, 2)
-              .forEach((c) => {
-                if (suggestions.class.length >= MAX_PER_CATEGORY) return;
-                seen.add(c);
-                suggestions.class.push({ type: 'class', label: `.${c}`, code: `.${c}` });
-              });
+          const id = el.id || '';
+          const testId = el.getAttribute('data-testid') || el.getAttribute('data-test') || '';
+          const role = el.getAttribute('role') || '';
+          const ariaLabel = el.getAttribute('aria-label') || '';
+          const name = (el as HTMLInputElement).name || el.getAttribute('name') || '';
+          const placeholder = el.getAttribute('placeholder') || '';
+          const title = el.getAttribute('title') || '';
+          const altText = el.getAttribute('alt') || '';
+
+          // Direct text only (not children)
+          let text = '';
+          for (let n = el.firstChild; n; n = n.nextSibling) {
+            if (n.nodeType === 3) {
+              text += (n as Text).textContent || '';
+            }
           }
+          text = text.trim().slice(0, TEXT_MAX);
+
+          // Classes: first 5 non-empty
+          const classArr: string[] = [];
+          if (el.classList) {
+            for (let c = 0; c < el.classList.length && classArr.length < MAX_CLASSES; c++) {
+              const cls = el.classList[c];
+              if (cls) classArr.push(cls);
+            }
+          }
+
+          // Skip elements with nothing useful
+          if (!id && !testId && !role && !ariaLabel && !name && !text && classArr.length === 0) {
+            continue;
+          }
+
+          const dedupKey = `${el.tagName}|${id}|${testId}|${role}|${ariaLabel}|${name}`;
+
+          if (seen.has(dedupKey)) {
+            raw[seen.get(dedupKey)!].matchCount++;
+            continue;
+          }
+
+          const entry: PE = {
+            tag: el.tagName.toLowerCase(),
+            id,
+            classes: classArr,
+            testId,
+            role,
+            ariaLabel,
+            name,
+            placeholder,
+            title,
+            altText,
+            text,
+            matchCount: 1,
+          };
+          seen.set(dedupKey, raw.length);
+          raw.push(entry);
         }
 
-        const roles = new Set<string>();
-        document.querySelectorAll('[role]').forEach((el) => {
-          if (roles.size >= MAX_PER_CATEGORY) return;
-          const role = el.getAttribute('role');
-          if (role && !roles.has(role)) {
-            roles.add(role);
-            suggestions.role.push({
-              type: 'role',
-              label: `[role="${role}"]`,
-              code: `[role="${role}"]`,
-            });
-          }
+        // Sort by usefulness: testId > id > role+ariaLabel > name > rest
+        raw.sort((a, b) => {
+          const score = (e: PE) => {
+            if (e.testId) return 4;
+            if (e.id) return 3;
+            if (e.role && e.ariaLabel) return 2;
+            if (e.name) return 1;
+            return 0;
+          };
+          return score(b) - score(a);
         });
 
-        return suggestions;
+        return raw.slice(0, MAX_ELEMENTS);
       },
     });
-    return result[0].result;
+    return (result?.[0]?.result as PageElement[]) ?? [];
   } catch {
-    return null;
+    return [];
   }
 }
 

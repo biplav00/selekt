@@ -1,7 +1,7 @@
 import type { ScoredSelector, SelectorFormat } from '@/types';
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { countMatches, fetchPageSuggestions, testSelector } from '../services/messaging.js';
+import { countMatches, fetchPageElements, testSelector } from '../services/messaging.js';
 import {
   escapeCssAttrValue,
   escapeDoubleQuoteJs,
@@ -735,14 +735,31 @@ export class BuildTab extends LitElement {
 
   private async _loadPageSuggestions() {
     try {
-      const data = await fetchPageSuggestions();
-      if (data) {
-        const all: Suggestion[] = [];
-        for (const items of Object.values(data)) {
-          all.push(...items);
+      const elements = await fetchPageElements();
+      const suggestions: Suggestion[] = [];
+      for (const el of elements) {
+        if (el.testId) {
+          suggestions.push({
+            type: 'testid',
+            label: `[data-testid="${el.testId}"]`,
+            code: `[data-testid="${el.testId}"]`,
+          });
+        } else if (el.id) {
+          suggestions.push({ type: 'ID', label: `#${el.id}`, code: `#${el.id}` });
+        } else if (el.role) {
+          const label = el.ariaLabel
+            ? `[role="${el.role}"][aria-label="${el.ariaLabel}"]`
+            : `[role="${el.role}"]`;
+          suggestions.push({ type: 'role', label, code: label });
+        } else if (el.name) {
+          const label = `[name="${el.name}"]`;
+          suggestions.push({ type: 'name', label, code: label });
+        } else if (el.classes.length > 0) {
+          const label = `.${el.classes[0]}`;
+          suggestions.push({ type: 'class', label, code: label });
         }
-        this._pageSuggestions = all;
       }
+      this._pageSuggestions = suggestions;
     } catch {
       // silently ignore
     }
