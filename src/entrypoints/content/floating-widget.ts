@@ -275,8 +275,6 @@ function detectFormat(input: string): SelectorFormat {
 
 const WIDGET_CSS = `
   :host {
-    all: initial;
-    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', 'Liberation Mono', ui-monospace, monospace;
     font-size: 12px; line-height: 1.4;
     -webkit-font-smoothing: antialiased;
 
@@ -301,9 +299,13 @@ const WIDGET_CSS = `
     --input-bg: #ffffff;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  *, :host {
+    box-sizing: border-box; margin: 0; padding: 0;
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', 'Liberation Mono', ui-monospace, monospace;
+  }
 
   .widget {
+    display: none;
     position: fixed; right: 16px; bottom: 16px;
     width: 360px; background: var(--bg);
     border: 1px solid var(--border); border-radius: 8px;
@@ -493,9 +495,12 @@ export class FloatingWidget {
   private isDark = true;
 
   constructor() {
+    // Remove any orphaned widget from a previous extension reload
+    document.querySelectorAll('#selekt-floating-host').forEach((el) => el.remove());
+
     this.host = document.createElement('div');
     this.host.id = 'selekt-floating-host';
-    this.host.style.cssText = 'all:initial;';
+    this.host.style.cssText = 'display:contents;';
 
     this.shadow = this.host.attachShadow({ mode: 'open' });
     const style = document.createElement('style');
@@ -507,12 +512,12 @@ export class FloatingWidget {
     this.shadow.appendChild(tmp.firstElementChild as Element);
     this.widget = this.shadow.getElementById('widget')!;
 
-    (document.documentElement || document.body).appendChild(this.host);
-
     this.boundDragMove = (ev) => this.onDragMove(ev);
     this.boundDragEnd = () => this.stopDrag();
     this.bindEvents();
-    this.host.style.display = 'none';
+
+    // Append to DOM (widget starts hidden via CSS display:none)
+    (document.documentElement || document.body).appendChild(this.host);
 
     // Load theme from storage
     try {
@@ -548,12 +553,12 @@ export class FloatingWidget {
   }
 
   show(): void {
-    this.host.style.display = '';
+    this.widget.style.display = 'block';
     this.visible = true;
   }
 
   hide(): void {
-    this.host.style.display = 'none';
+    this.widget.style.display = 'none';
     this.visible = false;
     clearAllHighlights();
   }
