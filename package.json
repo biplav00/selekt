@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Test automation locator generation tool for Chrome",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "wxt dev",
     "build": "wxt build",
@@ -22,5 +25,8 @@
     "semantic-release": "^24.0.0",
     "sharp": "^0.34.5",
     "wxt": "^0.20.18"
+  },
+  "dependencies": {
+    "lit": "^3.3.2"
   }
 }
