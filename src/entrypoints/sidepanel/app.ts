@@ -1,5 +1,6 @@
 import { LitElement, css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
+import { initDomMonitor } from './services/dom-monitor.js';
 import { checkConnection } from './services/messaging.js';
 import {
   type Settings,
@@ -183,6 +184,7 @@ export class SelektApp extends LitElement {
   }
 
   private async _init() {
+    initDomMonitor();
     await migrateHistoryToWorkspace();
     this._settings = await loadSettings();
     this._applyTheme();
