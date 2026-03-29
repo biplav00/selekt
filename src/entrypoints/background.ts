@@ -1,4 +1,5 @@
 import { defineBackground } from 'wxt/utils/define-background';
+import { ensureContentScript } from '../utils/content-script';
 
 export default defineBackground({
   main() {
@@ -35,6 +36,34 @@ export default defineBackground({
         } catch {
           console.log('Could not activate picker on this page');
         }
+      }
+    });
+
+    // Handle floating mode messages
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.type === 'ACTIVATE_FLOATING') {
+        // Relay from sidepanel to content script
+        chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
+          if (!tab?.id) return;
+          try {
+            await ensureContentScript(tab.id);
+            await chrome.tabs.sendMessage(tab.id, { type: 'ACTIVATE_FLOATING' });
+          } catch {
+            console.log('Could not activate floating mode');
+          }
+        });
+        sendResponse({ success: true });
+        return true;
+      }
+
+      if (message.type === 'ACTIVATE_SIDEPANEL') {
+        // Relay from content script — open sidepanel
+        const windowId = sender.tab?.windowId;
+        if (windowId) {
+          chrome.sidePanel.open({ windowId });
+        }
+        sendResponse({ success: true });
+        return true;
       }
     });
   },
