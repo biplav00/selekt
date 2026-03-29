@@ -1,15 +1,16 @@
-import { LitElement, html, css, nothing } from 'lit';
-import { customElement, state, property } from 'lit/decorators.js';
-import { sharedStyles } from '../styles/shared.js';
-import { generateScoredSelectors } from '../services/selector-engine.js';
+import type { ElementInfo, SavedSelector, ScoredSelector } from '@/types';
+import { LitElement, css, html, nothing } from 'lit';
+import { customElement, property, state } from 'lit/decorators.js';
 import {
-  startPicking,
-  testSelector,
   onElementSelected,
   onPickingCancelled,
+  startPicking,
+  testSelector,
 } from '../services/messaging.js';
+import { generateScoredSelectors } from '../services/selector-engine.js';
 import { addFavorite, addRecent, loadWorkspace } from '../services/storage.js';
-import type { ElementInfo, ScoredSelector, SavedSelector } from '@/types';
+import { sharedStyles } from '../styles/shared.js';
+import './dom-tree.js';
 import './selector-card.js';
 
 const DEFAULT_SHOW = 5;
@@ -219,6 +220,43 @@ export class PickTab extends LitElement {
         color: var(--text-primary);
       }
 
+      /* ── DOM Tree toggle ── */
+      .section-toggle {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 12px;
+      }
+
+      .toggle-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 10px;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        transition: background 0.15s, color 0.15s, border-color 0.15s;
+      }
+
+      .toggle-btn:hover {
+        background: var(--border);
+        color: var(--text-primary);
+      }
+
+      .toggle-btn.active {
+        background: color-mix(in srgb, var(--accent) 12%, transparent);
+        border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+        color: var(--accent);
+      }
+
+      .dom-tree-section {
+        margin-top: 12px;
+      }
+
       /* ── Empty state ── */
       .empty-state {
         display: flex;
@@ -251,6 +289,7 @@ export class PickTab extends LitElement {
   @state() private _selectors: ScoredSelector[] = [];
   @state() private _showAll = false;
   @state() private _favoriteIds = new Set<string>();
+  @state() private _showDomTree = false;
 
   private _pickTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -367,7 +406,13 @@ export class PickTab extends LitElement {
   }
 
   private _emitToast(message: string) {
-    this.dispatchEvent(new CustomEvent('toast', { detail: message, bubbles: true, composed: true }));
+    this.dispatchEvent(
+      new CustomEvent('toast', { detail: message, bubbles: true, composed: true })
+    );
+  }
+
+  private _onDomTreeElementSelected(e: CustomEvent<ElementInfo>) {
+    this._onElementSelected(e.detail);
   }
 
   private _buildElementPath(element: ElementInfo): string {
@@ -388,8 +433,7 @@ export class PickTab extends LitElement {
   private _renderAttrChips(element: ElementInfo) {
     const SHOW_ATTRS = ['id', 'class', 'role', 'aria-label', 'data-testid', 'name', 'type'];
     const chips = SHOW_ATTRS.filter((a) => element.attributes[a]).map(
-      (a) =>
-        html`<span class="attr-chip">${a}="${element.attributes[a]}"</span>`
+      (a) => html`<span class="attr-chip">${a}="${element.attributes[a]}"</span>`
     );
     return chips.length > 0 ? html`<div class="attr-chips">${chips}</div>` : nothing;
   }
@@ -431,13 +475,17 @@ export class PickTab extends LitElement {
             `
           )}
         </div>
-        ${!this._showAll && hiddenCount > 0
-          ? html`
-              <button class="show-all-btn" type="button" @click=${() => { this._showAll = true; }}>
+        ${
+          !this._showAll && hiddenCount > 0
+            ? html`
+              <button class="show-all-btn" type="button" @click=${() => {
+                this._showAll = true;
+              }}>
                 Show all (${this._selectors.length})
               </button>
             `
-          : nothing}
+            : nothing
+        }
       </div>
     `;
   }
@@ -469,6 +517,36 @@ export class PickTab extends LitElement {
 
       ${this._element ? this._renderElementCard(this._element) : nothing}
       ${this._element ? this._renderResults() : this._renderEmptyState()}
+
+      ${
+        this._element
+          ? html`
+              <div class="section-toggle">
+                <button
+                  type="button"
+                  class="toggle-btn ${this._showDomTree ? 'active' : ''}"
+                  @click=${() => {
+                    this._showDomTree = !this._showDomTree;
+                  }}
+                >
+                  ${this._showDomTree ? '▼' : '▶'} DOM Tree
+                </button>
+              </div>
+              ${
+                this._showDomTree
+                  ? html`
+                      <div class="dom-tree-section">
+                        <dom-tree
+                          @element-selected=${this._onDomTreeElementSelected}
+                          @toast=${(e: CustomEvent<string>) => this._emitToast(e.detail)}
+                        ></dom-tree>
+                      </div>
+                    `
+                  : nothing
+              }
+            `
+          : nothing
+      }
     `;
   }
 }
