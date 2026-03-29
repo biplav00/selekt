@@ -73,6 +73,128 @@ function makeId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/**
+ * Extract a testable CSS/XPath selector from any framework-specific locator string.
+ * Returns { selector, selectorType } or null if extraction fails.
+ */
+function extractTestable(
+  locator: string,
+  format: SelectorFormat
+): { selector: string; selectorType: 'css' | 'xpath' } | null {
+  if (format === 'css') return { selector: locator, selectorType: 'css' };
+  if (format === 'xpath') return { selector: locator, selectorType: 'xpath' };
+
+  if (format === 'playwright') {
+    // page.locator('sel') → CSS
+    const locMatch = locator.match(/page\.locator\((['"`])(.*?)\1\)/);
+    if (locMatch) return { selector: locMatch[2], selectorType: 'css' };
+
+    // page.getByTestId('val') → [data-testid="val"]
+    const testIdMatch = locator.match(/page\.getByTestId\((['"`])(.*?)\1\)/);
+    if (testIdMatch) return { selector: `[data-testid="${testIdMatch[2]}"]`, selectorType: 'css' };
+
+    // page.getByRole('role', { name: 'name' }) → [role="role"]
+    const roleMatch = locator.match(/page\.getByRole\((['"`])(.*?)\1/);
+    if (roleMatch) return { selector: `[role="${roleMatch[2]}"]`, selectorType: 'css' };
+
+    // page.getByText('text') → //*[contains(text(),"text")]
+    const textMatch = locator.match(/page\.getByText\((['"`])(.*?)\1/);
+    if (textMatch)
+      return { selector: `//*[contains(text(),"${textMatch[2]}")]`, selectorType: 'xpath' };
+
+    // page.getByLabel('label') → [aria-label="label"]
+    const labelMatch = locator.match(/page\.getByLabel\((['"`])(.*?)\1/);
+    if (labelMatch) return { selector: `[aria-label="${labelMatch[2]}"]`, selectorType: 'css' };
+
+    // page.getByPlaceholder('ph') → [placeholder="ph"]
+    const phMatch = locator.match(/page\.getByPlaceholder\((['"`])(.*?)\1/);
+    if (phMatch) return { selector: `[placeholder="${phMatch[2]}"]`, selectorType: 'css' };
+
+    // page.getByAltText('alt') → [alt="alt"]
+    const altMatch = locator.match(/page\.getByAltText\((['"`])(.*?)\1/);
+    if (altMatch) return { selector: `[alt="${altMatch[2]}"]`, selectorType: 'css' };
+
+    // page.getByTitle('title') → [title="title"]
+    const titleMatch = locator.match(/page\.getByTitle\((['"`])(.*?)\1/);
+    if (titleMatch) return { selector: `[title="${titleMatch[2]}"]`, selectorType: 'css' };
+
+    return null;
+  }
+
+  if (format === 'cypress') {
+    // cy.get('sel') → CSS
+    const getMatch = locator.match(/cy\.get\((['"`])(.*?)\1\)/);
+    if (getMatch) return { selector: getMatch[2], selectorType: 'css' };
+
+    // cy.contains('text') → //*[contains(text(),"text")]
+    const containsMatch = locator.match(/cy\.contains\((['"`])(.*?)\1\)/);
+    if (containsMatch)
+      return { selector: `//*[contains(text(),"${containsMatch[2]}")]`, selectorType: 'xpath' };
+
+    // cy.contains('tag', 'text') → //tag[contains(text(),"text")]
+    const containsTagMatch = locator.match(/cy\.contains\((['"`])(.*?)\1,\s*(['"`])(.*?)\3\)/);
+    if (containsTagMatch)
+      return {
+        selector: `//${containsTagMatch[2]}[contains(text(),"${containsTagMatch[4]}")]`,
+        selectorType: 'xpath',
+      };
+
+    // cy.findByRole('role') → [role="role"]
+    const roleMatch = locator.match(/cy\.findByRole\((['"`])(.*?)\1/);
+    if (roleMatch) return { selector: `[role="${roleMatch[2]}"]`, selectorType: 'css' };
+
+    // cy.findByText('text') → //*[contains(text(),"text")]
+    const textMatch = locator.match(/cy\.findByText\((['"`])(.*?)\1/);
+    if (textMatch)
+      return { selector: `//*[contains(text(),"${textMatch[2]}")]`, selectorType: 'xpath' };
+
+    // cy.findByTestId('val') → [data-testid="val"]
+    const testIdMatch = locator.match(/cy\.findByTestId\((['"`])(.*?)\1/);
+    if (testIdMatch) return { selector: `[data-testid="${testIdMatch[2]}"]`, selectorType: 'css' };
+
+    return null;
+  }
+
+  if (format === 'selenium') {
+    // driver.findElement(By.cssSelector("sel")) → CSS
+    const cssMatch = locator.match(/By\.cssSelector\((['"`])(.*?)\1\)/);
+    if (cssMatch) return { selector: cssMatch[2], selectorType: 'css' };
+
+    // driver.findElement(By.xpath("sel")) → XPath
+    const xpathMatch = locator.match(/By\.xpath\((['"`])(.*?)\1\)/);
+    if (xpathMatch) return { selector: xpathMatch[2], selectorType: 'xpath' };
+
+    // driver.findElement(By.id("val")) → #val
+    const idMatch = locator.match(/By\.id\((['"`])(.*?)\1\)/);
+    if (idMatch) return { selector: `#${idMatch[2]}`, selectorType: 'css' };
+
+    // driver.findElement(By.name("val")) → [name="val"]
+    const nameMatch = locator.match(/By\.name\((['"`])(.*?)\1\)/);
+    if (nameMatch) return { selector: `[name="${nameMatch[2]}"]`, selectorType: 'css' };
+
+    // driver.findElement(By.className("val")) → .val
+    const classMatch = locator.match(/By\.className\((['"`])(.*?)\1\)/);
+    if (classMatch) return { selector: `.${classMatch[2]}`, selectorType: 'css' };
+
+    // driver.findElement(By.tagName("val")) → val
+    const tagMatch = locator.match(/By\.tagName\((['"`])(.*?)\1\)/);
+    if (tagMatch) return { selector: tagMatch[2], selectorType: 'css' };
+
+    // driver.findElement(By.linkText("val")) → //a[text()="val"]
+    const linkMatch = locator.match(/By\.linkText\((['"`])(.*?)\1\)/);
+    if (linkMatch) return { selector: `//a[text()="${linkMatch[2]}"]`, selectorType: 'xpath' };
+
+    // driver.findElement(By.partialLinkText("val")) → //a[contains(text(),"val")]
+    const partialMatch = locator.match(/By\.partialLinkText\((['"`])(.*?)\1\)/);
+    if (partialMatch)
+      return { selector: `//a[contains(text(),"${partialMatch[2]}")]`, selectorType: 'xpath' };
+
+    return null;
+  }
+
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // Static suggestion seeds
 // ---------------------------------------------------------------------------
@@ -91,9 +213,74 @@ const STATIC_CSS_SUGGESTIONS: Suggestion[] = [
 const STATIC_XPATH_SUGGESTIONS: Suggestion[] = [
   { type: 'axis', label: '//*[@id="..."]', code: '//*[@id=""]' },
   { type: 'axis', label: '//*[@class="..."]', code: '//*[@class=""]' },
-  { type: 'text', label: '//text()', code: '//text()' },
-  { type: 'func', label: 'normalize-space()', code: 'normalize-space()' },
-  { type: 'func', label: 'contains(text(), "...")', code: 'contains(text(), "")' },
+  { type: 'axis', label: '//*[@data-testid="..."]', code: '//*[@data-testid=""]' },
+  { type: 'text', label: '//*[text()="..."]', code: '//*[text()=""]' },
+  { type: 'func', label: '//*[contains(text(), "...")]', code: '//*[contains(text(), "")]' },
+  { type: 'func', label: '//*[contains(@class, "...")]', code: '//*[contains(@class, "")]' },
+];
+
+const STATIC_PLAYWRIGHT_SUGGESTIONS: Suggestion[] = [
+  {
+    type: 'role',
+    label: "page.getByRole('button', { name: '...' })",
+    code: "page.getByRole('button', { name: '' })",
+  },
+  {
+    type: 'role',
+    label: "page.getByRole('link', { name: '...' })",
+    code: "page.getByRole('link', { name: '' })",
+  },
+  { type: 'role', label: "page.getByRole('textbox')", code: "page.getByRole('textbox')" },
+  { type: 'testid', label: "page.getByTestId('...')", code: "page.getByTestId('')" },
+  { type: 'text', label: "page.getByText('...')", code: "page.getByText('')" },
+  { type: 'label', label: "page.getByLabel('...')", code: "page.getByLabel('')" },
+  { type: 'ph', label: "page.getByPlaceholder('...')", code: "page.getByPlaceholder('')" },
+  { type: 'alt', label: "page.getByAltText('...')", code: "page.getByAltText('')" },
+  { type: 'title', label: "page.getByTitle('...')", code: "page.getByTitle('')" },
+  { type: 'loc', label: "page.locator('...')", code: "page.locator('')" },
+];
+
+const STATIC_CYPRESS_SUGGESTIONS: Suggestion[] = [
+  { type: 'get', label: 'cy.get(\'[data-testid="..."]\')', code: 'cy.get(\'[data-testid=""]\')' },
+  { type: 'get', label: "cy.get('...')", code: "cy.get('')" },
+  { type: 'text', label: "cy.contains('...')", code: "cy.contains('')" },
+  { type: 'text', label: "cy.contains('button', '...')", code: "cy.contains('button', '')" },
+  { type: 'role', label: "cy.findByRole('button')", code: "cy.findByRole('button')" },
+  { type: 'testid', label: "cy.findByTestId('...')", code: "cy.findByTestId('')" },
+];
+
+const STATIC_SELENIUM_SUGGESTIONS: Suggestion[] = [
+  {
+    type: 'css',
+    label: 'driver.findElement(By.cssSelector("..."))',
+    code: 'driver.findElement(By.cssSelector(""))',
+  },
+  {
+    type: 'xpath',
+    label: 'driver.findElement(By.xpath("..."))',
+    code: 'driver.findElement(By.xpath(""))',
+  },
+  { type: 'id', label: 'driver.findElement(By.id("..."))', code: 'driver.findElement(By.id(""))' },
+  {
+    type: 'name',
+    label: 'driver.findElement(By.name("..."))',
+    code: 'driver.findElement(By.name(""))',
+  },
+  {
+    type: 'class',
+    label: 'driver.findElement(By.className("..."))',
+    code: 'driver.findElement(By.className(""))',
+  },
+  {
+    type: 'tag',
+    label: 'driver.findElement(By.tagName("..."))',
+    code: 'driver.findElement(By.tagName(""))',
+  },
+  {
+    type: 'link',
+    label: 'driver.findElement(By.linkText("..."))',
+    code: 'driver.findElement(By.linkText(""))',
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -603,9 +790,14 @@ export class BuildTab extends LitElement {
       this._matchCount = null;
       return;
     }
+    const testable = extractTestable(sel, this._freeformFormat);
+    if (!testable) {
+      this._matchCount = null;
+      return;
+    }
     this._matchLoading = true;
     try {
-      const n = await countMatches(sel, this._freeformFormat);
+      const n = await countMatches(testable.selector, testable.selectorType);
       this._matchCount = n;
     } catch {
       this._matchCount = null;
@@ -617,8 +809,14 @@ export class BuildTab extends LitElement {
   private async _onFreeformTest() {
     const sel = this._freeformSelector.trim();
     if (!sel) return;
+    const testable = extractTestable(sel, this._freeformFormat);
+    if (!testable) {
+      this._emitToast('Cannot extract testable selector from this locator');
+      return;
+    }
     try {
-      await testSelector(sel, this._freeformFormat);
+      await testSelector(testable.selector, testable.selectorType);
+      this._emitToast('Testing on page!');
     } catch {
       this._emitToast('Could not test selector. Make sure a page is open.');
     }
@@ -634,10 +832,28 @@ export class BuildTab extends LitElement {
   }
 
   private _allSuggestions(): Suggestion[] {
-    const base =
-      this._freeformFormat === 'xpath' ? STATIC_XPATH_SUGGESTIONS : STATIC_CSS_SUGGESTIONS;
+    let base: Suggestion[];
+    switch (this._freeformFormat) {
+      case 'xpath':
+        base = STATIC_XPATH_SUGGESTIONS;
+        break;
+      case 'playwright':
+        base = STATIC_PLAYWRIGHT_SUGGESTIONS;
+        break;
+      case 'cypress':
+        base = STATIC_CYPRESS_SUGGESTIONS;
+        break;
+      case 'selenium':
+        base = STATIC_SELENIUM_SUGGESTIONS;
+        break;
+      default:
+        base = STATIC_CSS_SUGGESTIONS;
+    }
+    // Page-aware suggestions are CSS-based, include for css/xpath/selenium(css)/cypress(get)
+    const includePageSuggestions =
+      this._freeformFormat === 'css' || this._freeformFormat === 'xpath';
+    const combined = includePageSuggestions ? [...base, ...this._pageSuggestions] : base;
     const query = this._freeformSelector.toLowerCase();
-    const combined = [...base, ...this._pageSuggestions];
     if (!query) return combined.slice(0, 20);
     return combined
       .filter((s) => s.label.toLowerCase().includes(query) || s.code.toLowerCase().includes(query))
