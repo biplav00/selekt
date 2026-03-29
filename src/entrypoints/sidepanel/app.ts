@@ -1,9 +1,10 @@
 import { LitElement, css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { themeStyles } from './styles/theme.js';
-import { sharedStyles } from './styles/shared.js';
 import { checkConnection } from './services/messaging.js';
 import { type Settings, loadSettings, saveSettings } from './services/storage.js';
+import { sharedStyles } from './styles/shared.js';
+import { themeStyles } from './styles/theme.js';
+import './components/pick-tab.js';
 import './components/toast.js';
 import type { SelektToast } from './components/toast.js';
 
@@ -162,7 +163,11 @@ export class SelektApp extends LitElement {
   ];
 
   @state() private _activeTab: Tab = 'pick';
-  @state() private _settings: Settings = { defaultFormat: 'xpath', historyLimit: 50, theme: 'dark' };
+  @state() private _settings: Settings = {
+    defaultFormat: 'xpath',
+    historyLimit: 50,
+    theme: 'dark',
+  };
   @state() private _connected = false;
 
   override connectedCallback() {
@@ -242,7 +247,10 @@ export class SelektApp extends LitElement {
   private _renderTabContent() {
     switch (this._activeTab) {
       case 'pick':
-        return html`<p>Pick tab placeholder</p>`;
+        return html`<pick-tab
+          .historyLimit=${this._settings.historyLimit}
+          @toast=${(e: CustomEvent) => this._showToast(e.detail)}
+        ></pick-tab>`;
       case 'build':
         return html`<p>Build tab placeholder</p>`;
       case 'workspace':
