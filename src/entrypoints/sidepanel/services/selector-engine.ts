@@ -562,3 +562,103 @@ export function generateScoredSelectors(element: ElementInfo): ScoredSelector[] 
 export function scoreSelector(selector: string, format: SelectorFormat): ScoredSelector {
   return scored(selector, format);
 }
+
+/**
+ * Extract a testable CSS/XPath selector from any framework-specific locator.
+ * Returns { selector, selectorType } or null if extraction fails.
+ */
+export function extractTestable(
+  locator: string,
+  format: SelectorFormat
+): { selector: string; selectorType: 'css' | 'xpath' } | null {
+  if (format === 'css') return { selector: locator, selectorType: 'css' };
+  if (format === 'xpath') return { selector: locator, selectorType: 'xpath' };
+
+  if (format === 'playwright') {
+    const locMatch = locator.match(/page\.locator\((['"`])(.*?)\1\)/);
+    if (locMatch) return { selector: locMatch[2], selectorType: 'css' };
+
+    const testIdMatch = locator.match(/page\.getByTestId\((['"`])(.*?)\1\)/);
+    if (testIdMatch) return { selector: `[data-testid="${testIdMatch[2]}"]`, selectorType: 'css' };
+
+    const roleMatch = locator.match(/page\.getByRole\((['"`])(.*?)\1/);
+    if (roleMatch) return { selector: `[role="${roleMatch[2]}"]`, selectorType: 'css' };
+
+    const textMatch = locator.match(/page\.getByText\((['"`])(.*?)\1/);
+    if (textMatch)
+      return { selector: `//*[contains(text(),"${textMatch[2]}")]`, selectorType: 'xpath' };
+
+    const labelMatch = locator.match(/page\.getByLabel\((['"`])(.*?)\1/);
+    if (labelMatch) return { selector: `[aria-label="${labelMatch[2]}"]`, selectorType: 'css' };
+
+    const phMatch = locator.match(/page\.getByPlaceholder\((['"`])(.*?)\1/);
+    if (phMatch) return { selector: `[placeholder="${phMatch[2]}"]`, selectorType: 'css' };
+
+    const altMatch = locator.match(/page\.getByAltText\((['"`])(.*?)\1/);
+    if (altMatch) return { selector: `[alt="${altMatch[2]}"]`, selectorType: 'css' };
+
+    const titleMatch = locator.match(/page\.getByTitle\((['"`])(.*?)\1/);
+    if (titleMatch) return { selector: `[title="${titleMatch[2]}"]`, selectorType: 'css' };
+
+    return null;
+  }
+
+  if (format === 'cypress') {
+    const getMatch = locator.match(/cy\.get\((['"`])(.*?)\1\)/);
+    if (getMatch) return { selector: getMatch[2], selectorType: 'css' };
+
+    const containsTagMatch = locator.match(/cy\.contains\((['"`])(.*?)\1,\s*(['"`])(.*?)\3\)/);
+    if (containsTagMatch)
+      return {
+        selector: `//${containsTagMatch[2]}[contains(text(),"${containsTagMatch[4]}")]`,
+        selectorType: 'xpath',
+      };
+
+    const containsMatch = locator.match(/cy\.contains\((['"`])(.*?)\1\)/);
+    if (containsMatch)
+      return { selector: `//*[contains(text(),"${containsMatch[2]}")]`, selectorType: 'xpath' };
+
+    const roleMatch = locator.match(/cy\.findByRole\((['"`])(.*?)\1/);
+    if (roleMatch) return { selector: `[role="${roleMatch[2]}"]`, selectorType: 'css' };
+
+    const textMatch = locator.match(/cy\.findByText\((['"`])(.*?)\1/);
+    if (textMatch)
+      return { selector: `//*[contains(text(),"${textMatch[2]}")]`, selectorType: 'xpath' };
+
+    const testIdMatch = locator.match(/cy\.findByTestId\((['"`])(.*?)\1/);
+    if (testIdMatch) return { selector: `[data-testid="${testIdMatch[2]}"]`, selectorType: 'css' };
+
+    return null;
+  }
+
+  if (format === 'selenium') {
+    const cssMatch = locator.match(/By\.cssSelector\((['"`])(.*?)\1\)/);
+    if (cssMatch) return { selector: cssMatch[2], selectorType: 'css' };
+
+    const xpathMatch = locator.match(/By\.xpath\((['"`])(.*?)\1\)/);
+    if (xpathMatch) return { selector: xpathMatch[2], selectorType: 'xpath' };
+
+    const idMatch = locator.match(/By\.id\((['"`])(.*?)\1\)/);
+    if (idMatch) return { selector: `#${idMatch[2]}`, selectorType: 'css' };
+
+    const nameMatch = locator.match(/By\.name\((['"`])(.*?)\1\)/);
+    if (nameMatch) return { selector: `[name="${nameMatch[2]}"]`, selectorType: 'css' };
+
+    const classMatch = locator.match(/By\.className\((['"`])(.*?)\1\)/);
+    if (classMatch) return { selector: `.${classMatch[2]}`, selectorType: 'css' };
+
+    const tagMatch = locator.match(/By\.tagName\((['"`])(.*?)\1\)/);
+    if (tagMatch) return { selector: tagMatch[2], selectorType: 'css' };
+
+    const linkMatch = locator.match(/By\.linkText\((['"`])(.*?)\1\)/);
+    if (linkMatch) return { selector: `//a[text()="${linkMatch[2]}"]`, selectorType: 'xpath' };
+
+    const partialMatch = locator.match(/By\.partialLinkText\((['"`])(.*?)\1\)/);
+    if (partialMatch)
+      return { selector: `//a[contains(text(),"${partialMatch[2]}")]`, selectorType: 'xpath' };
+
+    return null;
+  }
+
+  return null;
+}

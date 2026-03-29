@@ -7,6 +7,7 @@ import {
   escapeDoubleQuoteJs,
   escapeSingleQuoteJs,
   escapeXPathValue,
+  extractTestable,
   generateScoredSelectors,
   scoreSelector,
 } from '../services/selector-engine.js';
@@ -71,128 +72,6 @@ function detectFormat(selector: string): SelectorFormat {
 
 function makeId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-/**
- * Extract a testable CSS/XPath selector from any framework-specific locator string.
- * Returns { selector, selectorType } or null if extraction fails.
- */
-function extractTestable(
-  locator: string,
-  format: SelectorFormat
-): { selector: string; selectorType: 'css' | 'xpath' } | null {
-  if (format === 'css') return { selector: locator, selectorType: 'css' };
-  if (format === 'xpath') return { selector: locator, selectorType: 'xpath' };
-
-  if (format === 'playwright') {
-    // page.locator('sel') → CSS
-    const locMatch = locator.match(/page\.locator\((['"`])(.*?)\1\)/);
-    if (locMatch) return { selector: locMatch[2], selectorType: 'css' };
-
-    // page.getByTestId('val') → [data-testid="val"]
-    const testIdMatch = locator.match(/page\.getByTestId\((['"`])(.*?)\1\)/);
-    if (testIdMatch) return { selector: `[data-testid="${testIdMatch[2]}"]`, selectorType: 'css' };
-
-    // page.getByRole('role', { name: 'name' }) → [role="role"]
-    const roleMatch = locator.match(/page\.getByRole\((['"`])(.*?)\1/);
-    if (roleMatch) return { selector: `[role="${roleMatch[2]}"]`, selectorType: 'css' };
-
-    // page.getByText('text') → //*[contains(text(),"text")]
-    const textMatch = locator.match(/page\.getByText\((['"`])(.*?)\1/);
-    if (textMatch)
-      return { selector: `//*[contains(text(),"${textMatch[2]}")]`, selectorType: 'xpath' };
-
-    // page.getByLabel('label') → [aria-label="label"]
-    const labelMatch = locator.match(/page\.getByLabel\((['"`])(.*?)\1/);
-    if (labelMatch) return { selector: `[aria-label="${labelMatch[2]}"]`, selectorType: 'css' };
-
-    // page.getByPlaceholder('ph') → [placeholder="ph"]
-    const phMatch = locator.match(/page\.getByPlaceholder\((['"`])(.*?)\1/);
-    if (phMatch) return { selector: `[placeholder="${phMatch[2]}"]`, selectorType: 'css' };
-
-    // page.getByAltText('alt') → [alt="alt"]
-    const altMatch = locator.match(/page\.getByAltText\((['"`])(.*?)\1/);
-    if (altMatch) return { selector: `[alt="${altMatch[2]}"]`, selectorType: 'css' };
-
-    // page.getByTitle('title') → [title="title"]
-    const titleMatch = locator.match(/page\.getByTitle\((['"`])(.*?)\1/);
-    if (titleMatch) return { selector: `[title="${titleMatch[2]}"]`, selectorType: 'css' };
-
-    return null;
-  }
-
-  if (format === 'cypress') {
-    // cy.get('sel') → CSS
-    const getMatch = locator.match(/cy\.get\((['"`])(.*?)\1\)/);
-    if (getMatch) return { selector: getMatch[2], selectorType: 'css' };
-
-    // cy.contains('text') → //*[contains(text(),"text")]
-    const containsMatch = locator.match(/cy\.contains\((['"`])(.*?)\1\)/);
-    if (containsMatch)
-      return { selector: `//*[contains(text(),"${containsMatch[2]}")]`, selectorType: 'xpath' };
-
-    // cy.contains('tag', 'text') → //tag[contains(text(),"text")]
-    const containsTagMatch = locator.match(/cy\.contains\((['"`])(.*?)\1,\s*(['"`])(.*?)\3\)/);
-    if (containsTagMatch)
-      return {
-        selector: `//${containsTagMatch[2]}[contains(text(),"${containsTagMatch[4]}")]`,
-        selectorType: 'xpath',
-      };
-
-    // cy.findByRole('role') → [role="role"]
-    const roleMatch = locator.match(/cy\.findByRole\((['"`])(.*?)\1/);
-    if (roleMatch) return { selector: `[role="${roleMatch[2]}"]`, selectorType: 'css' };
-
-    // cy.findByText('text') → //*[contains(text(),"text")]
-    const textMatch = locator.match(/cy\.findByText\((['"`])(.*?)\1/);
-    if (textMatch)
-      return { selector: `//*[contains(text(),"${textMatch[2]}")]`, selectorType: 'xpath' };
-
-    // cy.findByTestId('val') → [data-testid="val"]
-    const testIdMatch = locator.match(/cy\.findByTestId\((['"`])(.*?)\1/);
-    if (testIdMatch) return { selector: `[data-testid="${testIdMatch[2]}"]`, selectorType: 'css' };
-
-    return null;
-  }
-
-  if (format === 'selenium') {
-    // driver.findElement(By.cssSelector("sel")) → CSS
-    const cssMatch = locator.match(/By\.cssSelector\((['"`])(.*?)\1\)/);
-    if (cssMatch) return { selector: cssMatch[2], selectorType: 'css' };
-
-    // driver.findElement(By.xpath("sel")) → XPath
-    const xpathMatch = locator.match(/By\.xpath\((['"`])(.*?)\1\)/);
-    if (xpathMatch) return { selector: xpathMatch[2], selectorType: 'xpath' };
-
-    // driver.findElement(By.id("val")) → #val
-    const idMatch = locator.match(/By\.id\((['"`])(.*?)\1\)/);
-    if (idMatch) return { selector: `#${idMatch[2]}`, selectorType: 'css' };
-
-    // driver.findElement(By.name("val")) → [name="val"]
-    const nameMatch = locator.match(/By\.name\((['"`])(.*?)\1\)/);
-    if (nameMatch) return { selector: `[name="${nameMatch[2]}"]`, selectorType: 'css' };
-
-    // driver.findElement(By.className("val")) → .val
-    const classMatch = locator.match(/By\.className\((['"`])(.*?)\1\)/);
-    if (classMatch) return { selector: `.${classMatch[2]}`, selectorType: 'css' };
-
-    // driver.findElement(By.tagName("val")) → val
-    const tagMatch = locator.match(/By\.tagName\((['"`])(.*?)\1\)/);
-    if (tagMatch) return { selector: tagMatch[2], selectorType: 'css' };
-
-    // driver.findElement(By.linkText("val")) → //a[text()="val"]
-    const linkMatch = locator.match(/By\.linkText\((['"`])(.*?)\1\)/);
-    if (linkMatch) return { selector: `//a[text()="${linkMatch[2]}"]`, selectorType: 'xpath' };
-
-    // driver.findElement(By.partialLinkText("val")) → //a[contains(text(),"val")]
-    const partialMatch = locator.match(/By\.partialLinkText\((['"`])(.*?)\1\)/);
-    if (partialMatch)
-      return { selector: `//a[contains(text(),"${partialMatch[2]}")]`, selectorType: 'xpath' };
-
-    return null;
-  }
-
-  return null;
 }
 
 // ---------------------------------------------------------------------------

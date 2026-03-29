@@ -7,7 +7,7 @@ import {
   startPicking,
   testSelector,
 } from '../services/messaging.js';
-import { generateScoredSelectors } from '../services/selector-engine.js';
+import { extractTestable, generateScoredSelectors } from '../services/selector-engine.js';
 import { addFavorite, addRecent, loadWorkspace } from '../services/storage.js';
 import { sharedStyles } from '../styles/shared.js';
 import './dom-tree.js';
@@ -15,43 +15,6 @@ import './selector-card.js';
 
 const DEFAULT_SHOW = 5;
 const PICK_TIMEOUT_MS = 30_000;
-
-/** Extract a testable selector string from a framework-specific format. */
-function extractTestableSelector(scored: ScoredSelector): { selector: string; type: string } {
-  const { selector, format } = scored;
-
-  if (format === 'playwright') {
-    // page.method('...')  or  page.method('...', { ... })
-    const m = selector.match(/page\.\w+\('([^']+)'/);
-    if (m) return { selector: m[1], type: 'css' };
-    return { selector, type: 'css' };
-  }
-
-  if (format === 'cypress') {
-    // cy.get('...')  or  cy.contains('...')
-    const m = selector.match(/cy\.\w+\('([^']+)'/);
-    if (m) return { selector: m[1], type: 'css' };
-    return { selector, type: 'css' };
-  }
-
-  if (format === 'selenium') {
-    // By.css("...")  By.xpath("...")  By.id("...")  By.name("...")  By.tagName("...")
-    const byXpath = selector.match(/By\.xpath\("([^"]+)"\)/);
-    if (byXpath) return { selector: byXpath[1], type: 'xpath' };
-    const byCss = selector.match(/By\.css\("([^"]+)"\)/);
-    if (byCss) return { selector: byCss[1], type: 'css' };
-    const byId = selector.match(/By\.id\('([^']+)'\)/);
-    if (byId) return { selector: `#${byId[1]}`, type: 'css' };
-    const byName = selector.match(/By\.name\('([^']+)'\)/);
-    if (byName) return { selector: `[name="${byName[1]}"]`, type: 'css' };
-    const byTag = selector.match(/By\.tagName\('([^']+)'\)/);
-    if (byTag) return { selector: byTag[1], type: 'css' };
-    return { selector, type: 'css' };
-  }
-
-  // css or xpath — use as-is
-  return { selector, type: format };
-}
 
 function makeSavedSelector(scored: ScoredSelector, element: ElementInfo): SavedSelector {
   return {
@@ -382,9 +345,13 @@ export class PickTab extends LitElement {
   }
 
   private async _onTest(e: CustomEvent<ScoredSelector>) {
-    const { selector: raw, type } = extractTestableSelector(e.detail);
+    const testable = extractTestable(e.detail.selector, e.detail.format);
+    if (!testable) {
+      this._emitToast('Cannot extract testable selector from this locator');
+      return;
+    }
     try {
-      await testSelector(raw, type);
+      await testSelector(testable.selector, testable.selectorType);
     } catch {
       this._emitToast('Could not test selector on the page.');
     }

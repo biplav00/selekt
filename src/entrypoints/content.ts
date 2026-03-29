@@ -269,6 +269,13 @@ export default defineContentScript({
       }
     }
 
+    function blockEvent(e: Event) {
+      if (!isPicking) return;
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+    }
+
     function startElementPicker() {
       if (isPicking) return; // Prevent double-start
       isPicking = true;
@@ -277,6 +284,9 @@ export default defineContentScript({
       document.addEventListener('mouseout', handleMouseOut, true);
       document.addEventListener('click', handleClick, true);
       document.addEventListener('keydown', handleKeyDown, true);
+      // Block mousedown/pointerdown to prevent buttons, links, forms from activating
+      document.addEventListener('mousedown', blockEvent, true);
+      document.addEventListener('pointerdown', blockEvent, true);
     }
 
     function stopElementPicker() {
@@ -345,6 +355,7 @@ export default defineContentScript({
       if (!isPicking) return;
       e.preventDefault();
       e.stopPropagation();
+      e.stopImmediatePropagation();
 
       const target = e.target as HTMLElement;
       const elementInfo = {
@@ -381,6 +392,8 @@ export default defineContentScript({
       document.removeEventListener('mouseout', handleMouseOut, true);
       document.removeEventListener('click', handleClick, true);
       document.removeEventListener('keydown', handleKeyDown, true);
+      document.removeEventListener('mousedown', blockEvent, true);
+      document.removeEventListener('pointerdown', blockEvent, true);
 
       if (hoveredElement) {
         restoreOutline(hoveredElement);
