@@ -3,6 +3,16 @@ import { defineConfig } from 'wxt';
 export default defineConfig({
   srcDir: 'src',
   outDir: 'output',
+  vite: () => ({
+    esbuild: {
+      tsconfigRaw: {
+        compilerOptions: {
+          experimentalDecorators: true,
+          useDefineForClassFields: false,
+        },
+      },
+    },
+  }),
   manifest: {
     name: 'Selekt',
     description: 'Test automation locator generation tool for Chrome',
