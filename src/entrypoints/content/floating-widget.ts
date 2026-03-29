@@ -1,4 +1,5 @@
-// floating-widget.ts — Floating widget injected into web pages via Shadow DOM.
+// floating-widget.ts — Floating locator widget injected into web pages via Shadow DOM.
+// Aesthetic: Utilitarian dark instrument panel. Sharp edges, dense information, glowing accents.
 
 type SelectorFormat = 'css' | 'xpath' | 'playwright' | 'cypress' | 'selenium';
 
@@ -17,19 +18,17 @@ interface Locators {
 }
 
 // ---------------------------------------------------------------------------
-// Escaping utilities
+// Escaping
 // ---------------------------------------------------------------------------
 
-function cssEscape(value: string): string {
-  if (typeof CSS !== 'undefined' && CSS.escape) return CSS.escape(value);
-  return value.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, '\\$1');
+function cssEscape(v: string): string {
+  if (typeof CSS !== 'undefined' && CSS.escape) return CSS.escape(v);
+  return v.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, '\\$1');
 }
-
-function escapeCssAttrValue(v: string): string {
+function escAttr(v: string): string {
   return v.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
-
-function escapeXPathValue(v: string): string {
+function escXP(v: string): string {
   if (!v.includes("'")) return `'${v}'`;
   if (!v.includes('"')) return `"${v}"`;
   return `concat(${v
@@ -37,12 +36,10 @@ function escapeXPathValue(v: string): string {
     .map((p) => `'${p}'`)
     .join(`, "'", `)})`;
 }
-
-function esc1(v: string): string {
+function e1(v: string): string {
   return v.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
-
-function esc2(v: string): string {
+function e2(v: string): string {
   return v.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
@@ -53,73 +50,66 @@ function esc2(v: string): string {
 export function generateLocators(el: ElementData): Locators {
   const tag = el.tagName.toLowerCase();
   const a = el.attributes;
-  const testid = a['data-testid'] || a['data-test'];
+  const tid = a['data-testid'] || a['data-test'];
   const id = a.id;
   const role = a.role;
-  const ariaLabel = a['aria-label'];
+  const aria = a['aria-label'];
   const name = a.name;
   const cls = a.class;
   const txt = el.text?.trim().substring(0, 50) || '';
 
-  // CSS
   let css: string;
-  if (testid) css = `[data-testid="${escapeCssAttrValue(testid)}"]`;
+  if (tid) css = `[data-testid="${escAttr(tid)}"]`;
   else if (id) css = `#${cssEscape(id)}`;
-  else if (role && ariaLabel)
-    css = `[role="${escapeCssAttrValue(role)}"][aria-label="${escapeCssAttrValue(ariaLabel)}"]`;
-  else if (ariaLabel) css = `[aria-label="${escapeCssAttrValue(ariaLabel)}"]`;
-  else if (role) css = `[role="${escapeCssAttrValue(role)}"]`;
-  else if (name) css = `${tag}[name="${escapeCssAttrValue(name)}"]`;
+  else if (role && aria) css = `[role="${escAttr(role)}"][aria-label="${escAttr(aria)}"]`;
+  else if (aria) css = `[aria-label="${escAttr(aria)}"]`;
+  else if (role) css = `[role="${escAttr(role)}"]`;
+  else if (name) css = `${tag}[name="${escAttr(name)}"]`;
   else if (cls)
     css = `${tag}.${cls.split(/\s+/).filter(Boolean).slice(0, 2).map(cssEscape).join('.')}`;
   else css = tag;
 
-  // XPath
   let xpath: string;
-  if (testid) xpath = `//${tag}[@data-testid=${escapeXPathValue(testid)}]`;
-  else if (id) xpath = `//${tag}[@id=${escapeXPathValue(id)}]`;
-  else if (ariaLabel) xpath = `//${tag}[@aria-label=${escapeXPathValue(ariaLabel)}]`;
-  else if (role) xpath = `//${tag}[@role=${escapeXPathValue(role)}]`;
-  else if (name) xpath = `//${tag}[@name=${escapeXPathValue(name)}]`;
-  else if (txt && txt.length <= 30) xpath = `//${tag}[text()=${escapeXPathValue(txt)}]`;
+  if (tid) xpath = `//${tag}[@data-testid=${escXP(tid)}]`;
+  else if (id) xpath = `//${tag}[@id=${escXP(id)}]`;
+  else if (aria) xpath = `//${tag}[@aria-label=${escXP(aria)}]`;
+  else if (role) xpath = `//${tag}[@role=${escXP(role)}]`;
+  else if (name) xpath = `//${tag}[@name=${escXP(name)}]`;
+  else if (txt && txt.length <= 30) xpath = `//${tag}[text()=${escXP(txt)}]`;
   else xpath = `//${tag}`;
 
-  // Playwright
   let playwright: string;
-  if (testid) playwright = `page.getByTestId('${esc1(testid)}')`;
+  if (tid) playwright = `page.getByTestId('${e1(tid)}')`;
   else if (role) {
-    const n = ariaLabel || txt;
+    const n = aria || txt;
     playwright = n
-      ? `page.getByRole('${esc1(role)}', { name: '${esc1(n.substring(0, 40))}' })`
-      : `page.getByRole('${esc1(role)}')`;
-  } else if (ariaLabel) playwright = `page.getByLabel('${esc1(ariaLabel)}')`;
-  else if (a.placeholder) playwright = `page.getByPlaceholder('${esc1(a.placeholder)}')`;
+      ? `page.getByRole('${e1(role)}', { name: '${e1(n.substring(0, 40))}' })`
+      : `page.getByRole('${e1(role)}')`;
+  } else if (aria) playwright = `page.getByLabel('${e1(aria)}')`;
+  else if (a.placeholder) playwright = `page.getByPlaceholder('${e1(a.placeholder)}')`;
   else if ((tag === 'button' || tag === 'a') && txt)
-    playwright = `page.getByRole('${tag === 'button' ? 'button' : 'link'}', { name: '${esc1(txt.substring(0, 40))}' })`;
-  else if (txt && txt.length <= 30) playwright = `page.getByText('${esc1(txt)}')`;
-  else playwright = `page.locator('${esc1(css)}')`;
+    playwright = `page.getByRole('${tag === 'button' ? 'button' : 'link'}', { name: '${e1(txt.substring(0, 40))}' })`;
+  else if (txt && txt.length <= 30) playwright = `page.getByText('${e1(txt)}')`;
+  else playwright = `page.locator('${e1(css)}')`;
 
-  // Cypress
   let cypress: string;
-  if (testid) cypress = `cy.get('[data-testid="${esc1(escapeCssAttrValue(testid))}"]')`;
+  if (tid) cypress = `cy.get('[data-testid="${e1(escAttr(tid))}"]')`;
   else if (txt && txt.length <= 30 && (tag === 'button' || tag === 'a'))
-    cypress = `cy.contains('${esc1(tag)}', '${esc1(txt)}')`;
-  else cypress = `cy.get('${esc1(css)}')`;
+    cypress = `cy.contains('${e1(tag)}', '${e1(txt)}')`;
+  else cypress = `cy.get('${e1(css)}')`;
 
-  // Selenium
   let selenium: string;
-  if (id) selenium = `driver.findElement(By.id("${esc2(id)}"))`;
-  else if (name) selenium = `driver.findElement(By.name("${esc2(name)}"))`;
-  else selenium = `driver.findElement(By.cssSelector("${esc2(css)}"))`;
+  if (id) selenium = `driver.findElement(By.id("${e2(id)}"))`;
+  else if (name) selenium = `driver.findElement(By.name("${e2(name)}"))`;
+  else selenium = `driver.findElement(By.cssSelector("${e2(css)}"))`;
 
   return { css, xpath, playwright, cypress, selenium };
 }
 
 // ---------------------------------------------------------------------------
-// Extract testable selector — Playwright-aware
+// ARIA role intelligence
 // ---------------------------------------------------------------------------
 
-// Map of implicit ARIA roles for common HTML tags
 const IMPLICIT_ROLES: Record<string, string> = {
   button: 'button',
   a: 'link',
@@ -153,128 +143,88 @@ const IMPLICIT_ROLES: Record<string, string> = {
   output: 'status',
 };
 
-// Tags that implicitly have a given role (for querySelectorAll matching)
 const ROLE_TO_TAGS: Record<string, string[]> = {};
 for (const [tag, role] of Object.entries(IMPLICIT_ROLES)) {
   if (!ROLE_TO_TAGS[role]) ROLE_TO_TAGS[role] = [];
   ROLE_TO_TAGS[role].push(tag);
 }
 
-/**
- * Count elements matching a Playwright-style role query.
- * Handles both explicit [role="x"] and implicit roles (e.g. <button> = role button).
- */
-function countByRole(role: string, nameFilter?: string): number {
-  const implicitTags = ROLE_TO_TAGS[role] || [];
-  const explicitSelector = `[role="${role}"]`;
-
-  const candidates: Element[] = [];
-  // Explicit role attribute
-  candidates.push(...Array.from(document.querySelectorAll(explicitSelector)));
-  // Implicit roles from tag names
-  for (const tag of implicitTags) {
-    candidates.push(...Array.from(document.querySelectorAll(tag)));
+function getRoleCandidates(role: string): Element[] {
+  const out: Element[] = [];
+  out.push(...Array.from(document.querySelectorAll(`[role="${role}"]`)));
+  for (const tag of ROLE_TO_TAGS[role] || []) {
+    for (const el of document.querySelectorAll(tag)) {
+      if (!el.hasAttribute('role')) out.push(el); // only implicit
+    }
   }
-
-  if (!nameFilter) return candidates.length;
-
-  // Filter by accessible name (aria-label, textContent, title, value, alt)
-  const lower = nameFilter.toLowerCase();
-  return candidates.filter((el) => {
-    const ariaLabel = el.getAttribute('aria-label');
-    if (ariaLabel?.toLowerCase().includes(lower)) return true;
-    const text = el.textContent?.trim().toLowerCase() || '';
-    if (text.includes(lower)) return true;
-    const title = el.getAttribute('title');
-    if (title?.toLowerCase().includes(lower)) return true;
-    const alt = el.getAttribute('alt');
-    if (alt?.toLowerCase().includes(lower)) return true;
-    return false;
-  }).length;
+  return out;
 }
 
-/**
- * Highlight elements matching a Playwright-style role query.
- */
-function highlightByRole(role: string, nameFilter?: string): void {
-  const implicitTags = ROLE_TO_TAGS[role] || [];
-  const candidates: Element[] = [];
-  candidates.push(...Array.from(document.querySelectorAll(`[role="${role}"]`)));
-  for (const tag of implicitTags) {
-    candidates.push(...Array.from(document.querySelectorAll(tag)));
-  }
+function filterByName(els: Element[], name: string): Element[] {
+  const lower = name.toLowerCase();
+  return els.filter((el) => {
+    if (el.getAttribute('aria-label')?.toLowerCase().includes(lower)) return true;
+    if ((el.textContent?.trim().toLowerCase() || '').includes(lower)) return true;
+    if (el.getAttribute('title')?.toLowerCase().includes(lower)) return true;
+    if (el.getAttribute('alt')?.toLowerCase().includes(lower)) return true;
+    if ((el as HTMLInputElement).value?.toLowerCase().includes(lower)) return true;
+    return false;
+  });
+}
 
-  let matches = candidates;
-  if (nameFilter) {
-    const lower = nameFilter.toLowerCase();
-    matches = candidates.filter((el) => {
-      const ariaLabel = el.getAttribute('aria-label');
-      if (ariaLabel?.toLowerCase().includes(lower)) return true;
-      const text = el.textContent?.trim().toLowerCase() || '';
-      if (text.includes(lower)) return true;
-      const title = el.getAttribute('title');
-      if (title?.toLowerCase().includes(lower)) return true;
-      return false;
-    });
-  }
+// ---------------------------------------------------------------------------
+// Shared highlight logic — persists until next test (no auto-clear)
+// ---------------------------------------------------------------------------
 
-  for (const el of matches) {
+const HIGHLIGHT_ATTR = 'data-selekt-hl';
+
+function clearAllHighlights(): void {
+  document.querySelectorAll(`[${HIGHLIGHT_ATTR}]`).forEach((el) => {
+    (el as HTMLElement).style.outline = '';
+    (el as HTMLElement).style.outlineOffset = '';
+    el.removeAttribute(HIGHLIGHT_ATTR);
+  });
+}
+
+function highlightElements(elements: Element[]): void {
+  clearAllHighlights();
+  for (const el of elements) {
     (el as HTMLElement).style.outline = '2px solid #22c55e';
     (el as HTMLElement).style.outlineOffset = '2px';
-    el.setAttribute('data-selekt-highlight', 'true');
+    el.setAttribute(HIGHLIGHT_ATTR, '1');
   }
-
-  // Auto-clear after 5s
-  setTimeout(() => {
-    document.querySelectorAll('[data-selekt-highlight]').forEach((el) => {
-      (el as HTMLElement).style.outline = '';
-      (el as HTMLElement).style.outlineOffset = '';
-      el.removeAttribute('data-selekt-highlight');
-    });
-  }, 5000);
 }
+
+// ---------------------------------------------------------------------------
+// Extract testable selector
+// ---------------------------------------------------------------------------
 
 function extractTestable(
   locator: string,
   format: SelectorFormat
-): { selector: string; selectorType: 'css' | 'xpath' | 'playwright-role' } | null {
+): { selector: string; selectorType: 'css' | 'xpath' | 'role' } | null {
   if (format === 'css') return { selector: locator, selectorType: 'css' };
   if (format === 'xpath') return { selector: locator, selectorType: 'xpath' };
 
   if (format === 'playwright') {
     const loc = locator.match(/page\.locator\((['"`])(.*?)\1\)/);
     if (loc) return { selector: loc[2], selectorType: 'css' };
-
     const tid = locator.match(/page\.getByTestId\((['"`])(.*?)\1\)/);
     if (tid) return { selector: `[data-testid="${tid[2]}"]`, selectorType: 'css' };
-
-    // getByRole — needs special handling for implicit roles
-    const roleWithName = locator.match(
-      /page\.getByRole\((['"`])(.*?)\1,\s*\{[^}]*name:\s*(['"`])(.*?)\3/
-    );
-    if (roleWithName)
-      return {
-        selector: `${roleWithName[2]}::${roleWithName[4]}`,
-        selectorType: 'playwright-role',
-      };
-    const roleOnly = locator.match(/page\.getByRole\((['"`])(.*?)\1\)/);
-    if (roleOnly) return { selector: roleOnly[2], selectorType: 'playwright-role' };
-
+    const rwn = locator.match(/page\.getByRole\((['"`])(.*?)\1,\s*\{[^}]*name:\s*(['"`])(.*?)\3/);
+    if (rwn) return { selector: `${rwn[2]}::${rwn[4]}`, selectorType: 'role' };
+    const ro = locator.match(/page\.getByRole\((['"`])(.*?)\1/);
+    if (ro) return { selector: ro[2], selectorType: 'role' };
     const txt = locator.match(/page\.getByText\((['"`])(.*?)\1/);
     if (txt) return { selector: `//*[contains(text(),"${txt[2]}")]`, selectorType: 'xpath' };
-
     const lbl = locator.match(/page\.getByLabel\((['"`])(.*?)\1/);
     if (lbl) return { selector: `[aria-label="${lbl[2]}"]`, selectorType: 'css' };
-
     const ph = locator.match(/page\.getByPlaceholder\((['"`])(.*?)\1/);
     if (ph) return { selector: `[placeholder="${ph[2]}"]`, selectorType: 'css' };
-
     const alt = locator.match(/page\.getByAltText\((['"`])(.*?)\1/);
     if (alt) return { selector: `[alt="${alt[2]}"]`, selectorType: 'css' };
-
     const ttl = locator.match(/page\.getByTitle\((['"`])(.*?)\1/);
     if (ttl) return { selector: `[title="${ttl[2]}"]`, selectorType: 'css' };
-
     return null;
   }
 
@@ -289,7 +239,7 @@ function extractTestable(
     const tid = locator.match(/cy\.findByTestId\((['"`])(.*?)\1/);
     if (tid) return { selector: `[data-testid="${tid[2]}"]`, selectorType: 'css' };
     const role = locator.match(/cy\.findByRole\((['"`])(.*?)\1/);
-    if (role) return { selector: role[2], selectorType: 'playwright-role' };
+    if (role) return { selector: role[2], selectorType: 'role' };
     return null;
   }
 
@@ -304,8 +254,6 @@ function extractTestable(
     if (nm) return { selector: `[name="${nm[2]}"]`, selectorType: 'css' };
     const cl = locator.match(/By\.className\((['"`])(.*?)\1\)/);
     if (cl) return { selector: `.${cl[2]}`, selectorType: 'css' };
-    const tg = locator.match(/By\.tagName\((['"`])(.*?)\1\)/);
-    if (tg) return { selector: tg[2], selectorType: 'css' };
     return null;
   }
 
@@ -322,89 +270,166 @@ function detectFormat(input: string): SelectorFormat {
 }
 
 // ---------------------------------------------------------------------------
-// CSS
+// CSS — utilitarian dark instrument panel
 // ---------------------------------------------------------------------------
 
 const WIDGET_CSS = `
-  :host { all: initial; font-family: system-ui, -apple-system, sans-serif; font-size: 13px; color: #fafafa; }
-  * { box-sizing: border-box; }
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :host {
+    all: initial;
+    font-family: 'IBM Plex Mono', 'SF Mono', 'Cascadia Code', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #e4e4e7;
+    -webkit-font-smoothing: antialiased;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
   .widget {
-    position: fixed; right: 20px; bottom: 20px;
-    width: 340px; background: #09090b;
-    border: 1px solid #27272a; border-radius: 10px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4);
-    z-index: 2147483646; overflow: hidden; user-select: none;
+    position: fixed; right: 16px; bottom: 16px;
+    width: 360px;
+    background: #0a0a0c;
+    border: 1px solid #1e1e24;
+    border-radius: 8px;
+    box-shadow:
+      0 0 0 1px rgba(59, 130, 246, 0.08),
+      0 20px 60px rgba(0, 0, 0, 0.7),
+      0 4px 16px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    z-index: 2147483646;
+    overflow: hidden;
+    backdrop-filter: blur(20px);
   }
 
+  /* ── Header ── */
   .header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 6px 0 0; background: #111114;
-    border-bottom: 1px solid #27272a; cursor: grab;
+    display: flex; align-items: stretch;
+    background: linear-gradient(180deg, #111116 0%, #0d0d10 100%);
+    border-bottom: 1px solid #1e1e24;
+    cursor: grab; min-height: 34px;
   }
   .header:active { cursor: grabbing; }
 
-  .header-left { display: flex; align-items: center; flex: 1; }
-
   .pick-btn {
-    padding: 7px 12px; background: #3b82f6; color: #fff; border: none;
-    font-size: 11px; font-weight: 600; cursor: pointer;
+    padding: 0 14px;
+    background: #3b82f6;
+    color: #fff; border: none;
+    font-family: inherit;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+    cursor: pointer;
     display: flex; align-items: center; gap: 5px;
-    transition: background 0.12s; border-radius: 0;
+    transition: background 0.15s;
+    border-right: 1px solid rgba(0,0,0,0.3);
+    text-transform: uppercase;
   }
   .pick-btn:hover { background: #2563eb; }
   .pick-btn.picking { background: #7c3aed; }
-  .pick-btn svg { width: 12px; height: 12px; }
+  .pick-btn svg { width: 11px; height: 11px; opacity: 0.9; }
 
-  .header-actions { display: flex; align-items: center; gap: 2px; }
+  .header-spacer { flex: 1; }
+
+  .header-actions { display: flex; align-items: center; gap: 1px; padding: 0 4px; }
 
   .icon-btn {
-    width: 24px; height: 24px; display: flex; align-items: center;
-    justify-content: center; border-radius: 4px; background: transparent;
-    border: none; color: #a1a1aa; cursor: pointer; padding: 0;
-    transition: background 0.12s, color 0.12s;
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 4px; background: transparent;
+    border: none; color: #52525b; cursor: pointer; padding: 0;
+    transition: background 0.15s, color 0.15s;
   }
-  .icon-btn:hover { background: #18181b; color: #fafafa; }
-  .icon-btn svg { width: 14px; height: 14px; }
+  .icon-btn:hover { background: rgba(255,255,255,0.05); color: #a1a1aa; }
+  .icon-btn svg { width: 13px; height: 13px; }
 
-  .body { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 6px; }
+  /* ── Body ── */
+  .body {
+    padding: 10px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
 
-  .locator-section { display: none; flex-direction: column; gap: 6px; }
-  .locator-section.visible { display: flex; }
-
-  .input-row { display: flex; }
+  /* ── Input ── */
   .locator-input {
-    width: 100%; padding: 5px 8px; background: #111114;
-    border: 1px solid #27272a; border-radius: 5px; color: #fafafa;
-    font-family: 'Courier New', monospace; font-size: 11px;
-    outline: none; transition: border-color 0.12s;
+    width: 100%; padding: 7px 10px;
+    background: #07070a;
+    border: 1px solid #1e1e24;
+    border-radius: 5px;
+    color: #e4e4e7;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    caret-color: #3b82f6;
   }
-  .locator-input:focus { border-color: #3b82f6; }
-  .locator-input::placeholder { color: #52525b; }
+  .locator-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12), inset 0 0 8px rgba(59, 130, 246, 0.04);
+  }
+  .locator-input::placeholder { color: #3f3f46; font-style: italic; }
 
-  .controls-row { display: flex; align-items: center; gap: 5px; }
+  /* ── Controls row ── */
+  .controls-row {
+    display: flex; align-items: center; gap: 6px;
+  }
 
   .format-select {
-    padding: 4px 6px; background: #18181b;
-    border: 1px solid #27272a; border-radius: 5px;
-    color: #fafafa; font-size: 10px; cursor: pointer; outline: none;
+    padding: 3px 6px;
+    background: #111116;
+    border: 1px solid #1e1e24;
+    border-radius: 4px;
+    color: #a1a1aa;
+    font-family: inherit;
+    font-size: 10px; font-weight: 500;
+    cursor: pointer; outline: none;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transition: border-color 0.15s;
   }
   .format-select:focus { border-color: #3b82f6; }
 
-  .match-info {
-    flex: 1; font-size: 10px; color: #52525b; min-width: 0;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  .match-pill {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    background: #111116;
+    border: 1px solid #1e1e24;
+    color: #52525b;
+    transition: all 0.2s;
+    white-space: nowrap;
   }
-  .match-info.found { color: #22c55e; }
-  .match-info.none { color: #ef4444; }
+  .match-pill.found {
+    color: #22c55e;
+    border-color: rgba(34, 197, 94, 0.25);
+    background: rgba(34, 197, 94, 0.06);
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.1);
+  }
+  .match-pill.none {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.2);
+    background: rgba(239, 68, 68, 0.04);
+  }
 
-  .action-btn {
-    padding: 4px 8px; background: #18181b; border: 1px solid #27272a;
-    border-radius: 5px; color: #a1a1aa; font-size: 11px; cursor: pointer;
-    transition: background 0.12s, color 0.12s; white-space: nowrap;
+  .spacer { flex: 1; }
+
+  .copy-btn {
+    padding: 3px 10px;
+    background: #111116;
+    border: 1px solid #1e1e24;
+    border-radius: 4px;
+    color: #71717a;
+    font-family: inherit;
+    font-size: 10px; font-weight: 500;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transition: all 0.15s;
   }
-  .action-btn:hover { background: #27272a; color: #fafafa; }
-  .action-btn.success { color: #22c55e; border-color: #22c55e; }
+  .copy-btn:hover { background: #1e1e24; color: #e4e4e7; border-color: #27272a; }
+  .copy-btn.ok {
+    color: #22c55e; border-color: rgba(34, 197, 94, 0.3);
+    background: rgba(34, 197, 94, 0.08);
+  }
 `;
 
 // ---------------------------------------------------------------------------
@@ -415,12 +440,11 @@ function buildWidgetHTML(): string {
   return `
     <div class="widget" id="widget">
       <div class="header" id="drag-handle">
-        <div class="header-left">
-          <button class="pick-btn" id="pick-btn">
-            <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><path d="M8 1v2.5M8 12.5V15M1 8h2.5M12.5 8H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-            Pick
-          </button>
-        </div>
+        <button class="pick-btn" id="pick-btn">
+          <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><path d="M8 1v2.5M8 12.5V15M1 8h2.5M12.5 8H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Pick
+        </button>
+        <div class="header-spacer"></div>
         <div class="header-actions">
           <button class="icon-btn" id="expand-btn" title="Open sidepanel">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
@@ -431,21 +455,18 @@ function buildWidgetHTML(): string {
         </div>
       </div>
       <div class="body">
-        <div class="locator-section" id="locator-section">
-          <div class="input-row">
-            <input type="text" class="locator-input" id="locator-input" placeholder="Type or pick a selector..." spellcheck="false" autocomplete="off" />
-          </div>
-          <div class="controls-row">
-            <select class="format-select" id="format-select">
-              <option value="css">CSS</option>
-              <option value="xpath">XPath</option>
-              <option value="playwright">PW</option>
-              <option value="cypress">CY</option>
-              <option value="selenium">SE</option>
-            </select>
-            <span class="match-info" id="match-info"></span>
-            <button class="action-btn" id="copy-btn">Copy</button>
-          </div>
+        <input type="text" class="locator-input" id="locator-input" placeholder="type or pick a selector…" spellcheck="false" autocomplete="off" />
+        <div class="controls-row">
+          <select class="format-select" id="format-select">
+            <option value="css">CSS</option>
+            <option value="xpath">XPath</option>
+            <option value="playwright">PW</option>
+            <option value="cypress">CY</option>
+            <option value="selenium">SE</option>
+          </select>
+          <span class="match-pill" id="match-pill"></span>
+          <span class="spacer"></span>
+          <button class="copy-btn" id="copy-btn">Copy</button>
         </div>
       </div>
     </div>
@@ -453,7 +474,7 @@ function buildWidgetHTML(): string {
 }
 
 // ---------------------------------------------------------------------------
-// FloatingWidget class
+// FloatingWidget
 // ---------------------------------------------------------------------------
 
 export class FloatingWidget {
@@ -466,7 +487,6 @@ export class FloatingWidget {
   private isPicking = false;
   private testDebounce: ReturnType<typeof setTimeout> | null = null;
 
-  // Drag
   private dragging = false;
   private dragStartX = 0;
   private dragStartY = 0;
@@ -476,7 +496,6 @@ export class FloatingWidget {
   private boundDragMove: (e: MouseEvent) => void;
   private boundDragEnd: () => void;
 
-  // Callbacks
   private pickCb: (() => void) | null = null;
   private testCb: ((sel: string, type: string) => void) | null = null;
   private closeCb: (() => void) | null = null;
@@ -485,11 +504,9 @@ export class FloatingWidget {
   constructor() {
     this.host = document.createElement('div');
     this.host.id = 'selekt-floating-host';
-    // Host has no positioning — the .widget inside handles it
     this.host.style.cssText = 'all:initial;';
 
     this.shadow = this.host.attachShadow({ mode: 'open' });
-
     const style = document.createElement('style');
     style.textContent = WIDGET_CSS;
     this.shadow.appendChild(style);
@@ -497,14 +514,12 @@ export class FloatingWidget {
     const tmp = document.createElement('div');
     tmp.innerHTML = buildWidgetHTML();
     this.shadow.appendChild(tmp.firstElementChild as Element);
-
     this.widget = this.shadow.getElementById('widget')!;
 
     (document.documentElement || document.body).appendChild(this.host);
 
-    this.boundDragMove = (e) => this.onDragMove(e);
+    this.boundDragMove = (ev) => this.onDragMove(ev);
     this.boundDragEnd = () => this.stopDrag();
-
     this.bindEvents();
     this.host.style.display = 'none';
   }
@@ -512,17 +527,18 @@ export class FloatingWidget {
   show(): void {
     this.host.style.display = '';
     this.visible = true;
-    this.$('locator-section')?.classList.add('visible');
   }
 
   hide(): void {
     this.host.style.display = 'none';
     this.visible = false;
+    clearAllHighlights();
   }
 
   destroy(): void {
     window.removeEventListener('mousemove', this.boundDragMove);
     window.removeEventListener('mouseup', this.boundDragEnd);
+    clearAllHighlights();
     this.host.remove();
   }
 
@@ -533,7 +549,6 @@ export class FloatingWidget {
   setElementData(element: ElementData): void {
     this.locators = generateLocators(element);
     this.setPicking(false);
-    this.$('locator-section')?.classList.add('visible');
     this.updateInputFromLocators();
     this.scheduleTest();
   }
@@ -557,16 +572,14 @@ export class FloatingWidget {
     if (!btn) return;
     if (active) {
       btn.classList.add('picking');
-      btn.textContent = 'Picking…';
+      btn.textContent = 'PICKING…';
       this.host.style.pointerEvents = 'none';
     } else {
       btn.classList.remove('picking');
-      btn.innerHTML = `<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><path d="M8 1v2.5M8 12.5V15M1 8h2.5M12.5 8H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Pick`;
+      btn.innerHTML = `<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><path d="M8 1v2.5M8 12.5V15M1 8h2.5M12.5 8H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> PICK`;
       this.host.style.pointerEvents = '';
     }
   }
-
-  // ---- Private ----
 
   private $(id: string): HTMLElement | null {
     return this.shadow.getElementById(id);
@@ -586,35 +599,40 @@ export class FloatingWidget {
   private runTest(): void {
     const input = this.$('locator-input') as HTMLInputElement | null;
     if (!input || !input.value.trim()) {
-      this.setMatchInfo('');
+      this.setMatch('', '');
+      clearAllHighlights();
       return;
     }
+
     const val = input.value.trim();
     const format = detectFormat(val);
     const result = extractTestable(val, format);
     if (!result) {
-      this.setMatchInfo('Cannot parse', 'none');
+      this.setMatch('parse error', 'none');
+      clearAllHighlights();
       return;
     }
 
-    // Handle playwright-role specially
-    if (result.selectorType === 'playwright-role') {
+    // Role-based matching (Playwright getByRole, Cypress findByRole)
+    if (result.selectorType === 'role') {
       const parts = result.selector.split('::');
       const role = parts[0];
       const nameFilter = parts[1] || undefined;
-      const count = countByRole(role, nameFilter);
-      highlightByRole(role, nameFilter);
-      if (count > 0) this.setMatchInfo(`${count} match${count !== 1 ? 'es' : ''}`, 'found');
-      else this.setMatchInfo('No matches', 'none');
+      const candidates = getRoleCandidates(role);
+      const matches = nameFilter ? filterByName(candidates, nameFilter) : candidates;
+      highlightElements(matches);
+      this.setMatch(
+        matches.length > 0 ? `${matches.length}` : '0',
+        matches.length > 0 ? 'found' : 'none'
+      );
       return;
     }
 
-    // Standard CSS/XPath test
-    if (this.testCb) this.testCb(result.selector, result.selectorType);
-
+    // CSS / XPath
     try {
-      let count: number;
+      let elements: Element[];
       if (result.selectorType === 'xpath') {
+        elements = [];
         const xr = document.evaluate(
           result.selector,
           document,
@@ -622,38 +640,43 @@ export class FloatingWidget {
           XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
           null
         );
-        count = xr.snapshotLength;
+        for (let i = 0; i < xr.snapshotLength; i++) {
+          const n = xr.snapshotItem(i);
+          if (n instanceof Element) elements.push(n);
+        }
       } else {
-        count = document.querySelectorAll(result.selector).length;
+        elements = Array.from(document.querySelectorAll(result.selector));
       }
-      if (count > 0) this.setMatchInfo(`${count} match${count !== 1 ? 'es' : ''}`, 'found');
-      else this.setMatchInfo('No matches', 'none');
+      highlightElements(elements);
+      this.setMatch(
+        elements.length > 0 ? `${elements.length}` : '0',
+        elements.length > 0 ? 'found' : 'none'
+      );
     } catch {
-      this.setMatchInfo('Invalid', 'none');
+      clearAllHighlights();
+      this.setMatch('invalid', 'none');
     }
   }
 
-  private setMatchInfo(text: string, cls?: 'found' | 'none'): void {
-    const el = this.$('match-info');
+  private setMatch(text: string, cls: string): void {
+    const el = this.$('match-pill');
     if (!el) return;
     el.textContent = text;
     el.classList.remove('found', 'none');
     if (cls) el.classList.add(cls);
   }
 
-  // Drag — operates on the .widget element inside shadow DOM
+  // Drag
   private startDrag(e: MouseEvent): void {
     if ((e.target as HTMLElement).closest('button, select, input')) return;
     this.dragging = true;
     this.dragStartX = e.clientX;
     this.dragStartY = e.clientY;
-
     const rect = this.widget.getBoundingClientRect();
     this.widgetStartX = rect.left;
     this.widgetStartY = rect.top;
 
     if (!this.hasDragged) {
-      // Switch from right/bottom to left/top on first drag
       this.widget.style.right = 'auto';
       this.widget.style.bottom = 'auto';
       this.widget.style.left = `${rect.left}px`;
@@ -670,12 +693,10 @@ export class FloatingWidget {
     if (!this.dragging) return;
     const dx = e.clientX - this.dragStartX;
     const dy = e.clientY - this.dragStartY;
-    const newLeft = this.widgetStartX + dx;
-    const newTop = this.widgetStartY + dy;
-    const maxLeft = window.innerWidth - this.widget.offsetWidth - 4;
-    const maxTop = window.innerHeight - this.widget.offsetHeight - 4;
-    this.widget.style.left = `${Math.max(4, Math.min(newLeft, maxLeft))}px`;
-    this.widget.style.top = `${Math.max(4, Math.min(newTop, maxTop))}px`;
+    const maxL = window.innerWidth - this.widget.offsetWidth - 4;
+    const maxT = window.innerHeight - this.widget.offsetHeight - 4;
+    this.widget.style.left = `${Math.max(4, Math.min(this.widgetStartX + dx, maxL))}px`;
+    this.widget.style.top = `${Math.max(4, Math.min(this.widgetStartY + dy, maxT))}px`;
   }
 
   private stopDrag(): void {
@@ -720,18 +741,16 @@ export class FloatingWidget {
       if (!text) return;
       const btn = this.$('copy-btn')!;
       navigator.clipboard.writeText(text).then(() => {
-        btn.textContent = '✓';
-        btn.classList.add('success');
+        btn.textContent = '\u2713';
+        btn.classList.add('ok');
         setTimeout(() => {
           btn.textContent = 'Copy';
-          btn.classList.remove('success');
+          btn.classList.remove('ok');
         }, 1500);
       });
     });
 
-    this.$('expand-btn')?.addEventListener('click', () => {
-      this.expandCb?.();
-    });
+    this.$('expand-btn')?.addEventListener('click', () => this.expandCb?.());
     this.$('close-btn')?.addEventListener('click', () => {
       this.hide();
       this.closeCb?.();

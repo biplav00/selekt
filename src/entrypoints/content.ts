@@ -554,10 +554,7 @@ export default defineContentScript({
           el.setAttribute('data-locator-highlight', 'true');
         });
 
-        // Auto-clear highlights after 5 seconds
-        highlightTimeout = setTimeout(() => {
-          clearHighlights();
-        }, 5000);
+        // Highlights persist until the next test or explicit clear
       } catch {
         // Invalid selector — silently ignore
       }
