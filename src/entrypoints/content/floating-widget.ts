@@ -274,8 +274,6 @@ function detectFormat(input: string): SelectorFormat {
 // ---------------------------------------------------------------------------
 
 const WIDGET_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
-
   :host {
     all: initial;
     font-family: 'IBM Plex Mono', 'SF Mono', 'Cascadia Code', monospace;
@@ -517,6 +515,16 @@ export class FloatingWidget {
     this.widget = this.shadow.getElementById('widget')!;
 
     (document.documentElement || document.body).appendChild(this.host);
+
+    // Load font into the page head (Shadow DOM can't @import external CSS)
+    if (!document.querySelector('link[data-selekt-font]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href =
+        'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap';
+      link.setAttribute('data-selekt-font', '1');
+      document.head.appendChild(link);
+    }
 
     this.boundDragMove = (ev) => this.onDragMove(ev);
     this.boundDragEnd = () => this.stopDrag();
