@@ -1,11 +1,12 @@
 import { LitElement, css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { checkConnection } from './services/messaging.js';
-import { type Settings, loadSettings, saveSettings } from './services/storage.js';
+import { type Settings, loadSettings, saveSettings, migrateHistoryToWorkspace } from './services/storage.js';
 import { sharedStyles } from './styles/shared.js';
 import { themeStyles } from './styles/theme.js';
 import './components/pick-tab.js';
 import './components/toast.js';
+import './components/workspace-tab.js';
 import type { SelektToast } from './components/toast.js';
 
 type Tab = 'pick' | 'build' | 'workspace';
@@ -176,6 +177,7 @@ export class SelektApp extends LitElement {
   }
 
   private async _init() {
+    await migrateHistoryToWorkspace();
     this._settings = await loadSettings();
     this._applyTheme();
     await this._checkConnection();
@@ -254,7 +256,7 @@ export class SelektApp extends LitElement {
       case 'build':
         return html`<p>Build tab placeholder</p>`;
       case 'workspace':
-        return html`<p>Workspace tab placeholder</p>`;
+        return html`<workspace-tab @toast=${(e: CustomEvent) => this._showToast(e.detail)}></workspace-tab>`;
     }
   }
 
