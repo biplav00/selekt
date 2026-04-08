@@ -1,492 +1,53 @@
-import type { ElementInfo, ScoredSelector, SelectorFormat } from '@/types';
+import type { RichElementData, ScoredSelector, SelectorFormat } from '@/types';
+import { getAllSpecialists, getSpecialist } from '@/specialists/registry';
+import type { ActionableWarning, GenerateResult, ProactiveSuggestion, SpecialistScore } from '@/specialists/types';
 
-// Re-export shared utilities so existing imports from selector-engine still work
+// Re-export shared utilities for backward compatibility
 export {
   cssEscape,
   escapeCssAttrValue,
   escapeDoubleQuoteJs,
   escapeSingleQuoteJs,
   escapeXPathValue,
-  isDynamicClass,
-} from '@/shared/selector-core';
-
-import {
-  cssEscape,
-  escapeCssAttrValue,
-  escapeDoubleQuoteJs,
-  escapeSingleQuoteJs,
-  escapeXPathValue,
-  isDynamicClass,
-} from '@/shared/selector-core';
-
-import { SEMANTIC_TAGS, isDynamicId } from '@/specialists/helpers/dynamic-detect';
-
-// ---------------------------------------------------------------------------
-// Score factors interface
-// ---------------------------------------------------------------------------
-
-interface ScoreFactors {
-  hasTestId: boolean;
-  hasId: boolean;
-  idLooksDynamic: boolean;
-  hasRole: boolean;
-  hasAccessibleName: boolean;
-  hasAriaLabel: boolean;
-  isShort: boolean;
-  isSemanticTag: boolean;
-  isDeepNested: boolean;
-  usesNthChild: boolean;
-  usesDynamicClass: boolean;
-  usesIndexPosition: boolean;
-}
-
-// ---------------------------------------------------------------------------
-// Scoring
-// ---------------------------------------------------------------------------
-
-function computeScore(factors: ScoreFactors): number {
-  let score = 50;
-
-  if (factors.hasTestId) score += 40;
-  if (factors.hasId && !factors.idLooksDynamic) score += 35;
-  if (factors.hasRole && factors.hasAccessibleName) score += 30;
-  if (factors.hasAriaLabel) score += 25;
-  if (factors.isShort) score += 15;
-  if (factors.isSemanticTag) score += 10;
-
-  if (factors.isDeepNested) score -= 20;
-  if (factors.usesNthChild) score -= 15;
-  if (factors.usesDynamicClass) score -= 25;
-  if (factors.usesIndexPosition) score -= 15;
-
-  return Math.max(0, Math.min(100, score));
-}
-
-function buildWarnings(factors: ScoreFactors): string[] {
-  const warnings: string[] = [];
-  if (factors.usesDynamicClass) {
-    warnings.push('Uses dynamically generated class names that may change between builds.');
-  }
-  if (factors.idLooksDynamic) {
-    warnings.push('ID appears to be auto-generated and may not be stable across page loads.');
-  }
-  if (factors.isDeepNested) {
-    warnings.push('Selector is deeply nested; DOM structure changes may break it.');
-  }
-  if (factors.usesNthChild) {
-    warnings.push('nth-child/nth-of-type positioning is fragile if sibling order changes.');
-  }
-  if (factors.usesIndexPosition) {
-    warnings.push('Index-based positioning makes the selector sensitive to reordering.');
-  }
-  return warnings;
-}
-
-// ---------------------------------------------------------------------------
-// Selector text analysis (for scoreSelector)
-// ---------------------------------------------------------------------------
-
-function analyzeSelector(selector: string, format: SelectorFormat): ScoreFactors {
-  const s = selector;
-  const hasTestId = /data-testid|data-test/.test(s);
-  const hasId =
-    format === 'css'
-      ? /^#[^\s>+~[]+/.test(s) || /\[id=/.test(s)
-      : /\[@id=/.test(s) || /getByTestId|getById/.test(s);
-  const idMatch = s.match(/(?:^#|id=["']?)([^"'\]\s>+~[]+)/);
-  const idLooksDynamic = hasId && idMatch ? isDynamicId(idMatch[1]) : false;
-  const hasRole = /\[role=|getByRole|by\.role/.test(s);
-  const hasAriaLabel = /aria-label/.test(s);
-  const hasAccessibleName = /aria-label|getByRole|getByText/.test(s);
-
-  // Count combinator depth (spaces, >, +, ~)
-  const combinatorCount = (s.match(/[\s>+~]/g) ?? []).length;
-  const isShort = combinatorCount <= 2;
-  const isDeepNested = combinatorCount > 3;
-
-  // Tag heuristic: first segment is a semantic tag
-  const firstTag = s.match(/^([a-z][a-z0-9]*)[\s\[.#:>+~(]|^([a-z][a-z0-9]*)$/i);
-  const tagName = (firstTag?.[1] ?? firstTag?.[2] ?? '').toLowerCase();
-  const isSemanticTag = SEMANTIC_TAGS.has(tagName);
-
-  const usesNthChild = /nth-child|nth-of-type/.test(s);
-  const usesIndexPosition = /\[\d+\]|:eq\(|\.eq\(/.test(s);
-
-  // Check for dynamic classes
-  let usesDynamicClass = false;
-  const classMatches = s.match(/\.([a-zA-Z0-9_-]+)/g) ?? [];
-  for (const cm of classMatches) {
-    if (isDynamicClass(cm.slice(1))) {
-      usesDynamicClass = true;
-      break;
-    }
-  }
-
-  return {
-    hasTestId,
-    hasId,
-    idLooksDynamic,
-    hasRole,
-    hasAccessibleName,
-    hasAriaLabel,
-    isShort,
-    isSemanticTag,
-    isDeepNested,
-    usesNthChild,
-    usesDynamicClass,
-    usesIndexPosition,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// CSS generator
-// ---------------------------------------------------------------------------
-
-function generateCssSelectors(element: ElementInfo): ScoredSelector[] {
-  const { tagName, attributes } = element;
-  const tag = tagName.toLowerCase();
-  const results: ScoredSelector[] = [];
-
-  const add = (selector: string) => {
-    results.push(scored(selector, 'css'));
-  };
-
-  // By data-testid
-  const testid = attributes['data-testid'];
-  if (testid) add(`[data-testid="${escapeCssAttrValue(testid)}"]`);
-
-  // By data-test
-  const dataTest = attributes['data-test'];
-  if (dataTest) add(`[data-test="${escapeCssAttrValue(dataTest)}"]`);
-
-  // By id
-  const id = attributes.id;
-  if (id && !id.includes(' ')) add(`#${cssEscape(id)}`);
-
-  // By aria-label
-  const ariaLabel = attributes['aria-label'];
-  if (ariaLabel) add(`[aria-label="${escapeCssAttrValue(ariaLabel)}"]`);
-
-  // By role
-  const role = attributes.role;
-  if (role) {
-    if (ariaLabel) {
-      add(`[role="${escapeCssAttrValue(role)}"][aria-label="${escapeCssAttrValue(ariaLabel)}"]`);
-    } else {
-      add(`[role="${escapeCssAttrValue(role)}"]`);
-    }
-  }
-
-  // By name attribute (inputs, etc.)
-  const name = attributes.name;
-  if (name) add(`${tag}[name="${escapeCssAttrValue(name)}"]`);
-
-  // By type + value (e.g. input[type="submit"][value="..."])
-  const type = attributes.type;
-  const value = attributes.value;
-  if (type && value && tag === 'input') {
-    add(`${tag}[type="${escapeCssAttrValue(type)}"][value="${escapeCssAttrValue(value)}"]`);
-  }
-
-  // By class (non-dynamic only)
-  const className = attributes.class;
-  if (className) {
-    const classes = className.split(/\s+/).filter((c) => c && !isDynamicClass(c));
-    if (classes.length > 0) {
-      add(`${tag}.${classes.map(cssEscape).join('.')}`);
-    }
-  }
-
-  // Fallback: tag only
-  add(tag);
-
-  return results;
-}
-
-// ---------------------------------------------------------------------------
-// XPath generator
-// ---------------------------------------------------------------------------
-
-function generateXpathSelectors(element: ElementInfo): ScoredSelector[] {
-  const { tagName, attributes, text } = element;
-  const tag = tagName.toLowerCase();
-  const results: ScoredSelector[] = [];
-
-  const add = (selector: string) => {
-    results.push(scored(selector, 'xpath'));
-  };
-
-  // By data-testid
-  const testid = attributes['data-testid'];
-  if (testid) add(`//${tag}[@data-testid=${escapeXPathValue(testid)}]`);
-
-  const dataTest = attributes['data-test'];
-  if (dataTest) add(`//${tag}[@data-test=${escapeXPathValue(dataTest)}]`);
-
-  // By id
-  const id = attributes.id;
-  if (id && !id.includes(' ')) add(`//*[@id=${escapeXPathValue(id)}]`);
-
-  // By aria-label
-  const ariaLabel = attributes['aria-label'];
-  if (ariaLabel) add(`//${tag}[@aria-label=${escapeXPathValue(ariaLabel)}]`);
-
-  // By role
-  const role = attributes.role;
-  if (role) add(`//${tag}[@role=${escapeXPathValue(role)}]`);
-
-  // By name
-  const name = attributes.name;
-  if (name) add(`//${tag}[@name=${escapeXPathValue(name)}]`);
-
-  // By visible text (short text only)
-  const trimmed = text?.trim();
-  if (trimmed && trimmed.length > 0 && trimmed.length <= 50) {
-    add(`//${tag}[normalize-space(text())=${escapeXPathValue(trimmed)}]`);
-  }
-
-  // Fallback: tag only
-  add(`//${tag}`);
-
-  return results;
-}
-
-// ---------------------------------------------------------------------------
-// Playwright generator
-// ---------------------------------------------------------------------------
-
-function generatePlaywrightSelectors(element: ElementInfo): ScoredSelector[] {
-  const { tagName, attributes, text } = element;
-  const tag = tagName.toLowerCase();
-  const results: ScoredSelector[] = [];
-
-  const add = (selector: string) => {
-    results.push(scored(selector, 'playwright'));
-  };
-
-  // By test id
-  const testid = attributes['data-testid'];
-  if (testid) add(`page.getByTestId('${escapeSingleQuoteJs(testid)}')`);
-
-  const dataTest = attributes['data-test'];
-  if (dataTest) add(`page.locator('[data-test="${escapeDoubleQuoteJs(dataTest)}"]')`);
-
-  // By role + name
-  const role = attributes.role;
-  const ariaLabel = attributes['aria-label'];
-  const trimmed = text?.trim();
-
-  if (role) {
-    if (ariaLabel) {
-      add(
-        `page.getByRole('${escapeSingleQuoteJs(role)}', { name: '${escapeSingleQuoteJs(ariaLabel)}' })`
-      );
-    } else if (trimmed && trimmed.length <= 50) {
-      add(
-        `page.getByRole('${escapeSingleQuoteJs(role)}', { name: '${escapeSingleQuoteJs(trimmed)}' })`
-      );
-    } else {
-      add(`page.getByRole('${escapeSingleQuoteJs(role)}')`);
-    }
-  }
-
-  // Semantic role inference
-  const inferredRole: Record<string, string> = {
-    button: 'button',
-    a: 'link',
-    input: 'textbox',
-    select: 'combobox',
-    textarea: 'textbox',
-    nav: 'navigation',
-    main: 'main',
-    dialog: 'dialog',
-  };
-  const ir = inferredRole[tag];
-  if (ir && !role) {
-    if (ariaLabel) {
-      add(`page.getByRole('${ir}', { name: '${escapeSingleQuoteJs(ariaLabel)}' })`);
-    } else if (trimmed && trimmed.length <= 50) {
-      add(`page.getByRole('${ir}', { name: '${escapeSingleQuoteJs(trimmed)}' })`);
-    }
-  }
-
-  // By aria-label
-  if (ariaLabel) add(`page.getByLabel('${escapeSingleQuoteJs(ariaLabel)}')`);
-
-  // By placeholder
-  const placeholder = attributes.placeholder;
-  if (placeholder) add(`page.getByPlaceholder('${escapeSingleQuoteJs(placeholder)}')`);
-
-  // By alt (images)
-  const alt = attributes.alt;
-  if (alt) add(`page.getByAltText('${escapeSingleQuoteJs(alt)}')`);
-
-  // By text
-  if (trimmed && trimmed.length > 0 && trimmed.length <= 50) {
-    add(`page.getByText('${escapeSingleQuoteJs(trimmed)}')`);
-  }
-
-  // By CSS locator
-  const id = attributes.id;
-  if (id && !id.includes(' ')) add(`page.locator('#${cssEscape(id)}')`);
-
-  return results;
-}
-
-// ---------------------------------------------------------------------------
-// Cypress generator
-// ---------------------------------------------------------------------------
-
-function generateCypressSelectors(element: ElementInfo): ScoredSelector[] {
-  const { tagName, attributes, text } = element;
-  const tag = tagName.toLowerCase();
-  const results: ScoredSelector[] = [];
-
-  const add = (selector: string) => {
-    results.push(scored(selector, 'cypress'));
-  };
-
-  // By data-testid (Cypress best practice)
-  const testid = attributes['data-testid'];
-  if (testid) add(`cy.get('[data-testid="${escapeDoubleQuoteJs(testid)}"]')`);
-
-  const dataTest = attributes['data-test'];
-  if (dataTest) add(`cy.get('[data-test="${escapeDoubleQuoteJs(dataTest)}"]')`);
-
-  // By id
-  const id = attributes.id;
-  if (id && !id.includes(' ')) add(`cy.get('#${cssEscape(id)}')`);
-
-  // By aria-label
-  const ariaLabel = attributes['aria-label'];
-  if (ariaLabel) add(`cy.get('[aria-label="${escapeDoubleQuoteJs(ariaLabel)}"]')`);
-
-  // By role
-  const role = attributes.role;
-  if (role) {
-    if (ariaLabel) {
-      add(
-        `cy.get('[role="${escapeDoubleQuoteJs(role)}"][aria-label="${escapeDoubleQuoteJs(ariaLabel)}"]')`
-      );
-    } else {
-      add(`cy.get('[role="${escapeDoubleQuoteJs(role)}"]')`);
-    }
-  }
-
-  // By name
-  const name = attributes.name;
-  if (name) add(`cy.get('${tag}[name="${escapeDoubleQuoteJs(name)}"]')`);
-
-  // By visible text (contains)
-  const trimmed = text?.trim();
-  if (trimmed && trimmed.length > 0 && trimmed.length <= 50) {
-    add(`cy.contains('${escapeSingleQuoteJs(trimmed)}')`);
-  }
-
-  // Fallback CSS
-  add(`cy.get('${tag}')`);
-
-  return results;
-}
-
-// ---------------------------------------------------------------------------
-// Selenium generator
-// ---------------------------------------------------------------------------
-
-function generateSeleniumSelectors(element: ElementInfo): ScoredSelector[] {
-  const { tagName, attributes, text } = element;
-  const tag = tagName.toLowerCase();
-  const results: ScoredSelector[] = [];
-
-  const add = (selector: string) => {
-    results.push(scored(selector, 'selenium'));
-  };
-
-  // By data-testid (CSS)
-  const testid = attributes['data-testid'];
-  if (testid) add(`driver.findElement(By.css('[data-testid="${escapeDoubleQuoteJs(testid)}"]'))`);
-
-  const dataTest = attributes['data-test'];
-  if (dataTest) add(`driver.findElement(By.css('[data-test="${escapeDoubleQuoteJs(dataTest)}"]'))`);
-
-  // By id
-  const id = attributes.id;
-  if (id && !id.includes(' ')) add(`driver.findElement(By.id('${escapeSingleQuoteJs(id)}'))`);
-
-  // By name
-  const name = attributes.name;
-  if (name) add(`driver.findElement(By.name('${escapeSingleQuoteJs(name)}'))`);
-
-  // By aria-label (CSS)
-  const ariaLabel = attributes['aria-label'];
-  if (ariaLabel)
-    add(`driver.findElement(By.css('[aria-label="${escapeDoubleQuoteJs(ariaLabel)}"]'))`);
-
-  // By role (XPath)
-  const role = attributes.role;
-  if (role) add(`driver.findElement(By.xpath('//${tag}[@role=${escapeXPathValue(role)}]'))`);
-
-  // By text (XPath)
-  const trimmed = text?.trim();
-  if (trimmed && trimmed.length > 0 && trimmed.length <= 50) {
-    add(
-      `driver.findElement(By.xpath('//${tag}[normalize-space(text())=${escapeXPathValue(trimmed)}]'))`
-    );
-  }
-
-  // Fallback tag (CSS)
-  add(`driver.findElement(By.tagName('${escapeSingleQuoteJs(tag)}'))`);
-
-  return results;
-}
-
-// ---------------------------------------------------------------------------
-// Helper: create a scored selector from a raw string
-// ---------------------------------------------------------------------------
-
-function scored(selector: string, format: SelectorFormat): ScoredSelector {
-  const factors = analyzeSelector(selector, format);
-  const score = computeScore(factors);
-  const warnings = buildWarnings(factors);
-  return { selector, format, score, warnings };
-}
-
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
+} from '@/specialists/helpers/escaping';
+export { isDynamicClass } from '@/specialists/helpers/dynamic-detect';
+export { extractTestable } from '@/shared/selector-core';
 
 /**
- * Generates all selector strategies for the given element across all 5 formats,
- * scores them, deduplicates, and returns them sorted by score descending.
+ * Generate scored selectors across all formats for a given element.
+ * Delegates to per-format specialists.
  */
-export function generateScoredSelectors(element: ElementInfo): ScoredSelector[] {
-  const all: ScoredSelector[] = [
-    ...generateCssSelectors(element),
-    ...generateXpathSelectors(element),
-    ...generatePlaywrightSelectors(element),
-    ...generateCypressSelectors(element),
-    ...generateSeleniumSelectors(element),
-  ];
+export function generateScoredSelectors(element: RichElementData): {
+  selectors: ScoredSelector[];
+  proactive: ProactiveSuggestion[];
+} {
+  const allSelectors: ScoredSelector[] = [];
+  const allProactive: ProactiveSuggestion[] = [];
 
-  // Deduplicate by selector string within each format
+  for (const specialist of getAllSpecialists()) {
+    const result = specialist.generate(element);
+    allSelectors.push(...result.selectors);
+    allProactive.push(...result.proactive);
+  }
+
+  // Deduplicate by format::selector
   const seen = new Set<string>();
-  const deduped = all.filter((s) => {
+  const deduped = allSelectors.filter((s) => {
     const key = `${s.format}::${s.selector}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
 
-  // Sort by score descending
-  return deduped.sort((a, b) => b.score - a.score);
+  return {
+    selectors: deduped.sort((a, b) => b.score - a.score),
+    proactive: allProactive,
+  };
 }
 
 /**
- * Scores a single existing selector string by analysing its text.
+ * Score a single selector string using its format's specialist.
  */
-export function scoreSelector(selector: string, format: SelectorFormat): ScoredSelector {
-  return scored(selector, format);
+export function scoreSelector(selector: string, format: SelectorFormat): SpecialistScore {
+  return getSpecialist(format).score(selector);
 }
-
-// Re-export extractTestable from shared module (supports 'css' | 'xpath' | 'role' selectorTypes)
-export { extractTestable } from '@/shared/selector-core';

@@ -1,4 +1,4 @@
-import type { PageElement, ScoredSelector, SelectorFormat } from '@/types';
+import type { PageElement, RichElementData, ScoredSelector, SelectorFormat } from '@/types';
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { countMatches, fetchPageElements, testSelector } from '../services/messaging.js';
@@ -72,6 +72,18 @@ function detectFormat(selector: string): SelectorFormat {
 
 function makeId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/**
+ * Wraps the new specialist-based scoreSelector (which returns SpecialistScore)
+ * into the legacy ScoredSelector shape expected by the UI.
+ */
+function scoreSelectorAs(selector: string, format: SelectorFormat): ScoredSelector {
+  const result = scoreSelector(selector, format);
+  const warnings = result.factors
+    .filter((f) => f.impact < 0)
+    .map((f) => f.description);
+  return { selector, format, score: result.score, warnings };
 }
 
 // ---------------------------------------------------------------------------
@@ -709,7 +721,7 @@ export class BuildTab extends LitElement {
     }
 
     if (val.trim()) {
-      this._scored = scoreSelector(val.trim(), this._freeformFormat);
+      this._scored = scoreSelectorAs(val.trim(), this._freeformFormat);
     } else {
       this._scored = null;
       this._matchCount = null;
@@ -722,7 +734,7 @@ export class BuildTab extends LitElement {
     this._freeformFormat = (e.target as HTMLSelectElement).value as SelectorFormat;
     this._freeformAutoFormat = false;
     if (this._freeformSelector.trim()) {
-      this._scored = scoreSelector(this._freeformSelector.trim(), this._freeformFormat);
+      this._scored = scoreSelectorAs(this._freeformSelector.trim(), this._freeformFormat);
     }
     this._scheduleMatchCount();
   }
@@ -774,7 +786,7 @@ export class BuildTab extends LitElement {
     this._freeformSelector = suggestion.code;
     this._freeformAutoFormat = true;
     this._freeformFormat = detectFormat(suggestion.code);
-    this._scored = scoreSelector(suggestion.code.trim(), this._freeformFormat);
+    this._scored = scoreSelectorAs(suggestion.code.trim(), this._freeformFormat);
     this._showSuggestions = false;
     this._scheduleMatchCount();
   }
@@ -1145,7 +1157,7 @@ export class BuildTab extends LitElement {
   private async _onGenerateLocator() {
     const base = this._buildBaseSelector();
     const full = this._applyChain(base);
-    this._structResult = scoreSelector(full, this._structFramework);
+    this._structResult = scoreSelectorAs(full, this._structFramework);
     this._allResults = [];
 
     // Count matches for css/xpath
@@ -1190,8 +1202,16 @@ export class BuildTab extends LitElement {
         break;
     }
 
-    const element = { tagName, text: '', attributes: attrs };
-    this._allResults = generateScoredSelectors(element);
+    const element: RichElementData = {
+      tagName,
+      text: '',
+      attributes: attrs,
+      parentChain: [],
+      siblingTags: [],
+      accessibleName: '',
+    };
+    const { selectors } = generateScoredSelectors(element);
+    this._allResults = selectors;
     this._structResult = null;
     this._structMatchCount = null;
   }

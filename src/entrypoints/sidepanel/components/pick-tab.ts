@@ -318,7 +318,14 @@ export class PickTab extends LitElement {
     this._picking = false;
     this._clearPickTimer();
     this._element = element;
-    this._selectors = generateScoredSelectors(element);
+    const richElement = {
+      ...element,
+      parentChain: (element as any).parentChain || [],
+      siblingTags: (element as any).siblingTags || [],
+      accessibleName: (element as any).accessibleName || '',
+    };
+    const { selectors } = generateScoredSelectors(richElement);
+    this._selectors = selectors;
     this._showAll = false;
 
     // Auto-save top selector to recent
