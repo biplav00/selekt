@@ -1,5 +1,6 @@
+import { computeAccessibleName } from '@/specialists/helpers/aria';
 import { clearHighlights, highlightElements, runSelectorTest } from '@/shared/selector-core';
-import type { DomTreeNode } from '@/types';
+import type { DomTreeNode, RichElementData } from '@/types';
 import { defineContentScript } from 'wxt/utils/define-content-script';
 import { FloatingWidget } from './content/floating-widget';
 
@@ -363,6 +364,37 @@ export default defineContentScript({
       }
     }
 
+    function extractRichElementData(target: HTMLElement): RichElementData {
+      const tagName = target.tagName.toLowerCase();
+      const text = target.innerText?.substring(0, 100) || '';
+      const attributes: Record<string, string> = {};
+      for (const attr of target.attributes) {
+        attributes[attr.name] = attr.value;
+      }
+
+      // Walk up to 6 ancestors
+      const parentChain: Array<{ tag: string; id: string; classes: string[] }> = [];
+      let current = target.parentElement;
+      for (let i = 0; i < 6 && current && current !== document.body; i++) {
+        parentChain.push({
+          tag: current.tagName.toLowerCase(),
+          id: current.id || '',
+          classes: Array.from(current.classList).slice(0, 5),
+        });
+        current = current.parentElement;
+      }
+
+      // Sibling tags
+      const siblingTags = Array.from(target.parentElement?.children || [])
+        .filter((el) => el !== target)
+        .map((el) => el.tagName.toLowerCase());
+
+      // Accessible name
+      const accessibleName = computeAccessibleName(attributes, text);
+
+      return { tagName, text, attributes, parentChain, siblingTags, accessibleName };
+    }
+
     function handleClick(e: MouseEvent) {
       if (!isPicking) return;
       e.preventDefault();
@@ -370,15 +402,7 @@ export default defineContentScript({
       e.stopImmediatePropagation();
 
       const target = e.target as HTMLElement;
-      const elementInfo = {
-        tagName: target.tagName.toLowerCase(),
-        text: target.innerText?.substring(0, 100) || '',
-        attributes: {} as Record<string, string>,
-      };
-
-      for (const attr of target.attributes) {
-        elementInfo.attributes[attr.name] = attr.value;
-      }
+      const elementData = extractRichElementData(target);
 
       // Clear any existing test highlights
       clearHighlights();
@@ -386,12 +410,12 @@ export default defineContentScript({
       stopElementPicker();
 
       if (isFloatingMode) {
-        floatingWidget.setElementData(elementInfo);
+        floatingWidget.setElementData(elementData);
       }
 
       chrome.runtime.sendMessage({
         type: 'ELEMENT_SELECTED',
-        element: elementInfo,
+        element: elementData,
       });
     }
 
