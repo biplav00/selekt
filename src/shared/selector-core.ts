@@ -21,6 +21,14 @@ import {
 } from '@/specialists/helpers/escaping';
 
 // ---------------------------------------------------------------------------
+// Dynamic class/ID detection — re-exported from helpers
+// ---------------------------------------------------------------------------
+
+export { isDynamicClass } from '@/specialists/helpers/dynamic-detect';
+
+import { isDynamicClass } from '@/specialists/helpers/dynamic-detect';
+
+// ---------------------------------------------------------------------------
 // Simple locator generation (one per format)
 // ---------------------------------------------------------------------------
 
@@ -109,22 +117,6 @@ export function generateLocators(el: SimpleElementData): SimpleLocators {
   return { css, xpath, playwright, cypress, selenium };
 }
 
-// ---------------------------------------------------------------------------
-// Dynamic class / ID detection
-// ---------------------------------------------------------------------------
-
-const DYNAMIC_CLASS_PATTERNS: RegExp[] = [
-  /^css-[a-z0-9]+$/i,
-  /^sc-[a-zA-Z]+$/,
-  /^_[a-z]+_[a-z0-9]+_/,
-  /^[a-z0-9]{5,8}$/,
-  /^jsx-[a-f0-9]+$/,
-  /^svelte-[a-z0-9]+$/,
-];
-
-export function isDynamicClass(cls: string): boolean {
-  return DYNAMIC_CLASS_PATTERNS.some((re) => re.test(cls));
-}
 
 // ---------------------------------------------------------------------------
 // Format detection
