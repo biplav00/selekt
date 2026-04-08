@@ -4,7 +4,15 @@ import type { Suggestion as SpecialistSuggestion, ValidationResult } from '@/spe
 import type { PageElement, RichElementData, ScoredSelector, SelectorFormat } from '@/types';
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { countMatches, fetchPageElements, testSelector } from '../services/messaging.js';
+import {
+  batchQuerySelectors,
+  clearHighlights,
+  countMatches,
+  fetchPageElements,
+  onSelectorStatusChanged,
+  testSelector,
+} from '../services/messaging.js';
+import { getPageData, requestScrape } from '../services/page-cache.js';
 import {
   escapeCssAttrValue,
   escapeDoubleQuoteJs,
@@ -607,6 +615,45 @@ export class BuildTab extends LitElement {
         white-space: nowrap;
       }
 
+      .match-badge {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 1px 6px;
+        border-radius: 8px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .match-unique {
+        background: rgba(34, 197, 94, 0.15);
+        color: #22c55e;
+      }
+      .match-ambiguous {
+        background: rgba(234, 179, 8, 0.15);
+        color: #eab308;
+      }
+      .match-none {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+      }
+      .match-loading {
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+      }
+      .scoped-divider {
+        padding: 4px 10px;
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .autocomplete-item.scoped {
+        background: color-mix(in srgb, var(--accent) 3%, transparent);
+      }
+
       /* ── Did you mean ── */
       .did-you-mean {
         padding: 6px 10px;
@@ -690,6 +737,8 @@ export class BuildTab extends LitElement {
   @state() private _autocompleteIndex = -1;
   @state() private _didYouMean: SpecialistSuggestion[] = [];
   @state() private _validationError: ValidationResult | null = null;
+  @state() private _scopedSuggestions: SpecialistSuggestion[] = [];
+  private _highlightTimer: ReturnType<typeof setTimeout> | null = null;
 
   // ── Structured state ──
   @state() private _structFramework: SelectorFormat = 'playwright';
@@ -745,6 +794,10 @@ export class BuildTab extends LitElement {
   override connectedCallback() {
     super.connectedCallback();
     this._loadPageSuggestions();
+    requestScrape();
+    onSelectorStatusChanged(() => {
+      requestScrape();
+    });
   }
 
   private async _loadPageSuggestions() {
@@ -781,7 +834,9 @@ export class BuildTab extends LitElement {
         return;
       }
       if (e.key === 'Escape') {
+        this._clearSuggestionHighlights();
         this._autocompleteSuggestions = [];
+        this._scopedSuggestions = [];
         this._autocompleteIndex = -1;
         return;
       }
@@ -877,6 +932,7 @@ export class BuildTab extends LitElement {
       this._matchCount = null;
     }
 
+    this._clearSuggestionHighlights();
     this._scheduleMatchCount();
     this._fetchSuggestions();
   }
@@ -885,6 +941,7 @@ export class BuildTab extends LitElement {
     const val = this._freeformSelector.trim();
     if (!val) {
       this._autocompleteSuggestions = [];
+      this._scopedSuggestions = [];
       this._autocompleteIndex = -1;
       return;
     }
@@ -892,11 +949,110 @@ export class BuildTab extends LitElement {
     const format = detectFormat(val);
     try {
       const specialist = getSpecialist(format);
-      this._autocompleteSuggestions = specialist.suggest(val, buildRichPageData(this._pageElements || [])).slice(0, 8);
+      const pageData = getPageData();
+      const suggestions = specialist.suggest(val, pageData).slice(0, 8);
+      this._autocompleteSuggestions = suggestions;
+      this._batchFetchCounts(suggestions);
     } catch {
       this._autocompleteSuggestions = [];
     }
     this._autocompleteIndex = -1;
+  }
+
+  private async _batchFetchCounts(suggestions: SpecialistSuggestion[]) {
+    if (suggestions.length === 0) return;
+
+    const selectors = suggestions.map((s, i) => ({
+      id: String(i),
+      selector: s.selector,
+      selectorType: s.selectorType || 'css',
+    }));
+
+    try {
+      const counts = await batchQuerySelectors(selectors);
+      this._autocompleteSuggestions = this._autocompleteSuggestions.map((s, i) => ({
+        ...s,
+        matchCount: counts[String(i)] ?? undefined,
+      }));
+
+      // Check if any suggestion is ambiguous — fetch scoped alternatives
+      const firstCount = counts['0'];
+      if (firstCount !== undefined && firstCount > 1) {
+        this._fetchScopedSuggestions(firstCount);
+      } else {
+        this._scopedSuggestions = [];
+      }
+    } catch {
+      // Counts unavailable
+    }
+  }
+
+  private async _fetchScopedSuggestions(matchCount: number) {
+    const format = this._freeformFormat;
+    try {
+      const specialist = getSpecialist(format);
+      const richElement: RichElementData = {
+        tagName: 'div',
+        text: '',
+        attributes: {},
+        parentChain: [],
+        siblingTags: [],
+        accessibleName: '',
+      };
+      const scoped = specialist.chain(richElement, matchCount);
+      if (scoped.length === 0) {
+        this._scopedSuggestions = [];
+        return;
+      }
+
+      const selectors = scoped.map((s, i) => ({
+        id: `s${i}`,
+        selector: s.selector,
+        selectorType: format === 'xpath' ? 'xpath' : 'css',
+      }));
+      const counts = await batchQuerySelectors(selectors);
+      this._scopedSuggestions = scoped
+        .map(
+          (s, i): SpecialistSuggestion => ({
+            selector: s.selector,
+            label: s.selector,
+            description: 'Scoped selector',
+            score: s.score,
+            kind: 'scoped',
+            matchCount: counts[`s${i}`],
+            selectorType: format === 'xpath' ? 'xpath' : 'css',
+          })
+        )
+        .filter((s) => s.matchCount === 1);
+    } catch {
+      this._scopedSuggestions = [];
+    }
+  }
+
+  private _onSuggestionHover(suggestion: SpecialistSuggestion) {
+    if (this._highlightTimer) clearTimeout(this._highlightTimer);
+    this._highlightTimer = setTimeout(async () => {
+      try {
+        await testSelector(suggestion.selector, suggestion.selectorType || 'css');
+      } catch {
+        /* ignore */
+      }
+    }, 100);
+  }
+
+  private _clearSuggestionHighlights() {
+    if (this._highlightTimer) {
+      clearTimeout(this._highlightTimer);
+      this._highlightTimer = null;
+    }
+    clearHighlights().catch(() => {});
+  }
+
+  private _matchBadgeClass(count?: number): string {
+    if (count === undefined) return 'match-loading';
+    if (count === 0) return 'match-none';
+    if (count === 1) return 'match-unique';
+    return 'match-ambiguous';
   }
 
   private _onFormatChange(e: Event) {
@@ -940,7 +1096,7 @@ export class BuildTab extends LitElement {
       try {
         const format = this._freeformFormat;
         const specialist = getSpecialist(format);
-        this._didYouMean = specialist.didYouMean(sel, buildRichPageData(this._pageElements || [])).slice(0, 3);
+        this._didYouMean = specialist.didYouMean(sel, getPageData()).slice(0, 3);
       } catch {
         this._didYouMean = [];
       }
@@ -1586,7 +1742,9 @@ export class BuildTab extends LitElement {
           @blur=${() => {
             setTimeout(() => {
               this._showSuggestions = false;
+              this._clearSuggestionHighlights();
               this._autocompleteSuggestions = [];
+              this._scopedSuggestions = [];
               this._autocompleteIndex = -1;
             }, 150);
             this._validateFreeform();
@@ -1596,20 +1754,48 @@ export class BuildTab extends LitElement {
         ></textarea>
 
         ${
-          this._autocompleteSuggestions.length > 0
+          this._autocompleteSuggestions.length > 0 || this._scopedSuggestions.length > 0
             ? html`
                 <div class="autocomplete-dropdown">
                   ${this._autocompleteSuggestions.map(
                     (s, i) => html`
                       <button
                         class="autocomplete-item ${i === this._autocompleteIndex ? 'selected' : ''}"
-                        @mousedown=${() => this._applySuggestion(s)}
+                        @mousedown=${(e: Event) => {
+                          e.preventDefault();
+                          this._applySuggestion(s);
+                        }}
+                        @mouseenter=${() => this._onSuggestionHover(s)}
                       >
                         <span class="autocomplete-selector">${s.selector}</span>
-                        <span class="autocomplete-desc">${s.description}</span>
+                        <span class="match-badge ${this._matchBadgeClass(s.matchCount)}"
+                          >${s.matchCount ?? '...'}</span
+                        >
                       </button>
                     `
                   )}
+                  ${
+                    this._scopedSuggestions.length > 0
+                      ? html`
+                          <div class="scoped-divider">Scoped (unique)</div>
+                          ${this._scopedSuggestions.map(
+                            (s) => html`
+                              <button
+                                class="autocomplete-item scoped"
+                                @mousedown=${(e: Event) => {
+                                  e.preventDefault();
+                                  this._applySuggestion(s);
+                                }}
+                                @mouseenter=${() => this._onSuggestionHover(s)}
+                              >
+                                <span class="autocomplete-selector">${s.selector}</span>
+                                <span class="match-badge match-unique">${s.matchCount ?? '...'}</span>
+                              </button>
+                            `
+                          )}
+                        `
+                      : nothing
+                  }
                 </div>
               `
             : nothing
