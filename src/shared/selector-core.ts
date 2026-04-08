@@ -134,68 +134,203 @@ export function detectFormat(input: string): SelectorFormat {
 // Extract testable selector from any framework locator
 // ---------------------------------------------------------------------------
 
+export type TestableResult =
+  | { selector: string; selectorType: 'css' | 'xpath' | 'role' }
+  | { chain: Array<{ selector: string; selectorType: 'css' | 'xpath' | 'role' }> };
+
+// ---------------------------------------------------------------------------
+// Playwright helpers
+// ---------------------------------------------------------------------------
+
+function extractSinglePlaywright(
+  segment: string
+): { selector: string; selectorType: 'css' | 'xpath' | 'role' } | null {
+  const loc = segment.match(/page\.locator\((['"`])(.*?)\1\)/);
+  if (loc) return { selector: loc[2], selectorType: 'css' };
+  const tid = segment.match(/page\.getByTestId\((['"`])(.*?)\1\)/);
+  if (tid) return { selector: `[data-testid="${tid[2]}"]`, selectorType: 'css' };
+  const rwn = segment.match(/page\.getByRole\((['"`])(.*?)\1,\s*\{[^}]*name:\s*(['"`])(.*?)\3/);
+  if (rwn) return { selector: `${rwn[2]}::${rwn[4]}`, selectorType: 'role' };
+  const ro = segment.match(/page\.getByRole\((['"`])(.*?)\1/);
+  if (ro) return { selector: ro[2], selectorType: 'role' };
+  const txt = segment.match(/page\.getByText\((['"`])(.*?)\1/);
+  if (txt) return { selector: `//*[contains(text(),"${txt[2]}")]`, selectorType: 'xpath' };
+  const lbl = segment.match(/page\.getByLabel\((['"`])(.*?)\1/);
+  if (lbl) return { selector: `[aria-label="${lbl[2]}"]`, selectorType: 'css' };
+  const ph = segment.match(/page\.getByPlaceholder\((['"`])(.*?)\1/);
+  if (ph) return { selector: `[placeholder="${ph[2]}"]`, selectorType: 'css' };
+  const alt = segment.match(/page\.getByAltText\((['"`])(.*?)\1/);
+  if (alt) return { selector: `[alt="${alt[2]}"]`, selectorType: 'css' };
+  const ttl = segment.match(/page\.getByTitle\((['"`])(.*?)\1/);
+  if (ttl) return { selector: `[title="${ttl[2]}"]`, selectorType: 'css' };
+  // filter({ hasText: '...' }) — convert to XPath contains
+  const filter = segment.match(/page\.filter\(\{[^}]*hasText:\s*(['"`])(.*?)\1/);
+  if (filter) return { selector: `//*[contains(text(),"${filter[2]}")]`, selectorType: 'xpath' };
+  return null;
+}
+
+function splitPlaywrightChain(locator: string): string[] {
+  const segments: string[] = [];
+  const re = /\.?((?:page\.)?(?:getBy\w+|locator|filter|nth|first|last))\s*\(([^()]*(?:\{[^}]*\}[^()]*)*)\)/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(locator)) !== null) {
+    const fullMatch = match[0].startsWith('page') ? match[0] : `page${match[0]}`;
+    segments.push(fullMatch);
+  }
+  return segments;
+}
+
+// ---------------------------------------------------------------------------
+// Cypress helpers
+// ---------------------------------------------------------------------------
+
+function extractSingleCypress(
+  segment: string
+): { selector: string; selectorType: 'css' | 'xpath' | 'role' } | null {
+  const get = segment.match(/cy\.get\((['"`])(.*?)\1\)/);
+  if (get) return { selector: get[2], selectorType: 'css' };
+  const find = segment.match(/(?:cy\.)?find\((['"`])(.*?)\1\)/);
+  if (find) return { selector: find[2], selectorType: 'css' };
+  const ctag = segment.match(/cy\.contains\((['"`])(.*?)\1,\s*(['"`])(.*?)\3\)/);
+  if (ctag)
+    return { selector: `//${ctag[2]}[contains(text(),"${ctag[4]}")]`, selectorType: 'xpath' };
+  const c = segment.match(/cy\.contains\((['"`])(.*?)\1\)/);
+  if (c) return { selector: `//*[contains(text(),"${c[2]}")]`, selectorType: 'xpath' };
+  const contains = segment.match(/(?:cy\.)?contains\((['"`])(.*?)\1\)/);
+  if (contains)
+    return { selector: `//*[contains(text(),"${contains[2]}")]`, selectorType: 'xpath' };
+  const tid = segment.match(/cy\.findByTestId\((['"`])(.*?)\1/);
+  if (tid) return { selector: `[data-testid="${tid[2]}"]`, selectorType: 'css' };
+  const role = segment.match(/cy\.findByRole\((['"`])(.*?)\1/);
+  if (role) return { selector: role[2], selectorType: 'role' };
+  return null;
+}
+
+function splitCypressChain(locator: string): string[] {
+  // Split cy.get(...).find(...).contains(...) etc.
+  // First segment starts with cy., subsequent ones are .method(...)
+  const segments: string[] = [];
+  // Match cy.METHOD(...) at start
+  const firstRe = /^(cy\.\w+\([^)]*\))/;
+  const firstMatch = locator.match(firstRe);
+  if (firstMatch) {
+    segments.push(firstMatch[1]);
+    // Match subsequent .METHOD(...) calls, normalize to cy.METHOD(...)
+    const rest = locator.slice(firstMatch[1].length);
+    const chainRe = /\.((\w+)\([^)]*\))/g;
+    let m: RegExpExecArray | null;
+    while ((m = chainRe.exec(rest)) !== null) {
+      segments.push(`cy.${m[1]}`);
+    }
+  }
+  return segments;
+}
+
+// ---------------------------------------------------------------------------
+// Selenium helpers
+// ---------------------------------------------------------------------------
+
+function extractSingleSelenium(
+  segment: string
+): { selector: string; selectorType: 'css' | 'xpath' | 'role' } | null {
+  const css = segment.match(/By\.css(?:Selector)?\((['"`])(.*?)\1\)/);
+  if (css) return { selector: css[2], selectorType: 'css' };
+  const xp = segment.match(/By\.xpath\((['"`])(.*?)\1\)/);
+  if (xp) return { selector: xp[2], selectorType: 'xpath' };
+  const id = segment.match(/By\.id\((['"`])(.*?)\1\)/);
+  if (id) return { selector: `#${id[2]}`, selectorType: 'css' };
+  const nm = segment.match(/By\.name\((['"`])(.*?)\1\)/);
+  if (nm) return { selector: `[name="${nm[2]}"]`, selectorType: 'css' };
+  const cl = segment.match(/By\.className\((['"`])(.*?)\1\)/);
+  if (cl) return { selector: `.${cl[2]}`, selectorType: 'css' };
+  const tg = segment.match(/By\.tagName\((['"`])(.*?)\1\)/);
+  if (tg) return { selector: tg[2], selectorType: 'css' };
+  const lnk = segment.match(/By\.linkText\((['"`])(.*?)\1\)/);
+  if (lnk) return { selector: `//a[text()="${lnk[2]}"]`, selectorType: 'xpath' };
+  const plnk = segment.match(/By\.partialLinkText\((['"`])(.*?)\1\)/);
+  if (plnk) return { selector: `//a[contains(text(),"${plnk[2]}")]`, selectorType: 'xpath' };
+  return null;
+}
+
+function splitSeleniumChain(locator: string): string[] {
+  // Split on .findElement( boundaries
+  // e.g. "driver.findElement(By.id('form')).findElement(By.name('email'))"
+  // → ["driver.findElement(By.id('form'))", "driver.findElement(By.name('email'))"]
+  const segments: string[] = [];
+  const re = /(?:driver|element)?\.?findElement\([^)]+\)/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(locator)) !== null) {
+    // Normalize: ensure prefix is "driver.findElement"
+    const raw = match[0];
+    const normalized = raw.startsWith('driver') ? raw : `driver${raw.startsWith('.') ? raw : `.${raw}`}`;
+    segments.push(normalized);
+  }
+  return segments;
+}
+
+// ---------------------------------------------------------------------------
+// Main extractTestable
+// ---------------------------------------------------------------------------
+
 export function extractTestable(
   locator: string,
   format: SelectorFormat
-): { selector: string; selectorType: 'css' | 'xpath' | 'role' } | null {
+): TestableResult | null {
   if (format === 'css') return { selector: locator, selectorType: 'css' };
   if (format === 'xpath') return { selector: locator, selectorType: 'xpath' };
 
   if (format === 'playwright') {
-    const loc = locator.match(/page\.locator\((['"`])(.*?)\1\)/);
-    if (loc) return { selector: loc[2], selectorType: 'css' };
-    const tid = locator.match(/page\.getByTestId\((['"`])(.*?)\1\)/);
-    if (tid) return { selector: `[data-testid="${tid[2]}"]`, selectorType: 'css' };
-    const rwn = locator.match(/page\.getByRole\((['"`])(.*?)\1,\s*\{[^}]*name:\s*(['"`])(.*?)\3/);
-    if (rwn) return { selector: `${rwn[2]}::${rwn[4]}`, selectorType: 'role' };
-    const ro = locator.match(/page\.getByRole\((['"`])(.*?)\1/);
-    if (ro) return { selector: ro[2], selectorType: 'role' };
-    const txt = locator.match(/page\.getByText\((['"`])(.*?)\1/);
-    if (txt) return { selector: `//*[contains(text(),"${txt[2]}")]`, selectorType: 'xpath' };
-    const lbl = locator.match(/page\.getByLabel\((['"`])(.*?)\1/);
-    if (lbl) return { selector: `[aria-label="${lbl[2]}"]`, selectorType: 'css' };
-    const ph = locator.match(/page\.getByPlaceholder\((['"`])(.*?)\1/);
-    if (ph) return { selector: `[placeholder="${ph[2]}"]`, selectorType: 'css' };
-    const alt = locator.match(/page\.getByAltText\((['"`])(.*?)\1/);
-    if (alt) return { selector: `[alt="${alt[2]}"]`, selectorType: 'css' };
-    const ttl = locator.match(/page\.getByTitle\((['"`])(.*?)\1/);
-    if (ttl) return { selector: `[title="${ttl[2]}"]`, selectorType: 'css' };
-    return null;
+    // Detect chain: more than one method call
+    const methodCalls = locator.match(/\.(getBy\w+|locator|filter|nth|first|last)\s*\(/g);
+    if (methodCalls && methodCalls.length > 1) {
+      const segments = splitPlaywrightChain(locator);
+      if (segments.length > 1) {
+        const chain: Array<{ selector: string; selectorType: 'css' | 'xpath' | 'role' }> = [];
+        for (const seg of segments) {
+          const result = extractSinglePlaywright(seg);
+          if (result) chain.push(result);
+        }
+        if (chain.length > 1) return { chain };
+      }
+    }
+    // Fall through to single extraction
+    const single = extractSinglePlaywright(locator);
+    return single;
   }
 
   if (format === 'cypress') {
-    const get = locator.match(/cy\.get\((['"`])(.*?)\1\)/);
-    if (get) return { selector: get[2], selectorType: 'css' };
-    const ctag = locator.match(/cy\.contains\((['"`])(.*?)\1,\s*(['"`])(.*?)\3\)/);
-    if (ctag)
-      return { selector: `//${ctag[2]}[contains(text(),"${ctag[4]}")]`, selectorType: 'xpath' };
-    const c = locator.match(/cy\.contains\((['"`])(.*?)\1\)/);
-    if (c) return { selector: `//*[contains(text(),"${c[2]}")]`, selectorType: 'xpath' };
-    const tid = locator.match(/cy\.findByTestId\((['"`])(.*?)\1/);
-    if (tid) return { selector: `[data-testid="${tid[2]}"]`, selectorType: 'css' };
-    const role = locator.match(/cy\.findByRole\((['"`])(.*?)\1/);
-    if (role) return { selector: role[2], selectorType: 'role' };
-    return null;
+    // Detect chain: cy.get(...).find(...) or cy.get(...).contains(...)
+    const chainMatch = locator.match(/^cy\.\w+\(.*?\)\.\w+\(/);
+    if (chainMatch) {
+      const segments = splitCypressChain(locator);
+      if (segments.length > 1) {
+        const chain: Array<{ selector: string; selectorType: 'css' | 'xpath' | 'role' }> = [];
+        for (const seg of segments) {
+          const result = extractSingleCypress(seg);
+          if (result) chain.push(result);
+        }
+        if (chain.length > 1) return { chain };
+      }
+    }
+    const single = extractSingleCypress(locator);
+    return single;
   }
 
   if (format === 'selenium') {
-    const css = locator.match(/By\.css(?:Selector)?\((['"`])(.*?)\1\)/);
-    if (css) return { selector: css[2], selectorType: 'css' };
-    const xp = locator.match(/By\.xpath\((['"`])(.*?)\1\)/);
-    if (xp) return { selector: xp[2], selectorType: 'xpath' };
-    const id = locator.match(/By\.id\((['"`])(.*?)\1\)/);
-    if (id) return { selector: `#${id[2]}`, selectorType: 'css' };
-    const nm = locator.match(/By\.name\((['"`])(.*?)\1\)/);
-    if (nm) return { selector: `[name="${nm[2]}"]`, selectorType: 'css' };
-    const cl = locator.match(/By\.className\((['"`])(.*?)\1\)/);
-    if (cl) return { selector: `.${cl[2]}`, selectorType: 'css' };
-    const tg = locator.match(/By\.tagName\((['"`])(.*?)\1\)/);
-    if (tg) return { selector: tg[2], selectorType: 'css' };
-    const lnk = locator.match(/By\.linkText\((['"`])(.*?)\1\)/);
-    if (lnk) return { selector: `//a[text()="${lnk[2]}"]`, selectorType: 'xpath' };
-    const plnk = locator.match(/By\.partialLinkText\((['"`])(.*?)\1\)/);
-    if (plnk) return { selector: `//a[contains(text(),"${plnk[2]}")]`, selectorType: 'xpath' };
-    return null;
+    const findCount = (locator.match(/\.findElement\(/g) || []).length;
+    if (findCount > 1) {
+      const segments = splitSeleniumChain(locator);
+      if (segments.length > 1) {
+        const chain: Array<{ selector: string; selectorType: 'css' | 'xpath' | 'role' }> = [];
+        for (const seg of segments) {
+          const result = extractSingleSelenium(seg);
+          if (result) chain.push(result);
+        }
+        if (chain.length > 1) return { chain };
+      }
+    }
+    const single = extractSingleSelenium(locator);
+    return single;
   }
 
   return null;
