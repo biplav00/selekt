@@ -1,8 +1,9 @@
-import type { PageElement, RichElementData, ScoredSelector } from '@/types';
+import type { RichElementData, ScoredSelector } from '@/types';
 import type {
   ActionableWarning,
   GenerateResult,
   ProactiveSuggestion,
+  RichPageData,
   SpecialistScore,
   Suggestion,
   ValidationResult,
@@ -361,7 +362,7 @@ function chain(element: RichElementData, _matchCount: number): ScoredSelector[] 
 // suggest
 // ---------------------------------------------------------------------------
 
-function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
+function suggest(partial: string, pageData: RichPageData): Suggestion[] {
   if (!partial) return [];
 
   const results: Suggestion[] = [];
@@ -386,6 +387,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
           description: `Playwright ${method} locator`,
           score: method === 'getByTestId' ? 95 : method === 'getByRole' ? 85 : 70,
           kind: 'autocomplete',
+          selectorType: 'role',
         });
       }
     }
@@ -421,6 +423,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
           description: `ARIA role: ${r}`,
           score: 75,
           kind: 'autocomplete',
+          selectorType: 'role',
         });
       }
     }
@@ -430,7 +433,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
   // Suggest testIds from page elements
   if (/^page\.getByTestId\(['"]/.test(partial)) {
     const prefix = partial.match(/page\.getByTestId\(['"]([^'"]*)$/)?.[1] ?? '';
-    for (const el of pageElements) {
+    for (const el of pageData.elements) {
       if (el.testId?.toLowerCase().startsWith(prefix.toLowerCase())) {
         const sel = `page.getByTestId('${escapeSingleQuoteJs(el.testId)}')`;
         results.push({
@@ -439,6 +442,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
           description: `data-testid on <${el.tag}>`,
           score: scoreSelector(sel).score,
           kind: 'autocomplete',
+          selectorType: 'role',
         });
       }
     }
@@ -451,8 +455,8 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
 // didYouMean
 // ---------------------------------------------------------------------------
 
-function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[] {
-  if (!selector || pageElements.length === 0) return [];
+function didYouMean(selector: string, pageData: RichPageData): Suggestion[] {
+  if (!selector || pageData.elements.length === 0) return [];
 
   const results: Suggestion[] = [];
 
@@ -460,7 +464,7 @@ function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[]
   const testIdMatch = selector.match(/getByTestId\(['"]([^'"]+)['"]\)/);
   if (testIdMatch) {
     const searchVal = testIdMatch[1].toLowerCase();
-    for (const el of pageElements) {
+    for (const el of pageData.elements) {
       if (
         el.testId &&
         el.testId.toLowerCase() !== searchVal &&
@@ -473,6 +477,7 @@ function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[]
           description: `Did you mean data-testid="${el.testId}"?`,
           score: scoreSelector(sel).score,
           kind: 'alternative',
+          selectorType: 'role',
         });
       }
     }

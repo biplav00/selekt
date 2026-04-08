@@ -1,3 +1,4 @@
+import { buildRichPageData } from '@/specialists/helpers/page-data';
 import {
   findAttributeElsewhere,
   findTypoCorrections,
@@ -90,18 +91,18 @@ describe('findAttributeElsewhere', () => {
   ];
 
   it('finds value in a different attribute', () => {
-    const results = findAttributeElsewhere('login-form', elements);
+    const results = findAttributeElsewhere('login-form', buildRichPageData(elements));
     expect(results).toHaveLength(1);
     expect(results[0].attribute).toBe('testId');
   });
 
   it('finds value across multiple elements', () => {
-    const results = findAttributeElsewhere('Submit', elements);
+    const results = findAttributeElsewhere('Submit', buildRichPageData(elements));
     expect(results.length).toBeGreaterThanOrEqual(1);
   });
 
   it('returns empty when value not found', () => {
-    const results = findAttributeElsewhere('nonexistent', elements);
+    const results = findAttributeElsewhere('nonexistent', buildRichPageData(elements));
     expect(results).toHaveLength(0);
   });
 });

@@ -1,4 +1,5 @@
 import { specialist } from '@/specialists/css';
+import { buildRichPageData, emptyPageData } from '@/specialists/helpers/page-data';
 import type { RichElementData } from '@/types';
 import { describe, expect, it } from 'vitest';
 
@@ -166,12 +167,12 @@ describe('CSS specialist', () => {
           matchCount: 1,
         },
       ];
-      const suggestions = specialist.suggest('#sub', elements);
+      const suggestions = specialist.suggest('#sub', buildRichPageData(elements));
       expect(suggestions.length).toBeGreaterThanOrEqual(0); // May have matches
     });
 
     it('returns empty for empty input', () => {
-      expect(specialist.suggest('', [])).toHaveLength(0);
+      expect(specialist.suggest('', emptyPageData())).toHaveLength(0);
     });
   });
 
@@ -193,7 +194,7 @@ describe('CSS specialist', () => {
           matchCount: 1,
         },
       ];
-      const suggestions = specialist.didYouMean('[data-testid="sumbit-btn"]', elements);
+      const suggestions = specialist.didYouMean('[data-testid="sumbit-btn"]', buildRichPageData(elements));
       expect(suggestions.length).toBeGreaterThanOrEqual(0);
     });
   });

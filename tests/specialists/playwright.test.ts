@@ -1,4 +1,5 @@
 import { specialist } from '@/specialists/playwright';
+import { buildRichPageData, emptyPageData } from '@/specialists/helpers/page-data';
 import type { RichElementData } from '@/types';
 import { describe, expect, it } from 'vitest';
 
@@ -162,11 +163,11 @@ describe('Playwright specialist', () => {
 
   describe('suggest', () => {
     it('returns empty for empty input', () => {
-      expect(specialist.suggest('', [])).toHaveLength(0);
+      expect(specialist.suggest('', emptyPageData())).toHaveLength(0);
     });
 
     it('suggests methods after page.getBy', () => {
-      const suggestions = specialist.suggest('page.getBy', []);
+      const suggestions = specialist.suggest('page.getBy', emptyPageData());
       expect(suggestions.length).toBeGreaterThan(0);
       expect(suggestions.some((s) => s.selector.includes('getByRole'))).toBe(true);
     });
@@ -174,7 +175,7 @@ describe('Playwright specialist', () => {
 
   describe('didYouMean', () => {
     it('returns empty for no elements', () => {
-      expect(specialist.didYouMean("page.getByTestId('x')", [])).toHaveLength(0);
+      expect(specialist.didYouMean("page.getByTestId('x')", emptyPageData())).toHaveLength(0);
     });
   });
 });

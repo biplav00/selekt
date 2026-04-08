@@ -1,3 +1,4 @@
+import { buildRichPageData } from '@/specialists/helpers/page-data';
 import { getSpecialist } from '@/specialists/registry';
 import type { Suggestion as SpecialistSuggestion, ValidationResult } from '@/specialists/types';
 import type { PageElement, RichElementData, ScoredSelector, SelectorFormat } from '@/types';
@@ -891,7 +892,7 @@ export class BuildTab extends LitElement {
     const format = detectFormat(val);
     try {
       const specialist = getSpecialist(format);
-      this._autocompleteSuggestions = specialist.suggest(val, this._pageElements || []).slice(0, 8);
+      this._autocompleteSuggestions = specialist.suggest(val, buildRichPageData(this._pageElements || [])).slice(0, 8);
     } catch {
       this._autocompleteSuggestions = [];
     }
@@ -939,7 +940,7 @@ export class BuildTab extends LitElement {
       try {
         const format = this._freeformFormat;
         const specialist = getSpecialist(format);
-        this._didYouMean = specialist.didYouMean(sel, this._pageElements || []).slice(0, 3);
+        this._didYouMean = specialist.didYouMean(sel, buildRichPageData(this._pageElements || [])).slice(0, 3);
       } catch {
         this._didYouMean = [];
       }

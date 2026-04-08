@@ -1,8 +1,9 @@
-import type { PageElement, RichElementData, ScoredSelector } from '@/types';
+import type { RichElementData, ScoredSelector } from '@/types';
 import type {
   ActionableWarning,
   GenerateResult,
   ProactiveSuggestion,
+  RichPageData,
   SpecialistScore,
   Suggestion,
   ValidationResult,
@@ -366,7 +367,7 @@ function chain(element: RichElementData, _matchCount: number): ScoredSelector[] 
 // suggest
 // ---------------------------------------------------------------------------
 
-function suggest(partial: string, _pageElements: PageElement[]): Suggestion[] {
+function suggest(partial: string, _pageData: RichPageData): Suggestion[] {
   if (!partial) return [];
 
   const results: Suggestion[] = [];
@@ -392,6 +393,7 @@ function suggest(partial: string, _pageElements: PageElement[]): Suggestion[] {
           description: `Selenium By.${name} locator`,
           score,
           kind: 'autocomplete',
+          selectorType: 'css',
         });
       }
     }
@@ -405,8 +407,8 @@ function suggest(partial: string, _pageElements: PageElement[]): Suggestion[] {
 // didYouMean
 // ---------------------------------------------------------------------------
 
-function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[] {
-  if (!selector || pageElements.length === 0) return [];
+function didYouMean(selector: string, pageData: RichPageData): Suggestion[] {
+  if (!selector || pageData.elements.length === 0) return [];
 
   const results: Suggestion[] = [];
 
@@ -415,7 +417,7 @@ function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[]
 
   if (testIdMatch) {
     const searchVal = testIdMatch[1].toLowerCase();
-    for (const el of pageElements) {
+    for (const el of pageData.elements) {
       if (
         el.testId &&
         el.testId.toLowerCase() !== searchVal &&
@@ -428,6 +430,7 @@ function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[]
           description: `Did you mean data-testid="${el.testId}"?`,
           score: scoreSelector(sel).score,
           kind: 'alternative',
+          selectorType: 'css',
         });
       }
     }

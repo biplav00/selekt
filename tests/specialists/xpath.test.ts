@@ -1,4 +1,5 @@
 import { specialist } from '@/specialists/xpath';
+import { buildRichPageData, emptyPageData } from '@/specialists/helpers/page-data';
 import type { RichElementData } from '@/types';
 import { describe, expect, it } from 'vitest';
 
@@ -121,13 +122,13 @@ describe('XPath specialist', () => {
 
   describe('suggest', () => {
     it('returns empty for empty input', () => {
-      expect(specialist.suggest('', [])).toHaveLength(0);
+      expect(specialist.suggest('', emptyPageData())).toHaveLength(0);
     });
   });
 
   describe('didYouMean', () => {
     it('handles missing elements gracefully', () => {
-      expect(specialist.didYouMean("//div[@data-testid='x']", [])).toHaveLength(0);
+      expect(specialist.didYouMean("//div[@data-testid='x']", emptyPageData())).toHaveLength(0);
     });
   });
 });

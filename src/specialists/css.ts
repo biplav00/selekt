@@ -1,8 +1,9 @@
-import type { PageElement, RichElementData, ScoredSelector } from '@/types';
+import type { RichElementData, ScoredSelector } from '@/types';
 import type {
   ActionableWarning,
   GenerateResult,
   ProactiveSuggestion,
+  RichPageData,
   SpecialistScore,
   Suggestion,
   ValidationResult,
@@ -372,7 +373,7 @@ function chain(element: RichElementData, matchCount: number): ScoredSelector[] {
 // suggest
 // ---------------------------------------------------------------------------
 
-function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
+function suggest(partial: string, pageData: RichPageData): Suggestion[] {
   if (!partial) return [];
 
   const results: Suggestion[] = [];
@@ -381,7 +382,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
   if (partial.startsWith('#')) {
     // Suggest matching IDs
     const prefix = partial.slice(1).toLowerCase();
-    for (const el of pageElements) {
+    for (const el of pageData.elements) {
       if (el.id?.toLowerCase().startsWith(prefix)) {
         const sel = `#${cssEscape(el.id)}`;
         results.push({
@@ -390,6 +391,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
           description: `ID on <${el.tag}>`,
           score: scoreSelector(sel).score,
           kind: 'autocomplete',
+          selectorType: 'css',
         });
       }
     }
@@ -397,7 +399,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
     // Suggest matching classes
     const prefix = partial.slice(1).toLowerCase();
     const seen = new Set<string>();
-    for (const el of pageElements) {
+    for (const el of pageData.elements) {
       for (const cls of el.classes) {
         if (cls.toLowerCase().startsWith(prefix) && !seen.has(cls) && !isDynamicClass(cls)) {
           seen.add(cls);
@@ -408,6 +410,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
             description: `Class on <${el.tag}>`,
             score: scoreSelector(sel).score,
             kind: 'autocomplete',
+            selectorType: 'css',
           });
         }
       }
@@ -431,12 +434,13 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
           description: `Attribute selector for ${attr}`,
           score: attr.includes('testid') ? 90 : 60,
           kind: 'autocomplete',
+          selectorType: 'css',
         });
       }
     }
   } else {
     // Suggest testIds and IDs matching the prefix
-    for (const el of pageElements) {
+    for (const el of pageData.elements) {
       if (el.testId?.toLowerCase().startsWith(lower)) {
         const sel = `[data-testid="${escapeCssAttrValue(el.testId)}"]`;
         results.push({
@@ -445,6 +449,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
           description: `data-testid on <${el.tag}>`,
           score: scoreSelector(sel).score,
           kind: 'autocomplete',
+          selectorType: 'css',
         });
       }
       if (el.id?.toLowerCase().startsWith(lower)) {
@@ -455,6 +460,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
           description: `ID on <${el.tag}>`,
           score: scoreSelector(sel).score,
           kind: 'autocomplete',
+          selectorType: 'css',
         });
       }
     }
@@ -467,7 +473,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
 // didYouMean
 // ---------------------------------------------------------------------------
 
-function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[] {
+function didYouMean(selector: string, pageData: RichPageData): Suggestion[] {
   if (!selector) return [];
 
   const results: Suggestion[] = [];
@@ -487,12 +493,8 @@ function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[]
 
   if (!extractedValue) return [];
 
-  // Gather candidates from page elements
-  const testIds = pageElements.map((e) => e.testId).filter(Boolean);
-  const ids = pageElements.map((e) => e.id).filter(Boolean);
-  const ariaLabels = pageElements.map((e) => e.ariaLabel).filter(Boolean);
-
-  const typoTestIds = findTypoCorrections(extractedValue, testIds, 2);
+  // Gather candidates from page data
+  const typoTestIds = findTypoCorrections(extractedValue, pageData.testIds, 2);
   for (const { candidate } of typoTestIds) {
     const sel = `[data-testid="${escapeCssAttrValue(candidate)}"]`;
     results.push({
@@ -501,10 +503,11 @@ function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[]
       description: `Did you mean data-testid="${candidate}"?`,
       score: scoreSelector(sel).score,
       kind: 'alternative',
+      selectorType: 'css',
     });
   }
 
-  const typoIds = findTypoCorrections(extractedValue, ids, 2);
+  const typoIds = findTypoCorrections(extractedValue, pageData.ids, 2);
   for (const { candidate } of typoIds) {
     const sel = `#${cssEscape(candidate)}`;
     results.push({
@@ -513,11 +516,12 @@ function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[]
       description: `Did you mean #${candidate}?`,
       score: scoreSelector(sel).score,
       kind: 'alternative',
+      selectorType: 'css',
     });
   }
 
   // findAttributeElsewhere for cross-attribute suggestions
-  const elsewhere = findAttributeElsewhere(extractedValue, pageElements);
+  const elsewhere = findAttributeElsewhere(extractedValue, pageData);
   for (const { element, attribute } of elsewhere.slice(0, 3)) {
     let sel = '';
     if (attribute === 'testId' && element.testId) {
@@ -534,6 +538,7 @@ function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[]
         description: `Value found in ${attribute} attribute`,
         score: scoreSelector(sel).score,
         kind: 'alternative',
+        selectorType: 'css',
       });
     }
   }

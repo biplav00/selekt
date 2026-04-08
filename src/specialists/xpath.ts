@@ -1,8 +1,9 @@
-import type { PageElement, RichElementData, ScoredSelector } from '@/types';
+import type { RichElementData, ScoredSelector } from '@/types';
 import type {
   ActionableWarning,
   GenerateResult,
   ProactiveSuggestion,
+  RichPageData,
   SpecialistScore,
   Suggestion,
   ValidationResult,
@@ -289,7 +290,7 @@ function chain(element: RichElementData, _matchCount: number): ScoredSelector[] 
 // suggest
 // ---------------------------------------------------------------------------
 
-function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
+function suggest(partial: string, pageData: RichPageData): Suggestion[] {
   if (!partial) return [];
 
   const results: Suggestion[] = [];
@@ -299,7 +300,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
     // Suggest tag completions from page elements
     const tagPrefix = partial.slice(2).toLowerCase();
     const seen = new Set<string>();
-    for (const el of pageElements) {
+    for (const el of pageData.elements) {
       if (el.tag.toLowerCase().startsWith(tagPrefix) && !seen.has(el.tag)) {
         seen.add(el.tag);
         const sel = `//${el.tag}`;
@@ -309,6 +310,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
           description: `Tag <${el.tag}>`,
           score: scoreSelector(sel).score,
           kind: 'autocomplete',
+          selectorType: 'xpath',
         });
       }
     }
@@ -333,12 +335,13 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
           description: `XPath attribute: @${attr}`,
           score: attr.includes('testid') ? 90 : 60,
           kind: 'autocomplete',
+          selectorType: 'xpath',
         });
       }
     }
   } else {
     // Suggest testids and ids matching the prefix
-    for (const el of pageElements) {
+    for (const el of pageData.elements) {
       if (el.testId?.toLowerCase().startsWith(lower)) {
         const sel = `//*[@data-testid=${escapeXPathValue(el.testId)}]`;
         results.push({
@@ -347,6 +350,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
           description: `data-testid on <${el.tag}>`,
           score: scoreSelector(sel).score,
           kind: 'autocomplete',
+          selectorType: 'xpath',
         });
       }
       if (el.id?.toLowerCase().startsWith(lower)) {
@@ -357,6 +361,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
           description: `ID on <${el.tag}>`,
           score: scoreSelector(sel).score,
           kind: 'autocomplete',
+          selectorType: 'xpath',
         });
       }
     }
@@ -369,7 +374,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
 // didYouMean
 // ---------------------------------------------------------------------------
 
-function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[] {
+function didYouMean(selector: string, pageData: RichPageData): Suggestion[] {
   if (!selector) return [];
 
   // Extract attribute value from xpath selector
@@ -391,11 +396,7 @@ function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[]
 
   const results: Suggestion[] = [];
 
-  const testIds = pageElements.map((e) => e.testId).filter(Boolean);
-  const ids = pageElements.map((e) => e.id).filter(Boolean);
-  const ariaLabels = pageElements.map((e) => e.ariaLabel).filter(Boolean);
-
-  const typoTestIds = findTypoCorrections(extractedValue, testIds, 2);
+  const typoTestIds = findTypoCorrections(extractedValue, pageData.testIds, 2);
   for (const { candidate } of typoTestIds) {
     const sel = `//*[@data-testid=${escapeXPathValue(candidate)}]`;
     results.push({
@@ -404,10 +405,11 @@ function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[]
       description: `Did you mean data-testid="${candidate}"?`,
       score: scoreSelector(sel).score,
       kind: 'alternative',
+      selectorType: 'xpath',
     });
   }
 
-  const typoIds = findTypoCorrections(extractedValue, ids, 2);
+  const typoIds = findTypoCorrections(extractedValue, pageData.ids, 2);
   for (const { candidate } of typoIds) {
     const sel = `//*[@id=${escapeXPathValue(candidate)}]`;
     results.push({
@@ -416,11 +418,12 @@ function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[]
       description: `Did you mean @id="${candidate}"?`,
       score: scoreSelector(sel).score,
       kind: 'alternative',
+      selectorType: 'xpath',
     });
   }
 
   // findAttributeElsewhere for cross-attribute suggestions
-  const elsewhere = findAttributeElsewhere(extractedValue, pageElements);
+  const elsewhere = findAttributeElsewhere(extractedValue, pageData);
   for (const { element, attribute } of elsewhere.slice(0, 3)) {
     let sel = '';
     if (attribute === 'testId' && element.testId) {
@@ -437,6 +440,7 @@ function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[]
         description: `Value found in ${attribute} attribute`,
         score: scoreSelector(sel).score,
         kind: 'alternative',
+        selectorType: 'xpath',
       });
     }
   }

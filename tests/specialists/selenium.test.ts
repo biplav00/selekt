@@ -1,4 +1,5 @@
 import { specialist } from '@/specialists/selenium';
+import { buildRichPageData, emptyPageData } from '@/specialists/helpers/page-data';
 import type { RichElementData } from '@/types';
 import { describe, expect, it } from 'vitest';
 
@@ -137,13 +138,13 @@ describe('Selenium specialist', () => {
 
   describe('suggest', () => {
     it('returns empty for empty input', () => {
-      expect(specialist.suggest('', [])).toHaveLength(0);
+      expect(specialist.suggest('', emptyPageData())).toHaveLength(0);
     });
   });
 
   describe('didYouMean', () => {
     it('returns empty for no elements', () => {
-      expect(specialist.didYouMean("driver.findElement(By.id('x'))", [])).toHaveLength(0);
+      expect(specialist.didYouMean("driver.findElement(By.id('x'))", emptyPageData())).toHaveLength(0);
     });
   });
 });

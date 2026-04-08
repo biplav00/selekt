@@ -1,8 +1,9 @@
-import type { PageElement, RichElementData, ScoredSelector } from '@/types';
+import type { RichElementData, ScoredSelector } from '@/types';
 import type {
   ActionableWarning,
   GenerateResult,
   ProactiveSuggestion,
+  RichPageData,
   SpecialistScore,
   Suggestion,
   ValidationResult,
@@ -423,7 +424,7 @@ function chain(element: RichElementData, _matchCount: number): ScoredSelector[] 
 // suggest
 // ---------------------------------------------------------------------------
 
-function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
+function suggest(partial: string, pageData: RichPageData): Suggestion[] {
   if (!partial) return [];
 
   const results: Suggestion[] = [];
@@ -448,6 +449,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
           description: `Cypress ${name} command`,
           score,
           kind: 'autocomplete',
+          selectorType: 'css',
         });
       }
     }
@@ -457,7 +459,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
   // Suggest testIds after cy.get('[data-testid="
   if (/cy\.get\s*\(\s*['"\[].*data-testid.*=["']/.test(partial)) {
     const prefix = partial.match(/data-testid[=]["']([^"']*)$/)?.[1] ?? '';
-    for (const el of pageElements) {
+    for (const el of pageData.elements) {
       if (el.testId?.toLowerCase().startsWith(prefix.toLowerCase())) {
         const sel = `cy.get('[data-testid="${escapeDoubleQuoteJs(el.testId)}"]')`;
         results.push({
@@ -466,6 +468,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
           description: `data-testid on <${el.tag}>`,
           score: scoreSelector(sel).score,
           kind: 'autocomplete',
+          selectorType: 'css',
         });
       }
     }
@@ -474,7 +477,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
   // Suggest testIds after cy.findByTestId(
   if (/cy\.findByTestId\s*\(\s*['"]/.test(partial)) {
     const prefix = partial.match(/cy\.findByTestId\s*\(\s*['"]([^'"]*)$/)?.[1] ?? '';
-    for (const el of pageElements) {
+    for (const el of pageData.elements) {
       if (el.testId?.toLowerCase().startsWith(prefix.toLowerCase())) {
         const sel = `cy.findByTestId('${escapeSingleQuoteJs(el.testId)}')`;
         results.push({
@@ -483,6 +486,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
           description: `data-testid on <${el.tag}>`,
           score: scoreSelector(sel).score,
           kind: 'autocomplete',
+          selectorType: 'css',
         });
       }
     }
@@ -495,8 +499,8 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
 // didYouMean
 // ---------------------------------------------------------------------------
 
-function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[] {
-  if (!selector || pageElements.length === 0) return [];
+function didYouMean(selector: string, pageData: RichPageData): Suggestion[] {
+  if (!selector || pageData.elements.length === 0) return [];
 
   const results: Suggestion[] = [];
 
@@ -507,7 +511,7 @@ function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[]
 
   if (testIdMatch) {
     const searchVal = testIdMatch[1].toLowerCase();
-    for (const el of pageElements) {
+    for (const el of pageData.elements) {
       if (
         el.testId &&
         el.testId.toLowerCase() !== searchVal &&
@@ -520,6 +524,7 @@ function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[]
           description: `Did you mean data-testid="${el.testId}"?`,
           score: scoreSelector(sel).score,
           kind: 'alternative',
+          selectorType: 'css',
         });
       }
     }

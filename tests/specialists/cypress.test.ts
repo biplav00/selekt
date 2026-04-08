@@ -1,4 +1,5 @@
 import { specialist } from '@/specialists/cypress';
+import { buildRichPageData, emptyPageData } from '@/specialists/helpers/page-data';
 import type { RichElementData } from '@/types';
 import { describe, expect, it } from 'vitest';
 
@@ -131,18 +132,18 @@ describe('Cypress specialist', () => {
 
   describe('suggest', () => {
     it('returns empty for empty input', () => {
-      expect(specialist.suggest('', [])).toHaveLength(0);
+      expect(specialist.suggest('', emptyPageData())).toHaveLength(0);
     });
 
     it('suggests methods after cy.', () => {
-      const suggestions = specialist.suggest('cy.', []);
+      const suggestions = specialist.suggest('cy.', emptyPageData());
       expect(suggestions.length).toBeGreaterThan(0);
     });
   });
 
   describe('didYouMean', () => {
     it('returns empty for no elements', () => {
-      expect(specialist.didYouMean('cy.get(\'[data-testid="x"]\')', [])).toHaveLength(0);
+      expect(specialist.didYouMean('cy.get(\'[data-testid="x"]\')', emptyPageData())).toHaveLength(0);
     });
   });
 });

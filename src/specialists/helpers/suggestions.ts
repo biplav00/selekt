@@ -1,5 +1,5 @@
 import type { PageElement, SelectorFormat } from '@/types';
-import type { TokenContext } from '../types';
+import type { RichPageData, TokenContext } from '../types';
 
 /**
  * Tokenize a partial selector input to determine the cursor context.
@@ -108,12 +108,12 @@ export function findTypoCorrections(
  */
 export function findAttributeElsewhere(
   value: string,
-  pageElements: PageElement[]
+  pageData: RichPageData
 ): Array<{ element: PageElement; attribute: string }> {
   const results: Array<{ element: PageElement; attribute: string }> = [];
   const lower = value.toLowerCase();
 
-  for (const el of pageElements) {
+  for (const el of pageData.elements) {
     const checks: Array<[string, string]> = [
       ['testId', el.testId],
       ['id', el.id],
