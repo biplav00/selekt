@@ -1,3 +1,5 @@
+import { getSpecialist } from '@/specialists/registry';
+import type { Suggestion as SpecialistSuggestion, ValidationResult } from '@/specialists/types';
 import type { PageElement, RichElementData, ScoredSelector, SelectorFormat } from '@/types';
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
@@ -13,8 +15,6 @@ import {
 } from '../services/selector-engine.js';
 import { addFavorite } from '../services/storage.js';
 import { sharedStyles } from '../styles/shared.js';
-import { getSpecialist } from '@/specialists/registry';
-import type { Suggestion as SpecialistSuggestion, ValidationResult } from '@/specialists/types';
 import './selector-card.js';
 
 // ---------------------------------------------------------------------------
@@ -768,15 +768,18 @@ export class BuildTab extends LitElement {
           this._autocompleteSuggestions.length - 1
         );
         return;
-      } else if (e.key === 'ArrowUp') {
+      }
+      if (e.key === 'ArrowUp') {
         e.preventDefault();
         this._autocompleteIndex = Math.max(this._autocompleteIndex - 1, -1);
         return;
-      } else if (e.key === 'Enter' && this._autocompleteIndex >= 0) {
+      }
+      if (e.key === 'Enter' && this._autocompleteIndex >= 0) {
         e.preventDefault();
         this._applySuggestion(this._autocompleteSuggestions[this._autocompleteIndex]);
         return;
-      } else if (e.key === 'Escape') {
+      }
+      if (e.key === 'Escape') {
         this._autocompleteSuggestions = [];
         this._autocompleteIndex = -1;
         return;
