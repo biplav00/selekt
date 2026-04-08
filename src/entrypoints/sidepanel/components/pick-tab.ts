@@ -13,8 +13,15 @@ import { sharedStyles } from '../styles/shared.js';
 import './dom-tree.js';
 import './selector-card.js';
 
-const DEFAULT_SHOW = 5;
 const PICK_TIMEOUT_MS = 30_000;
+
+const FORMAT_LABELS: Record<string, string> = {
+  css: 'CSS',
+  xpath: 'XPath',
+  playwright: 'Playwright',
+  cypress: 'Cypress',
+  selenium: 'Selenium',
+};
 
 function makeSavedSelector(scored: ScoredSelector, element: ElementInfo): SavedSelector {
   return {
@@ -220,6 +227,67 @@ export class PickTab extends LitElement {
         margin-top: 12px;
       }
 
+      /* ── Format groups ── */
+      .format-group {
+        margin-bottom: 2px;
+      }
+
+      .format-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 8px 10px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 12px;
+        color: var(--text-primary);
+        transition: background 0.15s;
+      }
+
+      .format-header:hover {
+        background: var(--bg-tertiary);
+      }
+
+      .format-arrow {
+        font-size: 10px;
+        color: var(--text-secondary);
+        width: 12px;
+      }
+
+      .format-name {
+        font-weight: 600;
+        flex: 1;
+        text-align: left;
+      }
+
+      .format-best-score {
+        font-size: 11px;
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+
+      .format-selectors {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 4px 0 4px 20px;
+      }
+
+      .show-more-btn {
+        padding: 4px 10px;
+        background: transparent;
+        border: 1px dashed var(--border);
+        border-radius: 4px;
+        color: var(--text-secondary);
+        font-family: inherit;
+        font-size: 11px;
+        cursor: pointer;
+      }
+
       /* ── Empty state ── */
       .empty-state {
         display: flex;
@@ -250,9 +318,9 @@ export class PickTab extends LitElement {
   @state() private _picking = false;
   @state() private _element: ElementInfo | null = null;
   @state() private _selectors: ScoredSelector[] = [];
-  @state() private _showAll = false;
   @state() private _favoriteIds = new Set<string>();
   @state() private _showDomTree = false;
+  @state() private _expandedFormats: Set<string> = new Set();
 
   private _pickTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -326,7 +394,7 @@ export class PickTab extends LitElement {
     };
     const { selectors } = generateScoredSelectors(richElement);
     this._selectors = selectors;
-    this._showAll = false;
+    this._expandedFormats = new Set(['playwright']);
 
     // Auto-save top selector to recent
     if (this._selectors.length > 0) {
@@ -424,11 +492,72 @@ export class PickTab extends LitElement {
     `;
   }
 
+  private _groupByFormat(selectors: ScoredSelector[]): Map<string, ScoredSelector[]> {
+    const groups = new Map<string, ScoredSelector[]>();
+    for (const s of selectors) {
+      if (!groups.has(s.format)) groups.set(s.format, []);
+      groups.get(s.format)!.push(s);
+    }
+    return groups;
+  }
+
+  private _toggleFormat(format: string) {
+    const next = new Set(this._expandedFormats);
+    if (next.has(format)) next.delete(format);
+    else next.add(format);
+    this._expandedFormats = next;
+  }
+
+  private _renderFormatGroup(format: string, selectors: ScoredSelector[]) {
+    const expanded = this._expandedFormats.has(format);
+    const best = selectors[0]?.score ?? 0;
+    const shown = expanded ? selectors.slice(0, 5) : [];
+
+    return html`
+      <div class="format-group">
+        <button class="format-header" type="button" @click=${() => this._toggleFormat(format)}>
+          <span class="format-arrow">${expanded ? '▼' : '▸'}</span>
+          <span class="format-name">${FORMAT_LABELS[format] || format}</span>
+          <span class="format-best-score">${best}</span>
+        </button>
+        ${expanded ? html`
+          <div class="format-selectors">
+            ${shown.map((s) => html`
+              <selector-card
+                .data=${s}
+                .starred=${this._favoriteIds.has(`${s.format}::${s.selector}`)}
+                @copy=${this._onCopy}
+                @selector-test=${this._onTest}
+                @selector-star=${this._onStar}
+              ></selector-card>
+            `)}
+            ${selectors.length > 5 ? html`
+              <button class="show-more-btn" type="button" @click=${() => {
+                /* expand all handled via full list */ void 0;
+              }}>
+                Show all ${selectors.length}
+              </button>
+            ` : nothing}
+          </div>
+        ` : nothing}
+      </div>
+    `;
+  }
+
   private _renderResults() {
     if (this._selectors.length === 0) return nothing;
 
-    const visible = this._showAll ? this._selectors : this._selectors.slice(0, DEFAULT_SHOW);
-    const hiddenCount = this._selectors.length - DEFAULT_SHOW;
+    const groups = this._groupByFormat(this._selectors);
+
+    // Sort groups: preferred format first, then by best score descending
+    const preferredFormat = 'playwright';
+    const sortedFormats = [...groups.keys()].sort((a, b) => {
+      if (a === preferredFormat) return -1;
+      if (b === preferredFormat) return 1;
+      const scoreA = groups.get(a)![0]?.score ?? 0;
+      const scoreB = groups.get(b)![0]?.score ?? 0;
+      return scoreB - scoreA;
+    });
 
     return html`
       <div class="results-section">
@@ -437,29 +566,8 @@ export class PickTab extends LitElement {
           <span>${this._selectors.length} found</span>
         </div>
         <div class="results-list">
-          ${visible.map(
-            (s) => html`
-              <selector-card
-                .data=${s}
-                .starred=${this._favoriteIds.has(`${s.format}::${s.selector}`)}
-                @copy=${this._onCopy}
-                @test=${this._onTest}
-                @star=${this._onStar}
-              ></selector-card>
-            `
-          )}
+          ${sortedFormats.map((format) => this._renderFormatGroup(format, groups.get(format)!))}
         </div>
-        ${
-          !this._showAll && hiddenCount > 0
-            ? html`
-              <button class="show-all-btn" type="button" @click=${() => {
-                this._showAll = true;
-              }}>
-                Show all (${this._selectors.length})
-              </button>
-            `
-            : nothing
-        }
       </div>
     `;
   }
