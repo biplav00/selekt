@@ -13,6 +13,8 @@ import {
 } from '../services/selector-engine.js';
 import { addFavorite } from '../services/storage.js';
 import { sharedStyles } from '../styles/shared.js';
+import { getSpecialist } from '@/specialists/registry';
+import type { Suggestion as SpecialistSuggestion, ValidationResult } from '@/specialists/types';
 import './selector-card.js';
 
 // ---------------------------------------------------------------------------
@@ -80,9 +82,7 @@ function makeId(): string {
  */
 function scoreSelectorAs(selector: string, format: SelectorFormat): ScoredSelector {
   const result = scoreSelector(selector, format);
-  const warnings = result.factors
-    .filter((f) => f.impact < 0)
-    .map((f) => f.description);
+  const warnings = result.factors.filter((f) => f.impact < 0).map((f) => f.description);
   return { selector, format, score: result.score, warnings };
 }
 
@@ -552,6 +552,122 @@ export class BuildTab extends LitElement {
         color: var(--warning);
         line-height: 1.4;
       }
+
+      /* ── Autocomplete dropdown ── */
+      .autocomplete-dropdown {
+        position: absolute;
+        left: 0;
+        right: 0;
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 10;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+
+      .autocomplete-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 6px 10px;
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 11px;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .autocomplete-item:last-child {
+        border-bottom: none;
+      }
+
+      .autocomplete-item:hover,
+      .autocomplete-item.selected {
+        background: var(--bg-tertiary);
+      }
+
+      .autocomplete-selector {
+        font-family: monospace;
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .autocomplete-desc {
+        color: var(--text-secondary);
+        font-size: 10px;
+        white-space: nowrap;
+      }
+
+      /* ── Did you mean ── */
+      .did-you-mean {
+        padding: 6px 10px;
+        font-size: 11px;
+        color: var(--text-secondary);
+      }
+
+      .dym-label {
+        display: block;
+        margin-bottom: 4px;
+        font-weight: 500;
+      }
+
+      .dym-item {
+        display: block;
+        padding: 3px 8px;
+        margin: 2px 0;
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--accent);
+        font-family: monospace;
+        font-size: 11px;
+        cursor: pointer;
+        text-align: left;
+        width: 100%;
+      }
+
+      .dym-item:hover {
+        background: var(--bg-tertiary);
+      }
+
+      .dym-desc {
+        color: var(--text-secondary);
+        font-family: inherit;
+        margin-left: 6px;
+      }
+
+      /* ── Validation error ── */
+      .validation-error {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        font-size: 11px;
+        color: var(--error, #ef4444);
+      }
+
+      .val-msg {
+        flex: 1;
+      }
+
+      .fix-btn {
+        padding: 2px 8px;
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--accent);
+        font-family: inherit;
+        font-size: 10px;
+        cursor: pointer;
+      }
     `,
   ];
 
@@ -567,6 +683,12 @@ export class BuildTab extends LitElement {
   @state() private _scored: ScoredSelector | null = null;
   @state() private _showSuggestions = false;
   @state() private _pageElements: PageElement[] = [];
+
+  // ── Autocomplete / did-you-mean / validation state ──
+  @state() private _autocompleteSuggestions: SpecialistSuggestion[] = [];
+  @state() private _autocompleteIndex = -1;
+  @state() private _didYouMean: SpecialistSuggestion[] = [];
+  @state() private _validationError: ValidationResult | null = null;
 
   // ── Structured state ──
   @state() private _structFramework: SelectorFormat = 'playwright';
@@ -637,6 +759,30 @@ export class BuildTab extends LitElement {
   // ---------------------------------------------------------------------------
 
   private _onFreeformKeydown(e: KeyboardEvent) {
+    // Handle autocomplete dropdown navigation first
+    if (this._autocompleteSuggestions.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        this._autocompleteIndex = Math.min(
+          this._autocompleteIndex + 1,
+          this._autocompleteSuggestions.length - 1
+        );
+        return;
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        this._autocompleteIndex = Math.max(this._autocompleteIndex - 1, -1);
+        return;
+      } else if (e.key === 'Enter' && this._autocompleteIndex >= 0) {
+        e.preventDefault();
+        this._applySuggestion(this._autocompleteSuggestions[this._autocompleteIndex]);
+        return;
+      } else if (e.key === 'Escape') {
+        this._autocompleteSuggestions = [];
+        this._autocompleteIndex = -1;
+        return;
+      }
+    }
+
     const ta = e.target as HTMLTextAreaElement;
     const pairs: Record<string, string> = {
       '(': ')',
@@ -728,6 +874,25 @@ export class BuildTab extends LitElement {
     }
 
     this._scheduleMatchCount();
+    this._fetchSuggestions();
+  }
+
+  private _fetchSuggestions() {
+    const val = this._freeformSelector.trim();
+    if (!val) {
+      this._autocompleteSuggestions = [];
+      this._autocompleteIndex = -1;
+      return;
+    }
+
+    const format = detectFormat(val);
+    try {
+      const specialist = getSpecialist(format);
+      this._autocompleteSuggestions = specialist.suggest(val, this._pageElements || []).slice(0, 8);
+    } catch {
+      this._autocompleteSuggestions = [];
+    }
+    this._autocompleteIndex = -1;
   }
 
   private _onFormatChange(e: Event) {
@@ -748,11 +913,13 @@ export class BuildTab extends LitElement {
     const sel = this._freeformSelector.trim();
     if (!sel) {
       this._matchCount = null;
+      this._didYouMean = [];
       return;
     }
     const testable = extractTestable(sel, this._freeformFormat);
     if (!testable) {
       this._matchCount = null;
+      this._didYouMean = [];
       return;
     }
     this._matchLoading = true;
@@ -763,6 +930,18 @@ export class BuildTab extends LitElement {
       this._matchCount = null;
     } finally {
       this._matchLoading = false;
+    }
+
+    if (this._matchCount === 0) {
+      try {
+        const format = this._freeformFormat;
+        const specialist = getSpecialist(format);
+        this._didYouMean = specialist.didYouMean(sel, this._pageElements || []).slice(0, 3);
+      } catch {
+        this._didYouMean = [];
+      }
+    } else {
+      this._didYouMean = [];
     }
   }
 
@@ -789,6 +968,32 @@ export class BuildTab extends LitElement {
     this._scored = scoreSelectorAs(suggestion.code.trim(), this._freeformFormat);
     this._showSuggestions = false;
     this._scheduleMatchCount();
+  }
+
+  private _applySuggestion(suggestion: SpecialistSuggestion) {
+    this._freeformSelector = suggestion.selector;
+    this._autocompleteSuggestions = [];
+    this._autocompleteIndex = -1;
+    this._freeformAutoFormat = true;
+    this._freeformFormat = detectFormat(suggestion.selector);
+    this._scored = scoreSelectorAs(suggestion.selector.trim(), this._freeformFormat);
+    this._runMatchCount();
+  }
+
+  private _validateFreeform() {
+    const val = this._freeformSelector.trim();
+    if (!val) {
+      this._validationError = null;
+      return;
+    }
+    try {
+      const format = detectFormat(val);
+      const specialist = getSpecialist(format);
+      const result = specialist.validateAndFix(val);
+      this._validationError = result.valid ? null : result;
+    } catch {
+      this._validationError = null;
+    }
   }
 
   private _pageElementsToSuggestions(format: SelectorFormat): Suggestion[] {
@@ -1377,12 +1582,61 @@ export class BuildTab extends LitElement {
           @blur=${() => {
             setTimeout(() => {
               this._showSuggestions = false;
+              this._autocompleteSuggestions = [];
+              this._autocompleteIndex = -1;
             }, 150);
+            this._validateFreeform();
           }}
           spellcheck="false"
           autocomplete="off"
         ></textarea>
+
+        ${
+          this._autocompleteSuggestions.length > 0
+            ? html`
+                <div class="autocomplete-dropdown">
+                  ${this._autocompleteSuggestions.map(
+                    (s, i) => html`
+                      <button
+                        class="autocomplete-item ${i === this._autocompleteIndex ? 'selected' : ''}"
+                        @mousedown=${() => this._applySuggestion(s)}
+                      >
+                        <span class="autocomplete-selector">${s.selector}</span>
+                        <span class="autocomplete-desc">${s.description}</span>
+                      </button>
+                    `
+                  )}
+                </div>
+              `
+            : nothing
+        }
       </div>
+
+      ${
+        this._validationError
+          ? html`
+              <div class="validation-error">
+                <span class="val-msg">${this._validationError.error}</span>
+                ${
+                  this._validationError.fix
+                    ? html`
+                        <button
+                          class="fix-btn"
+                          @click=${() => {
+                            if (this._validationError?.fix) {
+                              this._freeformSelector = this._validationError.fix.selector;
+                              this._validationError = null;
+                              this._runMatchCount();
+                            }
+                          }}
+                        >Fix →</button>
+                      `
+                    : nothing
+                }
+              </div>
+            `
+          : nothing
+      }
 
       <div class="freeform-row">
         <select class="format-select" .value=${this._freeformFormat} @change=${this._onFormatChange}>
@@ -1396,6 +1650,24 @@ export class BuildTab extends LitElement {
       </div>
 
       ${this._scored ? this._renderScoreBar(this._scored) : nothing}
+
+      ${
+        this._didYouMean.length > 0
+          ? html`
+              <div class="did-you-mean">
+                <span class="dym-label">Did you mean:</span>
+                ${this._didYouMean.map(
+                  (s) => html`
+                    <button class="dym-item" @click=${() => this._applySuggestion(s)}>
+                      ${s.selector}
+                      <span class="dym-desc">${s.description}</span>
+                    </button>
+                  `
+                )}
+              </div>
+            `
+          : nothing
+      }
 
       ${
         this._showSuggestions && suggestions.length > 0
