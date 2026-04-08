@@ -44,15 +44,19 @@ export default defineBackground({
       if (message.type === 'ACTIVATE_FLOATING') {
         // Relay from sidepanel to content script
         chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
-          if (!tab?.id) return;
+          if (!tab?.id) {
+            sendResponse({ success: false });
+            return;
+          }
           try {
             await ensureContentScript(tab.id);
             await chrome.tabs.sendMessage(tab.id, { type: 'ACTIVATE_FLOATING' });
+            sendResponse({ success: true });
           } catch {
             console.log('Could not activate floating mode');
+            sendResponse({ success: false });
           }
         });
-        sendResponse({ success: true });
         return true;
       }
 

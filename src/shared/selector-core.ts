@@ -207,7 +207,7 @@ export function extractTestable(
 
 export { filterByName, getRoleCandidates } from '@/specialists/helpers/aria';
 
-import { getRoleCandidates, filterByName } from '@/specialists/helpers/aria';
+import { filterByName, getRoleCandidates } from '@/specialists/helpers/aria';
 
 // ---------------------------------------------------------------------------
 // Unified highlight system

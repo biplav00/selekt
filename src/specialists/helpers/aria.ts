@@ -51,10 +51,7 @@ export function getInferredRole(
  * Simplified W3C accessible name computation — no live DOM needed.
  * Priority: aria-label > alt > title > placeholder > text content
  */
-export function computeAccessibleName(
-  attributes: Record<string, string>,
-  text: string
-): string {
+export function computeAccessibleName(attributes: Record<string, string>, text: string): string {
   if (attributes['aria-label']) return attributes['aria-label'];
   if (attributes.alt) return attributes.alt;
   if (attributes.title) return attributes.title;

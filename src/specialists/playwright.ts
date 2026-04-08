@@ -9,8 +9,8 @@ import type {
 } from './types';
 import type { SelectorSpecialist } from './types';
 
-import { findScopingAncestor } from './helpers/chaining';
 import { computeAccessibleName, getInferredRole } from './helpers/aria';
+import { findScopingAncestor } from './helpers/chaining';
 import { escapeSingleQuoteJs } from './helpers/escaping';
 import { cssEscape } from './helpers/escaping';
 
@@ -66,12 +66,12 @@ function generate(element: RichElementData): GenerateResult {
 
   // 3. Explicit role + accessible name
   const explicitRole = attributes.role;
-  const accessName =
-    accessibleName ||
-    computeAccessibleName(attributes, text);
+  const accessName = accessibleName || computeAccessibleName(attributes, text);
 
   if (explicitRole && accessName) {
-    add(`page.getByRole('${escapeSingleQuoteJs(explicitRole)}', { name: '${escapeSingleQuoteJs(accessName)}' })`);
+    add(
+      `page.getByRole('${escapeSingleQuoteJs(explicitRole)}', { name: '${escapeSingleQuoteJs(accessName)}' })`
+    );
   } else if (explicitRole) {
     add(`page.getByRole('${escapeSingleQuoteJs(explicitRole)}')`);
   }
@@ -81,7 +81,9 @@ function generate(element: RichElementData): GenerateResult {
     const inferredRole = getInferredRole(tag, attributes);
     if (inferredRole) {
       if (accessName) {
-        add(`page.getByRole('${escapeSingleQuoteJs(inferredRole)}', { name: '${escapeSingleQuoteJs(accessName)}' })`);
+        add(
+          `page.getByRole('${escapeSingleQuoteJs(inferredRole)}', { name: '${escapeSingleQuoteJs(accessName)}' })`
+        );
       } else {
         add(`page.getByRole('${escapeSingleQuoteJs(inferredRole)}')`);
       }
@@ -130,7 +132,11 @@ function scoreSelector(selector: string): SpecialistScore {
   let score = 50;
 
   if (/getByTestId\(/.test(selector)) {
-    factors.push({ name: 'getByTestId', impact: 45, description: 'Uses getByTestId — most stable Playwright locator.' });
+    factors.push({
+      name: 'getByTestId',
+      impact: 45,
+      description: 'Uses getByTestId — most stable Playwright locator.',
+    });
     score += 45;
   }
 
@@ -138,50 +144,90 @@ function scoreSelector(selector: string): SpecialistScore {
     const hasName = /name\s*:/.test(selector);
     const hasExact = /exact\s*:/.test(selector);
     if (hasName && hasExact) {
-      factors.push({ name: 'getByRoleNameExact', impact: 42, description: 'getByRole with name (exact) — highly reliable.' });
+      factors.push({
+        name: 'getByRoleNameExact',
+        impact: 42,
+        description: 'getByRole with name (exact) — highly reliable.',
+      });
       score += 42;
     } else if (hasName) {
-      factors.push({ name: 'getByRoleName', impact: 38, description: 'getByRole with accessible name — semantic and stable.' });
+      factors.push({
+        name: 'getByRoleName',
+        impact: 38,
+        description: 'getByRole with accessible name — semantic and stable.',
+      });
       score += 38;
     } else {
-      factors.push({ name: 'getByRole', impact: 20, description: 'getByRole without name — may match multiple elements.' });
+      factors.push({
+        name: 'getByRole',
+        impact: 20,
+        description: 'getByRole without name — may match multiple elements.',
+      });
       score += 20;
     }
   }
 
   if (/getByLabel\(/.test(selector)) {
-    factors.push({ name: 'getByLabel', impact: 30, description: 'Uses getByLabel — tied to accessible label.' });
+    factors.push({
+      name: 'getByLabel',
+      impact: 30,
+      description: 'Uses getByLabel — tied to accessible label.',
+    });
     score += 30;
   }
 
   if (/getByPlaceholder\(/.test(selector)) {
-    factors.push({ name: 'getByPlaceholder', impact: 25, description: 'Uses getByPlaceholder — reasonable for inputs.' });
+    factors.push({
+      name: 'getByPlaceholder',
+      impact: 25,
+      description: 'Uses getByPlaceholder — reasonable for inputs.',
+    });
     score += 25;
   }
 
   if (/getByText\(/.test(selector)) {
     const hasExact = /exact\s*:\s*true/.test(selector);
     if (hasExact) {
-      factors.push({ name: 'getByTextExact', impact: 15, description: 'getByText with exact match.' });
+      factors.push({
+        name: 'getByTextExact',
+        impact: 15,
+        description: 'getByText with exact match.',
+      });
       score += 15;
     } else {
-      factors.push({ name: 'getByText', impact: 5, description: 'getByText — may match too broadly.' });
+      factors.push({
+        name: 'getByText',
+        impact: 5,
+        description: 'getByText — may match too broadly.',
+      });
       score += 5;
     }
   }
 
   if (/locator\(/.test(selector) && !/getBy/.test(selector)) {
-    factors.push({ name: 'locatorCss', impact: 10, description: 'Uses locator() with CSS — less semantic.' });
+    factors.push({
+      name: 'locatorCss',
+      impact: 10,
+      description: 'Uses locator() with CSS — less semantic.',
+    });
     score += 10;
   }
 
   if (/\.nth\(/.test(selector)) {
-    factors.push({ name: 'usesNth', impact: -15, description: '.nth() positioning is fragile if sibling order changes.' });
+    factors.push({
+      name: 'usesNth',
+      impact: -15,
+      description: '.nth() positioning is fragile if sibling order changes.',
+    });
     score -= 15;
   }
 
   if (/\.filter\(/.test(selector)) {
-    factors.push({ name: 'usesFilter', impact: 5, description: '.filter() chaining narrows the match.' });
+    factors.push({
+      name: 'usesFilter',
+      impact: 5,
+      description: '.filter() chaining narrows the match.',
+    });
     score += 5;
   }
 
@@ -215,7 +261,8 @@ function warn(selector: string, element: RichElementData): ActionableWarning[] {
     }
 
     warnings.push({
-      message: 'Using CSS class selector in locator() — class names may change between builds. Prefer semantic locators.',
+      message:
+        'Using CSS class selector in locator() — class names may change between builds. Prefer semantic locators.',
       severity: 'warning',
       fix,
     });
@@ -239,7 +286,8 @@ function warn(selector: string, element: RichElementData): ActionableWarning[] {
     }
 
     warnings.push({
-      message: 'getByRole without a name option may match multiple elements. Add { name: "..." } to be more specific.',
+      message:
+        'getByRole without a name option may match multiple elements. Add { name: "..." } to be more specific.',
       severity: 'warning',
       fix,
     });
@@ -254,7 +302,10 @@ function warn(selector: string, element: RichElementData): ActionableWarning[] {
     if (textVal) {
       fix = {
         label: 'Use exact match',
-        selector: selector.replace(/getByText\(\s*'([^']+)'\s*\)/, `getByText('$1', { exact: true })`),
+        selector: selector.replace(
+          /getByText\(\s*'([^']+)'\s*\)/,
+          `getByText('$1', { exact: true })`
+        ),
       };
     }
 
@@ -318,7 +369,15 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
   // Suggest method names after "page.getBy"
   if (/^page\.getBy$/i.test(partial) || /^page\.getBy[a-z]*$/i.test(partial)) {
     const prefix = partial.replace(/^page\./, '').toLowerCase();
-    const methods = ['getByRole', 'getByTestId', 'getByText', 'getByLabel', 'getByPlaceholder', 'getByAltText', 'getByTitle'];
+    const methods = [
+      'getByRole',
+      'getByTestId',
+      'getByText',
+      'getByLabel',
+      'getByPlaceholder',
+      'getByAltText',
+      'getByTitle',
+    ];
     for (const method of methods) {
       if (method.toLowerCase().startsWith(prefix)) {
         results.push({
@@ -336,7 +395,24 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
   // Suggest role names after "page.getByRole('"
   if (/page\.getByRole\(['"]$/.test(partial) || /page\.getByRole\(['"][a-z]*$/.test(partial)) {
     const rolePrefix = partial.match(/page\.getByRole\(['"]([a-z]*)$/)?.[1] ?? '';
-    const roles = ['button', 'link', 'textbox', 'combobox', 'dialog', 'navigation', 'heading', 'listitem', 'list', 'img', 'checkbox', 'radio', 'tab', 'tabpanel', 'menu', 'menuitem'];
+    const roles = [
+      'button',
+      'link',
+      'textbox',
+      'combobox',
+      'dialog',
+      'navigation',
+      'heading',
+      'listitem',
+      'list',
+      'img',
+      'checkbox',
+      'radio',
+      'tab',
+      'tabpanel',
+      'menu',
+      'menuitem',
+    ];
     for (const r of roles) {
       if (r.startsWith(rolePrefix)) {
         results.push({
@@ -385,7 +461,11 @@ function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[]
   if (testIdMatch) {
     const searchVal = testIdMatch[1].toLowerCase();
     for (const el of pageElements) {
-      if (el.testId && el.testId.toLowerCase() !== searchVal && el.testId.toLowerCase().includes(searchVal.slice(0, 3))) {
+      if (
+        el.testId &&
+        el.testId.toLowerCase() !== searchVal &&
+        el.testId.toLowerCase().includes(searchVal.slice(0, 3))
+      ) {
         const sel = `page.getByTestId('${escapeSingleQuoteJs(el.testId)}')`;
         results.push({
           selector: sel,

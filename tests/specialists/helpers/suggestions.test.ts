@@ -1,10 +1,10 @@
-import { describe, expect, it } from 'vitest';
 import {
   findAttributeElsewhere,
   findTypoCorrections,
   tokenize,
 } from '@/specialists/helpers/suggestions';
 import type { PageElement } from '@/types';
+import { describe, expect, it } from 'vitest';
 
 describe('tokenize', () => {
   it('detects method completion for Playwright', () => {
@@ -59,8 +59,34 @@ describe('findTypoCorrections', () => {
 
 describe('findAttributeElsewhere', () => {
   const elements: PageElement[] = [
-    { tag: 'input', id: '', classes: [], testId: 'login-form', role: '', ariaLabel: '', name: 'email', placeholder: '', title: '', altText: '', text: '', matchCount: 1 },
-    { tag: 'button', id: 'submit', classes: [], testId: '', role: 'button', ariaLabel: 'Submit', name: '', placeholder: '', title: '', altText: '', text: 'Submit', matchCount: 1 },
+    {
+      tag: 'input',
+      id: '',
+      classes: [],
+      testId: 'login-form',
+      role: '',
+      ariaLabel: '',
+      name: 'email',
+      placeholder: '',
+      title: '',
+      altText: '',
+      text: '',
+      matchCount: 1,
+    },
+    {
+      tag: 'button',
+      id: 'submit',
+      classes: [],
+      testId: '',
+      role: 'button',
+      ariaLabel: 'Submit',
+      name: '',
+      placeholder: '',
+      title: '',
+      altText: '',
+      text: 'Submit',
+      matchCount: 1,
+    },
   ];
 
   it('finds value in a different attribute', () => {

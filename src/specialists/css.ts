@@ -9,10 +9,10 @@ import type {
 } from './types';
 import type { SelectorSpecialist } from './types';
 
-import { cssEscape, escapeCssAttrValue } from './helpers/escaping';
-import { isDynamicClass, isDynamicId, SEMANTIC_TAGS } from './helpers/dynamic-detect';
 import { findScopingAncestor, getPositionQualifier } from './helpers/chaining';
-import { findTypoCorrections, findAttributeElsewhere } from './helpers/suggestions';
+import { SEMANTIC_TAGS, isDynamicClass, isDynamicId } from './helpers/dynamic-detect';
+import { cssEscape, escapeCssAttrValue } from './helpers/escaping';
+import { findAttributeElsewhere, findTypoCorrections } from './helpers/suggestions';
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -114,7 +114,11 @@ function scoreSelector(selector: string): SpecialistScore {
 
   // hasTestId
   if (/data-testid|data-test/.test(selector)) {
-    factors.push({ name: 'hasTestId', impact: 45, description: 'Uses a data-testid attribute — stable and intent-revealing.' });
+    factors.push({
+      name: 'hasTestId',
+      impact: 45,
+      description: 'Uses a data-testid attribute — stable and intent-revealing.',
+    });
     score += 45;
   }
 
@@ -127,27 +131,43 @@ function scoreSelector(selector: string): SpecialistScore {
       factors.push({ name: 'hasStaticId', impact: 40, description: 'Uses a stable ID attribute.' });
       score += 40;
     } else {
-      factors.push({ name: 'hasDynamicId', impact: -20, description: 'ID appears auto-generated and may not be stable.' });
+      factors.push({
+        name: 'hasDynamicId',
+        impact: -20,
+        description: 'ID appears auto-generated and may not be stable.',
+      });
       score -= 20;
     }
   }
 
   // hasRoleAndName
   if (/\[role=/.test(selector) && /aria-label/.test(selector)) {
-    factors.push({ name: 'hasRoleAndName', impact: 30, description: 'Combines role and accessible name — semantic and stable.' });
+    factors.push({
+      name: 'hasRoleAndName',
+      impact: 30,
+      description: 'Combines role and accessible name — semantic and stable.',
+    });
     score += 30;
   }
 
   // hasAriaLabel
   if (/aria-label/.test(selector) && !/\[role=/.test(selector)) {
-    factors.push({ name: 'hasAriaLabel', impact: 25, description: 'Uses aria-label for accessible identification.' });
+    factors.push({
+      name: 'hasAriaLabel',
+      impact: 25,
+      description: 'Uses aria-label for accessible identification.',
+    });
     score += 25;
   }
 
   // isShort
   const combinatorCount = countCombinators(selector);
   if (combinatorCount <= 2) {
-    factors.push({ name: 'isShort', impact: 15, description: 'Short selector with few combinators — easy to maintain.' });
+    factors.push({
+      name: 'isShort',
+      impact: 15,
+      description: 'Short selector with few combinators — easy to maintain.',
+    });
     score += 15;
   }
 
@@ -155,7 +175,11 @@ function scoreSelector(selector: string): SpecialistScore {
   const firstTag = selector.match(/^([a-z][a-z0-9]*)[\s\[.#:>+~(]|^([a-z][a-z0-9]*)$/i);
   const tagName = (firstTag?.[1] ?? firstTag?.[2] ?? '').toLowerCase();
   if (tagName && SEMANTIC_TAGS.has(tagName)) {
-    factors.push({ name: 'isSemanticTag', impact: 10, description: 'Targets a semantic HTML element.' });
+    factors.push({
+      name: 'isSemanticTag',
+      impact: 10,
+      description: 'Targets a semantic HTML element.',
+    });
     score += 10;
   }
 
@@ -169,25 +193,41 @@ function scoreSelector(selector: string): SpecialistScore {
     }
   }
   if (hasDynClass) {
-    factors.push({ name: 'usesDynamicClass', impact: -30, description: 'Uses dynamically generated class names that may change between builds.' });
+    factors.push({
+      name: 'usesDynamicClass',
+      impact: -30,
+      description: 'Uses dynamically generated class names that may change between builds.',
+    });
     score -= 30;
   }
 
   // isDeepNested
   if (combinatorCount > 3) {
-    factors.push({ name: 'isDeepNested', impact: -20, description: 'Deeply nested selector is fragile when DOM structure changes.' });
+    factors.push({
+      name: 'isDeepNested',
+      impact: -20,
+      description: 'Deeply nested selector is fragile when DOM structure changes.',
+    });
     score -= 20;
   }
 
   // usesNthChild
   if (/nth-child|nth-of-type/.test(selector)) {
-    factors.push({ name: 'usesNthChild', impact: -15, description: 'nth-child/nth-of-type positioning is fragile if sibling order changes.' });
+    factors.push({
+      name: 'usesNthChild',
+      impact: -15,
+      description: 'nth-child/nth-of-type positioning is fragile if sibling order changes.',
+    });
     score -= 15;
   }
 
   // usesIndexPosition
   if (/\[\d+\]|:eq\(|\.eq\(/.test(selector)) {
-    factors.push({ name: 'usesIndexPosition', impact: -15, description: 'Index-based positioning is sensitive to element reordering.' });
+    factors.push({
+      name: 'usesIndexPosition',
+      impact: -15,
+      description: 'Index-based positioning is sensitive to element reordering.',
+    });
     score -= 15;
   }
 
@@ -249,7 +289,8 @@ function warn(selector: string, element: RichElementData): ActionableWarning[] {
         };
       }
       warnings.push({
-        message: 'ID appears to be auto-generated and may not be stable across page loads. Use a more stable selector.',
+        message:
+          'ID appears to be auto-generated and may not be stable across page loads. Use a more stable selector.',
         severity: 'warning',
         fix,
       });
@@ -259,7 +300,8 @@ function warn(selector: string, element: RichElementData): ActionableWarning[] {
   // Deep nesting
   if (countCombinators(selector) > 3) {
     warnings.push({
-      message: 'Selector is deeply nested; DOM structure changes may break it. Consider using a data-testid on the target element.',
+      message:
+        'Selector is deeply nested; DOM structure changes may break it. Consider using a data-testid on the target element.',
       severity: 'warning',
     });
   }
@@ -312,9 +354,10 @@ function chain(element: RichElementData, matchCount: number): ScoredSelector[] {
     const stableClasses = className
       ? className.split(/\s+/).filter((c) => c && !isDynamicClass(c))
       : [];
-    elementPart = stableClasses.length > 0
-      ? `${tag}.${stableClasses.slice(0, 2).map(cssEscape).join('.')}`
-      : tag;
+    elementPart =
+      stableClasses.length > 0
+        ? `${tag}.${stableClasses.slice(0, 2).map(cssEscape).join('.')}`
+        : tag;
   }
 
   const sel = `${ancestor.selector} ${elementPart}`;
@@ -371,7 +414,15 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
     }
   } else if (partial.startsWith('[')) {
     // Suggest attribute names
-    const attrSuggestions = ['data-testid', 'data-test', 'role', 'aria-label', 'name', 'type', 'placeholder'];
+    const attrSuggestions = [
+      'data-testid',
+      'data-test',
+      'role',
+      'aria-label',
+      'name',
+      'type',
+      'placeholder',
+    ];
     for (const attr of attrSuggestions) {
       if (attr.startsWith(partial.slice(1).replace(/\[/, '').toLowerCase())) {
         results.push({

@@ -1,3 +1,4 @@
+import { clearHighlights, highlightElements, runSelectorTest } from '@/shared/selector-core';
 import type { DomTreeNode } from '@/types';
 import { defineContentScript } from 'wxt/utils/define-content-script';
 import { FloatingWidget } from './content/floating-widget';
@@ -17,7 +18,6 @@ export default defineContentScript({
     let isPicking = false;
     let hoveredElement: HTMLElement | null = null;
     let tooltip: HTMLElement | null = null;
-    let highlightTimeout: ReturnType<typeof setTimeout> | null = null;
     const savedOutlines = new WeakMap<HTMLElement, { outline: string; outlineOffset: string }>();
 
     function saveOutline(el: HTMLElement) {
@@ -422,24 +422,9 @@ export default defineContentScript({
       }
     }
 
-    function clearHighlights() {
-      if (highlightTimeout) {
-        clearTimeout(highlightTimeout);
-        highlightTimeout = null;
-      }
-      document.querySelectorAll('[data-locator-highlight]').forEach((el) => {
-        el.removeAttribute('data-locator-highlight');
-        restoreOutline(el as HTMLElement);
-      });
-    }
-
     // --- Floating Widget Callbacks ---
     floatingWidget.onPick(() => {
       startElementPicker();
-    });
-
-    floatingWidget.onTest((selector, selectorType) => {
-      testSelector(selector, selectorType);
     });
 
     floatingWidget.onExpandToSidepanel(() => {
@@ -522,41 +507,11 @@ export default defineContentScript({
     }
 
     function testSelector(selector: string, selectorType?: string) {
-      // Clear previous highlights
       clearHighlights();
-
-      try {
-        let elements: Element[];
-
-        if (selectorType === 'xpath') {
-          elements = [];
-          const result = document.evaluate(
-            selector,
-            document,
-            null,
-            XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
-            null
-          );
-          for (let i = 0; i < result.snapshotLength; i++) {
-            const node = result.snapshotItem(i);
-            if (node instanceof Element) {
-              elements.push(node);
-            }
-          }
-        } else {
-          elements = Array.from(document.querySelectorAll(selector));
-        }
-
-        elements.forEach((el) => {
-          saveOutline(el as HTMLElement);
-          (el as HTMLElement).style.outline = '2px solid #10B981';
-          (el as HTMLElement).style.outlineOffset = '2px';
-          el.setAttribute('data-locator-highlight', 'true');
-        });
-
-        // Highlights persist until the next test or explicit clear
-      } catch {
-        // Invalid selector — silently ignore
+      const type = (selectorType as 'css' | 'xpath' | 'role') || 'css';
+      const result = runSelectorTest(selector, type);
+      if (result.elements.length > 0) {
+        highlightElements(result.elements);
       }
     }
   },

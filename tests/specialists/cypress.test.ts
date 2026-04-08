@@ -1,9 +1,17 @@
-import { describe, expect, it } from 'vitest';
 import { specialist } from '@/specialists/cypress';
 import type { RichElementData } from '@/types';
+import { describe, expect, it } from 'vitest';
 
 function makeElement(overrides: Partial<RichElementData> = {}): RichElementData {
-  return { tagName: 'button', text: 'Submit', attributes: {}, parentChain: [], siblingTags: [], accessibleName: 'Submit', ...overrides };
+  return {
+    tagName: 'button',
+    text: 'Submit',
+    attributes: {},
+    parentChain: [],
+    siblingTags: [],
+    accessibleName: 'Submit',
+    ...overrides,
+  };
 }
 
 describe('Cypress specialist', () => {
@@ -16,7 +24,7 @@ describe('Cypress specialist', () => {
     it('prioritizes data-testid', () => {
       const el = makeElement({ attributes: { 'data-testid': 'submit-btn' } });
       const { selectors } = specialist.generate(el);
-      expect(selectors[0].selector).toContain("cy.get('[data-testid=\"submit-btn\"]')");
+      expect(selectors[0].selector).toContain('cy.get(\'[data-testid="submit-btn"]\')');
     });
 
     it('generates findByRole for Testing Library', () => {
@@ -52,7 +60,7 @@ describe('Cypress specialist', () => {
 
   describe('score', () => {
     it('scores data-testid high', () => {
-      const s = specialist.score("cy.get('[data-testid=\"x\"]')");
+      const s = specialist.score('cy.get(\'[data-testid="x"]\')');
       expect(s.score).toBeGreaterThanOrEqual(85);
     });
 
@@ -88,7 +96,7 @@ describe('Cypress specialist', () => {
 
     it('returns empty for clean selectors', () => {
       const el = makeElement({ attributes: { 'data-testid': 'x' } });
-      const warnings = specialist.warn("cy.get('[data-testid=\"x\"]')", el);
+      const warnings = specialist.warn('cy.get(\'[data-testid="x"]\')', el);
       expect(warnings).toHaveLength(0);
     });
   });
@@ -134,7 +142,7 @@ describe('Cypress specialist', () => {
 
   describe('didYouMean', () => {
     it('returns empty for no elements', () => {
-      expect(specialist.didYouMean("cy.get('[data-testid=\"x\"]')", [])).toHaveLength(0);
+      expect(specialist.didYouMean('cy.get(\'[data-testid="x"]\')', [])).toHaveLength(0);
     });
   });
 });

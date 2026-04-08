@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import { specialist } from '@/specialists/css';
 import type { RichElementData } from '@/types';
+import { describe, expect, it } from 'vitest';
 
 function makeElement(overrides: Partial<RichElementData> = {}): RichElementData {
   return {
@@ -52,7 +52,12 @@ describe('CSS specialist', () => {
     it('generates role+aria-label combo', () => {
       const el = makeElement({ attributes: { role: 'button', 'aria-label': 'Close' } });
       const { selectors } = specialist.generate(el);
-      expect(selectors.some((s) => s.selector.includes('[role="button"]') && s.selector.includes('[aria-label="Close"]'))).toBe(true);
+      expect(
+        selectors.some(
+          (s) =>
+            s.selector.includes('[role="button"]') && s.selector.includes('[aria-label="Close"]')
+        )
+      ).toBe(true);
     });
 
     it('generates proactive suggestion when testid available but class selector shown', () => {
@@ -110,7 +115,9 @@ describe('CSS specialist', () => {
     it('warns about dynamic ID with fix', () => {
       const el = makeElement({ attributes: { id: ':r0:', 'aria-label': 'Search' } });
       const warnings = specialist.warn('#\\:r0\\:', el);
-      expect(warnings.some((w) => w.message.includes('auto-generated') || w.message.includes('dynamic'))).toBe(true);
+      expect(
+        warnings.some((w) => w.message.includes('auto-generated') || w.message.includes('dynamic'))
+      ).toBe(true);
     });
 
     it('returns empty for clean selectors', () => {
@@ -144,7 +151,20 @@ describe('CSS specialist', () => {
   describe('suggest', () => {
     it('returns suggestions for partial selectors', () => {
       const elements = [
-        { tag: 'button', id: 'submit', classes: [], testId: 'submit-btn', role: 'button', ariaLabel: 'Submit', name: '', placeholder: '', title: '', altText: '', text: 'Submit', matchCount: 1 },
+        {
+          tag: 'button',
+          id: 'submit',
+          classes: [],
+          testId: 'submit-btn',
+          role: 'button',
+          ariaLabel: 'Submit',
+          name: '',
+          placeholder: '',
+          title: '',
+          altText: '',
+          text: 'Submit',
+          matchCount: 1,
+        },
       ];
       const suggestions = specialist.suggest('#sub', elements);
       expect(suggestions.length).toBeGreaterThanOrEqual(0); // May have matches
@@ -158,7 +178,20 @@ describe('CSS specialist', () => {
   describe('didYouMean', () => {
     it('suggests alternatives when selector not found', () => {
       const elements = [
-        { tag: 'button', id: '', classes: [], testId: 'submit-btn', role: '', ariaLabel: '', name: '', placeholder: '', title: '', altText: '', text: '', matchCount: 1 },
+        {
+          tag: 'button',
+          id: '',
+          classes: [],
+          testId: 'submit-btn',
+          role: '',
+          ariaLabel: '',
+          name: '',
+          placeholder: '',
+          title: '',
+          altText: '',
+          text: '',
+          matchCount: 1,
+        },
       ];
       const suggestions = specialist.didYouMean('[data-testid="sumbit-btn"]', elements);
       expect(suggestions.length).toBeGreaterThanOrEqual(0);

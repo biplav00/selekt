@@ -13,7 +13,13 @@ export function tokenize(partial: string, format: SelectorFormat): TokenContext 
     }
     const argMatch = partial.match(/^page\.(\w+)\((['"`])([^'"`]*)$/);
     if (argMatch) {
-      return { format, stage: 'argument', prefix: argMatch[3], methodName: argMatch[1], argIndex: 0 };
+      return {
+        format,
+        stage: 'argument',
+        prefix: argMatch[3],
+        methodName: argMatch[1],
+        argIndex: 0,
+      };
     }
     const optMatch = partial.match(/^page\.(\w+)\([^)]*\{\s*(\w+):\s*(['"`])([^'"`]*)$/);
     if (optMatch) {
@@ -28,7 +34,13 @@ export function tokenize(partial: string, format: SelectorFormat): TokenContext 
     }
     const argMatch = partial.match(/^cy\.(\w+)\((['"`])([^'"`]*)$/);
     if (argMatch) {
-      return { format, stage: 'argument', prefix: argMatch[3], methodName: argMatch[1], argIndex: 0 };
+      return {
+        format,
+        stage: 'argument',
+        prefix: argMatch[3],
+        methodName: argMatch[1],
+        argIndex: 0,
+      };
     }
   }
 

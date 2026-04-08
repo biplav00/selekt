@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import {
   cssEscape,
   escapeCssAttrValue,
@@ -6,6 +5,7 @@ import {
   escapeSingleQuoteJs,
   escapeXPathValue,
 } from '@/specialists/helpers/escaping';
+import { describe, expect, it } from 'vitest';
 
 describe('cssEscape', () => {
   it('escapes special CSS characters', () => {
@@ -52,7 +52,7 @@ describe('escapeSingleQuoteJs', () => {
   });
 
   it('escapes backslashes first', () => {
-    expect(escapeSingleQuoteJs("a\\b")).toBe('a\\\\b');
+    expect(escapeSingleQuoteJs('a\\b')).toBe('a\\\\b');
   });
 });
 

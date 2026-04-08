@@ -61,7 +61,9 @@ function generate(element: RichElementData): GenerateResult {
   const role = attributes.role;
   if (role) {
     if (ariaLabel) {
-      add(`//${tag}[@role=${escapeXPathValue(role)} and @aria-label=${escapeXPathValue(ariaLabel)}]`);
+      add(
+        `//${tag}[@role=${escapeXPathValue(role)} and @aria-label=${escapeXPathValue(ariaLabel)}]`
+      );
     } else {
       add(`//${tag}[@role=${escapeXPathValue(role)}]`);
     }
@@ -255,7 +257,9 @@ function chain(element: RichElementData, _matchCount: number): ScoredSelector[] 
   } else if (tagClassMatch) {
     const ancTag = tagClassMatch[1];
     const classes = tagClassMatch[2].split('.').map((c) => c.replace(/\\(.)/g, '$1'));
-    const classConditions = classes.map((c) => `contains(@class,${escapeXPathValue(c)})`).join(' and ');
+    const classConditions = classes
+      .map((c) => `contains(@class,${escapeXPathValue(c)})`)
+      .join(' and ');
     ancestorXPath = `//${ancTag}[${classConditions}]`;
   } else {
     // fallback: use the CSS selector as-is embedded in a generic XPath
@@ -375,7 +379,9 @@ function didYouMean(selector: string, pageElements: PageElement[]): Suggestion[]
     extractedValue = attrMatch[1];
   } else {
     // Try to extract text value from normalize-space or contains
-    const textMatch = selector.match(/normalize-space\(text\(\)\)=["']([^"']+)["']|contains\(text\(\),["']([^"']+)["']\)/);
+    const textMatch = selector.match(
+      /normalize-space\(text\(\)\)=["']([^"']+)["']|contains\(text\(\),["']([^"']+)["']\)/
+    );
     if (textMatch) {
       extractedValue = textMatch[1] ?? textMatch[2] ?? '';
     }

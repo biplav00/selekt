@@ -290,8 +290,7 @@ function warn(selector: string, element: RichElementData): ActionableWarning[] {
     }
 
     warnings.push({
-      message:
-        `By.tagName('${tag}') matches every <${tag}> element on the page. Use a more specific locator.`,
+      message: `By.tagName('${tag}') matches every <${tag}> element on the page. Use a more specific locator.`,
       severity: 'warning',
       fix,
     });

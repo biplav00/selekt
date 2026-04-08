@@ -12,7 +12,7 @@ import type { SelectorSpecialist } from './types';
 import { computeAccessibleName, getInferredRole } from './helpers/aria';
 import { findScopingAncestor } from './helpers/chaining';
 import { isDynamicClass } from './helpers/dynamic-detect';
-import { escapeSingleQuoteJs, escapeDoubleQuoteJs } from './helpers/escaping';
+import { escapeDoubleQuoteJs, escapeSingleQuoteJs } from './helpers/escaping';
 
 // ---------------------------------------------------------------------------
 // Valid Cypress methods
@@ -69,7 +69,9 @@ function generate(element: RichElementData): GenerateResult {
   const explicitRole = attributes.role;
 
   if (explicitRole && accessName) {
-    add(`cy.findByRole('${escapeSingleQuoteJs(explicitRole)}', { name: '${escapeSingleQuoteJs(accessName)}' })`);
+    add(
+      `cy.findByRole('${escapeSingleQuoteJs(explicitRole)}', { name: '${escapeSingleQuoteJs(accessName)}' })`
+    );
   } else if (explicitRole) {
     add(`cy.findByRole('${escapeSingleQuoteJs(explicitRole)}')`);
   }
@@ -79,7 +81,9 @@ function generate(element: RichElementData): GenerateResult {
     const inferredRole = getInferredRole(tag, attributes);
     if (inferredRole) {
       if (accessName) {
-        add(`cy.findByRole('${escapeSingleQuoteJs(inferredRole)}', { name: '${escapeSingleQuoteJs(accessName)}' })`);
+        add(
+          `cy.findByRole('${escapeSingleQuoteJs(inferredRole)}', { name: '${escapeSingleQuoteJs(accessName)}' })`
+        );
       } else {
         add(`cy.findByRole('${escapeSingleQuoteJs(inferredRole)}')`);
       }
@@ -122,7 +126,22 @@ function generate(element: RichElementData): GenerateResult {
 
   // 10. cy.contains('tag', 'text') — scoped contains for buttons/links
   const trimmedText = text?.trim();
-  const scopedTags = new Set(['button', 'a', 'label', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'td', 'th', 'span', 'p']);
+  const scopedTags = new Set([
+    'button',
+    'a',
+    'label',
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+    'li',
+    'td',
+    'th',
+    'span',
+    'p',
+  ]);
   if (trimmedText && trimmedText.length > 0 && trimmedText.length <= 80 && scopedTags.has(tag)) {
     add(`cy.contains('${tag}', '${escapeSingleQuoteJs(trimmedText)}')`);
   }
@@ -259,7 +278,12 @@ function scoreSelector(selector: string): SpecialistScore {
   for (const cm of classMatches) {
     // Skip method calls like .get, .find, .eq, .contains
     const cls = cm.slice(1);
-    if (/^(get|find|eq|contains|findByRole|findByLabelText|findByPlaceholderText|findByText|findByTestId)$/.test(cls)) continue;
+    if (
+      /^(get|find|eq|contains|findByRole|findByLabelText|findByPlaceholderText|findByText|findByTestId)$/.test(
+        cls
+      )
+    )
+      continue;
     if (isDynamicClass(cls)) {
       hasDynClass = true;
       break;
@@ -385,10 +409,7 @@ function chain(element: RichElementData, _matchCount: number): ScoredSelector[] 
     const stableClasses = className
       ? className.split(/\s+/).filter((c) => c && !isDynamicClass(c))
       : [];
-    findPart =
-      stableClasses.length > 0
-        ? `${tag}.${stableClasses.slice(0, 2).join('.')}`
-        : tag;
+    findPart = stableClasses.length > 0 ? `${tag}.${stableClasses.slice(0, 2).join('.')}` : tag;
   }
 
   const sel = `cy.get('${ancestor.selector}').find('${escapeSingleQuoteJs(findPart)}')`;

@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
 import {
   findScopingAncestor,
   getPositionQualifier,
   isUniqueAmongSiblings,
 } from '@/specialists/helpers/chaining';
+import { describe, expect, it } from 'vitest';
 
 describe('findScopingAncestor', () => {
   it('returns ancestor with id', () => {
@@ -19,18 +19,14 @@ describe('findScopingAncestor', () => {
   });
 
   it('returns ancestor with stable classes', () => {
-    const chain = [
-      { tag: 'div', id: '', classes: ['container'] },
-    ];
+    const chain = [{ tag: 'div', id: '', classes: ['container'] }];
     const result = findScopingAncestor(chain);
     expect(result).not.toBeNull();
     expect(result!.selector).toBe('div.container');
   });
 
   it('prefers id over classes', () => {
-    const chain = [
-      { tag: 'div', id: 'root', classes: ['container'] },
-    ];
+    const chain = [{ tag: 'div', id: 'root', classes: ['container'] }];
     const result = findScopingAncestor(chain);
     expect(result!.selector).toBe('#root');
   });

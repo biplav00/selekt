@@ -1,5 +1,10 @@
+import {
+  IMPLICIT_ROLES,
+  ROLE_TO_TAGS,
+  computeAccessibleName,
+  getInferredRole,
+} from '@/specialists/helpers/aria';
 import { describe, expect, it } from 'vitest';
-import { IMPLICIT_ROLES, ROLE_TO_TAGS, getInferredRole, computeAccessibleName } from '@/specialists/helpers/aria';
 
 describe('IMPLICIT_ROLES', () => {
   it('maps button to button', () => {

@@ -1,9 +1,17 @@
-import { describe, expect, it } from 'vitest';
 import { specialist } from '@/specialists/xpath';
 import type { RichElementData } from '@/types';
+import { describe, expect, it } from 'vitest';
 
 function makeElement(overrides: Partial<RichElementData> = {}): RichElementData {
-  return { tagName: 'button', text: 'Submit', attributes: {}, parentChain: [], siblingTags: [], accessibleName: 'Submit', ...overrides };
+  return {
+    tagName: 'button',
+    text: 'Submit',
+    attributes: {},
+    parentChain: [],
+    siblingTags: [],
+    accessibleName: 'Submit',
+    ...overrides,
+  };
 }
 
 describe('XPath specialist', () => {

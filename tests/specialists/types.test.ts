@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import type {
   ActionableWarning,
   GenerateResult,
@@ -10,6 +9,7 @@ import type {
   TokenContext,
   ValidationResult,
 } from '@/specialists/types';
+import { describe, expect, it } from 'vitest';
 
 describe('specialist types', () => {
   it('ActionableWarning has correct shape', () => {
@@ -25,7 +25,14 @@ describe('specialist types', () => {
   it('GenerateResult has selectors and proactive', () => {
     const r: GenerateResult = {
       selectors: [{ selector: '#x', format: 'css', score: 90, warnings: [] }],
-      proactive: [{ message: 'Better', currentSelector: '#x', betterSelector: '[data-testid]', reason: 'stable' }],
+      proactive: [
+        {
+          message: 'Better',
+          currentSelector: '#x',
+          betterSelector: '[data-testid]',
+          reason: 'stable',
+        },
+      ],
     };
     expect(r.selectors).toHaveLength(1);
     expect(r.proactive).toHaveLength(1);

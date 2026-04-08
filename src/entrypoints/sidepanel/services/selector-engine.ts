@@ -19,8 +19,7 @@ import {
   isDynamicClass,
 } from '@/shared/selector-core';
 
-import { isDynamicId, SEMANTIC_TAGS } from '@/specialists/helpers/dynamic-detect';
-
+import { SEMANTIC_TAGS, isDynamicId } from '@/specialists/helpers/dynamic-detect';
 
 // ---------------------------------------------------------------------------
 // Score factors interface

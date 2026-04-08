@@ -1,9 +1,17 @@
-import { describe, expect, it } from 'vitest';
 import { specialist } from '@/specialists/selenium';
 import type { RichElementData } from '@/types';
+import { describe, expect, it } from 'vitest';
 
 function makeElement(overrides: Partial<RichElementData> = {}): RichElementData {
-  return { tagName: 'button', text: 'Submit', attributes: {}, parentChain: [], siblingTags: [], accessibleName: 'Submit', ...overrides };
+  return {
+    tagName: 'button',
+    text: 'Submit',
+    attributes: {},
+    parentChain: [],
+    siblingTags: [],
+    accessibleName: 'Submit',
+    ...overrides,
+  };
 }
 
 describe('Selenium specialist', () => {
@@ -16,7 +24,7 @@ describe('Selenium specialist', () => {
     it('prioritizes data-testid via CSS', () => {
       const el = makeElement({ attributes: { 'data-testid': 'submit-btn' } });
       const { selectors } = specialist.generate(el);
-      expect(selectors[0].selector).toContain("By.css('[data-testid=\"submit-btn\"]')");
+      expect(selectors[0].selector).toContain('By.css(\'[data-testid="submit-btn"]\')');
     });
 
     it('generates By.id for static IDs', () => {
@@ -58,7 +66,7 @@ describe('Selenium specialist', () => {
 
   describe('score', () => {
     it('scores data-testid high', () => {
-      const s = specialist.score("driver.findElement(By.css('[data-testid=\"x\"]'))");
+      const s = specialist.score('driver.findElement(By.css(\'[data-testid="x"]\'))');
       expect(s.score).toBeGreaterThanOrEqual(85);
     });
 
@@ -94,7 +102,7 @@ describe('Selenium specialist', () => {
 
     it('returns empty for clean selectors', () => {
       const el = makeElement({ attributes: { 'data-testid': 'x' } });
-      const warnings = specialist.warn("driver.findElement(By.css('[data-testid=\"x\"]'))", el);
+      const warnings = specialist.warn('driver.findElement(By.css(\'[data-testid="x"]\'))', el);
       expect(warnings).toHaveLength(0);
     });
   });

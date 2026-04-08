@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { SEMANTIC_TAGS, isDynamicClass, isDynamicId } from '@/specialists/helpers/dynamic-detect';
+import { describe, expect, it } from 'vitest';
 
 describe('isDynamicClass', () => {
   it('detects CSS-in-JS patterns', () => {
