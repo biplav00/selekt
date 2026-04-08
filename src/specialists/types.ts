@@ -35,6 +35,8 @@ export interface Suggestion {
   description: string;
   score: number;
   kind: 'autocomplete' | 'alternative' | 'fix' | 'scoped';
+  matchCount?: number;
+  selectorType?: 'css' | 'xpath' | 'role';
 }
 
 export interface ProactiveSuggestion {
@@ -57,6 +59,19 @@ export interface TokenContext {
   argIndex?: number;
 }
 
+export interface RichPageData {
+  ids: string[];
+  classes: string[];
+  testIds: string[];
+  roles: string[];
+  ariaLabels: string[];
+  names: string[];
+  placeholders: string[];
+  texts: string[];
+  tags: Record<string, number>;
+  elements: PageElement[];
+}
+
 export interface SelectorSpecialist {
   format: SelectorFormat;
   displayName: string;
@@ -65,7 +80,7 @@ export interface SelectorSpecialist {
   score(selector: string, element?: RichElementData): SpecialistScore;
   warn(selector: string, element: RichElementData): ActionableWarning[];
   chain(element: RichElementData, matchCount: number): ScoredSelector[];
-  suggest(partial: string, pageElements: PageElement[]): Suggestion[];
-  didYouMean(selector: string, pageElements: PageElement[]): Suggestion[];
+  suggest(partial: string, pageData: RichPageData): Suggestion[];
+  didYouMean(selector: string, pageData: RichPageData): Suggestion[];
   validateAndFix(selector: string): ValidationResult;
 }
