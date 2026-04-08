@@ -117,7 +117,6 @@ export function generateLocators(el: SimpleElementData): SimpleLocators {
   return { css, xpath, playwright, cypress, selenium };
 }
 
-
 // ---------------------------------------------------------------------------
 // Format detection
 // ---------------------------------------------------------------------------
@@ -203,70 +202,12 @@ export function extractTestable(
 }
 
 // ---------------------------------------------------------------------------
-// ARIA role intelligence — for testing role-based selectors on a live page
+// ARIA role intelligence — re-exported from helpers
 // ---------------------------------------------------------------------------
 
-const IMPLICIT_ROLES: Record<string, string> = {
-  button: 'button',
-  a: 'link',
-  input: 'textbox',
-  select: 'combobox',
-  textarea: 'textbox',
-  img: 'img',
-  nav: 'navigation',
-  main: 'main',
-  header: 'banner',
-  footer: 'contentinfo',
-  aside: 'complementary',
-  form: 'form',
-  table: 'table',
-  dialog: 'dialog',
-  article: 'article',
-  section: 'region',
-  h1: 'heading',
-  h2: 'heading',
-  h3: 'heading',
-  h4: 'heading',
-  h5: 'heading',
-  h6: 'heading',
-  ul: 'list',
-  ol: 'list',
-  li: 'listitem',
-  details: 'group',
-  summary: 'button',
-  progress: 'progressbar',
-  meter: 'meter',
-  output: 'status',
-};
+export { filterByName, getRoleCandidates } from '@/specialists/helpers/aria';
 
-const ROLE_TO_TAGS: Record<string, string[]> = {};
-for (const [tag, role] of Object.entries(IMPLICIT_ROLES)) {
-  if (!ROLE_TO_TAGS[role]) ROLE_TO_TAGS[role] = [];
-  ROLE_TO_TAGS[role].push(tag);
-}
-
-export function getRoleCandidates(role: string): Element[] {
-  const out: Element[] = [];
-  out.push(...Array.from(document.querySelectorAll(`[role="${role}"]`)));
-  for (const tag of ROLE_TO_TAGS[role] || []) {
-    for (const el of document.querySelectorAll(tag)) {
-      if (!el.hasAttribute('role')) out.push(el);
-    }
-  }
-  return out;
-}
-
-export function filterByName(els: Element[], name: string): Element[] {
-  const lower = name.toLowerCase();
-  return els.filter((el) => {
-    if (el.getAttribute('aria-label')?.toLowerCase().includes(lower)) return true;
-    if ((el.textContent?.trim().toLowerCase() || '').includes(lower)) return true;
-    if (el.getAttribute('title')?.toLowerCase().includes(lower)) return true;
-    if (el.getAttribute('alt')?.toLowerCase().includes(lower)) return true;
-    if ((el as HTMLInputElement).value?.toLowerCase().includes(lower)) return true;
-    return false;
-  });
-}
+import { getRoleCandidates, filterByName } from '@/specialists/helpers/aria';
 
 // ---------------------------------------------------------------------------
 // Unified highlight system
