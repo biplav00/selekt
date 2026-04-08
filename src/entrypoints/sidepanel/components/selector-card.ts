@@ -1,6 +1,7 @@
 import type { ScoredSelector } from '@/types';
+import type { ActionableWarning } from '@/specialists/types';
 import { LitElement, css, html, nothing } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 import { sharedStyles } from '../styles/shared.js';
 
 const FORMAT_LABEL: Record<string, string> = {
@@ -124,17 +125,30 @@ export class SelectorCard extends LitElement {
       .warning-row {
         display: flex;
         align-items: center;
-        gap: 4px;
-        margin-top: 3px;
-        padding-left: 4px;
-        color: var(--warning);
-        font-size: 10px;
+        gap: 6px;
+        padding: 4px 10px;
+        font-size: 11px;
+        color: var(--text-secondary);
+        border-top: 1px solid var(--border);
       }
-
-      .warning-row span {
+      .warning-row.error { color: var(--error, #ef4444); }
+      .warning-row.info { color: var(--text-secondary); }
+      .warning-icon { flex-shrink: 0; font-size: 10px; }
+      .warning-text { flex: 1; }
+      .fix-btn {
+        padding: 2px 8px;
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--accent);
+        font-family: inherit;
+        font-size: 10px;
+        cursor: pointer;
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        transition: background 0.15s;
+      }
+      .fix-btn:hover {
+        background: color-mix(in srgb, var(--accent) 10%, transparent);
       }
     `,
   ];
@@ -150,6 +164,9 @@ export class SelectorCard extends LitElement {
 
   @property({ type: String })
   statusText = '';
+
+  @state()
+  private _showFactors: boolean = false;
 
   private _scoreClass(score: number): string {
     if (score >= 70) return 'score-good';
@@ -195,7 +212,11 @@ export class SelectorCard extends LitElement {
 
     return html`
       <div class="row" @click=${this._onRowClick} title="Click to copy">
-        <span class="score-badge ${scoreClass}">${score}</span>
+        <span
+          class="score-badge ${scoreClass}"
+          title="Score — click to ${this._showFactors ? 'hide' : 'show'} breakdown"
+          @click=${(e: Event) => { e.stopPropagation(); this._showFactors = !this._showFactors; }}
+        >${score}</span>
         <span class="badge ${formatBadgeClass}">${formatLabel}</span>
         <span class="selector-text">${selector}</span>
         ${
@@ -214,14 +235,26 @@ export class SelectorCard extends LitElement {
       </div>
       ${
         warnings && warnings.length > 0
-          ? warnings.map(
-              (w) => html`
-              <div class="warning-row">
-                <span>⚠</span>
-                <span>${w}</span>
-              </div>
-            `
-            )
+          ? warnings.map((w: string | ActionableWarning) => {
+              const warning = typeof w === 'string'
+                ? { message: w, severity: 'warning' as const }
+                : w as ActionableWarning;
+              return html`
+                <div class="warning-row ${warning.severity || 'warning'}">
+                  <span class="warning-icon">${warning.severity === 'error' ? '✕' : warning.severity === 'info' ? 'ℹ' : '⚠'}</span>
+                  <span class="warning-text">${warning.message}</span>
+                  ${(warning as ActionableWarning).fix ? html`
+                    <button class="fix-btn" @click=${(e: Event) => {
+                      e.stopPropagation();
+                      this.dispatchEvent(new CustomEvent('apply-fix', {
+                        detail: { selector: (warning as ActionableWarning).fix!.selector, format: this.data!.format },
+                        bubbles: true, composed: true,
+                      }));
+                    }}>Fix →</button>
+                  ` : nothing}
+                </div>
+              `;
+            })
           : nothing
       }
     `;
