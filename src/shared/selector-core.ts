@@ -171,9 +171,9 @@ function extractSinglePlaywright(
 
 function splitPlaywrightChain(locator: string): string[] {
   const segments: string[] = [];
-  const re = /\.?((?:page\.)?(?:getBy\w+|locator|filter|nth|first|last))\s*\(([^()]*(?:\{[^}]*\}[^()]*)*)\)/g;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(locator)) !== null) {
+  const re =
+    /\.?((?:page\.)?(?:getBy\w+|locator|filter|nth|first|last))\s*\(([^()]*(?:\{[^}]*\}[^()]*)*)\)/g;
+  for (const match of locator.matchAll(re)) {
     const fullMatch = match[0].startsWith('page') ? match[0] : `page${match[0]}`;
     segments.push(fullMatch);
   }
@@ -218,8 +218,7 @@ function splitCypressChain(locator: string): string[] {
     // Match subsequent .METHOD(...) calls, normalize to cy.METHOD(...)
     const rest = locator.slice(firstMatch[1].length);
     const chainRe = /\.((\w+)\([^)]*\))/g;
-    let m: RegExpExecArray | null;
-    while ((m = chainRe.exec(rest)) !== null) {
+    for (const m of rest.matchAll(chainRe)) {
       segments.push(`cy.${m[1]}`);
     }
   }
@@ -258,11 +257,11 @@ function splitSeleniumChain(locator: string): string[] {
   // → ["driver.findElement(By.id('form'))", "driver.findElement(By.name('email'))"]
   const segments: string[] = [];
   const re = /(?:driver|element)?\.?findElement\([^)]+\)/g;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(locator)) !== null) {
-    // Normalize: ensure prefix is "driver.findElement"
+  for (const match of locator.matchAll(re)) {
     const raw = match[0];
-    const normalized = raw.startsWith('driver') ? raw : `driver${raw.startsWith('.') ? raw : `.${raw}`}`;
+    const normalized = raw.startsWith('driver')
+      ? raw
+      : `driver${raw.startsWith('.') ? raw : `.${raw}`}`;
     segments.push(normalized);
   }
   return segments;
@@ -272,10 +271,7 @@ function splitSeleniumChain(locator: string): string[] {
 // Main extractTestable
 // ---------------------------------------------------------------------------
 
-export function extractTestable(
-  locator: string,
-  format: SelectorFormat
-): TestableResult | null {
+export function extractTestable(locator: string, format: SelectorFormat): TestableResult | null {
   if (format === 'css') return { selector: locator, selectorType: 'css' };
   if (format === 'xpath') return { selector: locator, selectorType: 'xpath' };
 

@@ -1,5 +1,5 @@
-import type { RichPageData } from '@/specialists/types';
 import { emptyPageData } from '@/specialists/helpers/page-data';
+import type { RichPageData } from '@/specialists/types';
 import { scrapePageData } from './messaging';
 
 let cache: RichPageData = emptyPageData();
@@ -17,10 +17,13 @@ export function requestScrape(): void {
   const now = Date.now();
   if (now - lastScrapeTime < MIN_SCRAPE_INTERVAL) {
     if (!scrapeTimer) {
-      scrapeTimer = setTimeout(() => {
-        scrapeTimer = null;
-        doScrape();
-      }, MIN_SCRAPE_INTERVAL - (now - lastScrapeTime));
+      scrapeTimer = setTimeout(
+        () => {
+          scrapeTimer = null;
+          doScrape();
+        },
+        MIN_SCRAPE_INTERVAL - (now - lastScrapeTime)
+      );
     }
     return;
   }

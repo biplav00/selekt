@@ -1,13 +1,65 @@
-import { describe, expect, it } from 'vitest';
 import { buildRichPageData, emptyPageData } from '@/specialists/helpers/page-data';
 import type { PageElement } from '@/types';
+import { describe, expect, it } from 'vitest';
 
 describe('buildRichPageData', () => {
   const elements: PageElement[] = [
-    { tag: 'button', id: 'submit', classes: ['btn', 'btn-primary'], testId: 'submit-btn', role: 'button', ariaLabel: 'Submit form', name: '', placeholder: '', title: '', altText: '', text: 'Submit', matchCount: 1 },
-    { tag: 'input', id: 'email', classes: ['form-input'], testId: '', role: 'textbox', ariaLabel: 'Email', name: 'email', placeholder: 'Enter email', title: '', altText: '', text: '', matchCount: 1 },
-    { tag: 'a', id: '', classes: ['nav-link'], testId: '', role: 'link', ariaLabel: '', name: '', placeholder: '', title: 'Go home', altText: '', text: 'Home', matchCount: 3 },
-    { tag: 'img', id: '', classes: [], testId: '', role: 'img', ariaLabel: '', name: '', placeholder: '', title: '', altText: 'Logo', text: '', matchCount: 1 },
+    {
+      tag: 'button',
+      id: 'submit',
+      classes: ['btn', 'btn-primary'],
+      testId: 'submit-btn',
+      role: 'button',
+      ariaLabel: 'Submit form',
+      name: '',
+      placeholder: '',
+      title: '',
+      altText: '',
+      text: 'Submit',
+      matchCount: 1,
+    },
+    {
+      tag: 'input',
+      id: 'email',
+      classes: ['form-input'],
+      testId: '',
+      role: 'textbox',
+      ariaLabel: 'Email',
+      name: 'email',
+      placeholder: 'Enter email',
+      title: '',
+      altText: '',
+      text: '',
+      matchCount: 1,
+    },
+    {
+      tag: 'a',
+      id: '',
+      classes: ['nav-link'],
+      testId: '',
+      role: 'link',
+      ariaLabel: '',
+      name: '',
+      placeholder: '',
+      title: 'Go home',
+      altText: '',
+      text: 'Home',
+      matchCount: 3,
+    },
+    {
+      tag: 'img',
+      id: '',
+      classes: [],
+      testId: '',
+      role: 'img',
+      ariaLabel: '',
+      name: '',
+      placeholder: '',
+      title: '',
+      altText: 'Logo',
+      text: '',
+      matchCount: 1,
+    },
   ];
 
   it('collects all unique IDs', () => {

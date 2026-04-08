@@ -103,7 +103,11 @@ export default defineContentScript({
         const data = scrapePageDataFromDom();
         sendResponse({ data });
       } else if (message.type === 'QUERY_SELECTOR_BATCH') {
-        const selectors = message.selectors as Array<{ id: string; selector: string; selectorType: string }>;
+        const selectors = message.selectors as Array<{
+          id: string;
+          selector: string;
+          selectorType: string;
+        }>;
         const counts: Record<string, number> = {};
         for (const s of selectors) {
           const type = (s.selectorType as 'css' | 'xpath' | 'role') || 'css';
@@ -555,7 +559,15 @@ export default defineContentScript({
       }
     }
 
-    const SCRAPE_SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'LINK', 'META', 'SVG', 'HEAD']);
+    const SCRAPE_SKIP_TAGS = new Set([
+      'SCRIPT',
+      'STYLE',
+      'NOSCRIPT',
+      'LINK',
+      'META',
+      'SVG',
+      'HEAD',
+    ]);
 
     function scrapePageDataFromDom() {
       const ids = new Set<string>();
@@ -660,8 +672,11 @@ export default defineContentScript({
               nextElements.push(...Array.from(parent.querySelectorAll(segment.selector)));
             } else if (type === 'xpath') {
               const xr = document.evaluate(
-                segment.selector, parent, null,
-                XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+                segment.selector,
+                parent,
+                null,
+                XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+                null
               );
               for (let i = 0; i < xr.snapshotLength; i++) {
                 const n = xr.snapshotItem(i);
@@ -673,9 +688,15 @@ export default defineContentScript({
               const nameFilter = parts[1];
               const candidates = Array.from(parent.querySelectorAll(`[role="${role}"]`));
               const implicitMap: Record<string, string[]> = {
-                button: ['button', 'summary'], link: ['a'], textbox: ['input', 'textarea'],
-                combobox: ['select'], navigation: ['nav'], main: ['main'],
-                banner: ['header'], contentinfo: ['footer'], heading: ['h1','h2','h3','h4','h5','h6'],
+                button: ['button', 'summary'],
+                link: ['a'],
+                textbox: ['input', 'textarea'],
+                combobox: ['select'],
+                navigation: ['nav'],
+                main: ['main'],
+                banner: ['header'],
+                contentinfo: ['footer'],
+                heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
               };
               for (const tag of implicitMap[role] || []) {
                 for (const el of parent.querySelectorAll(tag)) {
@@ -684,16 +705,20 @@ export default defineContentScript({
               }
               if (nameFilter) {
                 const lower = nameFilter.toLowerCase();
-                nextElements.push(...candidates.filter(el => {
-                  const label = el.getAttribute('aria-label')?.toLowerCase() || '';
-                  const text = el.textContent?.trim().toLowerCase() || '';
-                  return label.includes(lower) || text.includes(lower);
-                }));
+                nextElements.push(
+                  ...candidates.filter((el) => {
+                    const label = el.getAttribute('aria-label')?.toLowerCase() || '';
+                    const text = el.textContent?.trim().toLowerCase() || '';
+                    return label.includes(lower) || text.includes(lower);
+                  })
+                );
               } else {
                 nextElements.push(...candidates);
               }
             }
-          } catch { /* skip invalid selectors */ }
+          } catch {
+            /* skip invalid selectors */
+          }
         }
 
         if (nextElements.length === 0) return 0;

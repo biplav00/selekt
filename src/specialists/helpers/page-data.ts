@@ -47,7 +47,15 @@ export function buildRichPageData(elements: PageElement[]): RichPageData {
 /** Create an empty RichPageData (for initial state / fallback). */
 export function emptyPageData(): RichPageData {
   return {
-    ids: [], classes: [], testIds: [], roles: [], ariaLabels: [],
-    names: [], placeholders: [], texts: [], tags: {}, elements: [],
+    ids: [],
+    classes: [],
+    testIds: [],
+    roles: [],
+    ariaLabels: [],
+    names: [],
+    placeholders: [],
+    texts: [],
+    tags: {},
+    elements: [],
   };
 }

@@ -194,7 +194,10 @@ describe('CSS specialist', () => {
           matchCount: 1,
         },
       ];
-      const suggestions = specialist.didYouMean('[data-testid="sumbit-btn"]', buildRichPageData(elements));
+      const suggestions = specialist.didYouMean(
+        '[data-testid="sumbit-btn"]',
+        buildRichPageData(elements)
+      );
       expect(suggestions.length).toBeGreaterThanOrEqual(0);
     });
   });

@@ -1,5 +1,5 @@
-import { specialist } from '@/specialists/playwright';
 import { buildRichPageData, emptyPageData } from '@/specialists/helpers/page-data';
+import { specialist } from '@/specialists/playwright';
 import type { RichElementData } from '@/types';
 import { describe, expect, it } from 'vitest';
 

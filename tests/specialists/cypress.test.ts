@@ -143,7 +143,9 @@ describe('Cypress specialist', () => {
 
   describe('didYouMean', () => {
     it('returns empty for no elements', () => {
-      expect(specialist.didYouMean('cy.get(\'[data-testid="x"]\')', emptyPageData())).toHaveLength(0);
+      expect(specialist.didYouMean('cy.get(\'[data-testid="x"]\')', emptyPageData())).toHaveLength(
+        0
+      );
     });
   });
 });
