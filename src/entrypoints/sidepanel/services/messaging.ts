@@ -1,4 +1,5 @@
 import type { PageElement, WatchedSelector } from '@/types';
+import type { RichPageData } from '@/specialists/types';
 import { ensureContentScript } from '@/utils/content-script';
 
 async function getActiveTab(): Promise<chrome.tabs.Tab> {
@@ -201,6 +202,28 @@ export async function fetchPageElements(): Promise<PageElement[]> {
   } catch {
     return [];
   }
+}
+
+export async function scrapePageData(): Promise<RichPageData> {
+  const response = await sendToTab({ type: 'SCRAPE_PAGE_DATA' });
+  return response?.data ?? {
+    ids: [], classes: [], testIds: [], roles: [], ariaLabels: [],
+    names: [], placeholders: [], texts: [], tags: {}, elements: [],
+  };
+}
+
+export async function batchQuerySelectors(
+  selectors: Array<{ id: string; selector: string; selectorType: string }>
+): Promise<Record<string, number>> {
+  const response = await sendToTab({ type: 'QUERY_SELECTOR_BATCH', selectors });
+  return response?.counts ?? {};
+}
+
+export async function testSelectorScoped(
+  chain: Array<{ selector: string; selectorType: string }>
+): Promise<number> {
+  const response = await sendToTab({ type: 'TEST_SELECTOR_SCOPED', chain });
+  return response?.count ?? 0;
 }
 
 export function onElementSelected(callback: (element: any) => void): void {
