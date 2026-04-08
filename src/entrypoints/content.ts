@@ -99,6 +99,22 @@ export default defineContentScript({
         isFloatingMode = false;
         floatingWidget.hide();
         sendResponse({ success: true });
+      } else if (message.type === 'SCRAPE_PAGE_DATA') {
+        const data = scrapePageDataFromDom();
+        sendResponse({ data });
+      } else if (message.type === 'QUERY_SELECTOR_BATCH') {
+        const selectors = message.selectors as Array<{ id: string; selector: string; selectorType: string }>;
+        const counts: Record<string, number> = {};
+        for (const s of selectors) {
+          const type = (s.selectorType as 'css' | 'xpath' | 'role') || 'css';
+          const result = runSelectorTest(s.selector, type);
+          counts[s.id] = result.count;
+        }
+        sendResponse({ counts });
+      } else if (message.type === 'TEST_SELECTOR_SCOPED') {
+        const chain = message.chain as Array<{ selector: string; selectorType: string }>;
+        const count = testSelectorChain(chain);
+        sendResponse({ count });
       }
       return true;
     });
@@ -537,6 +553,154 @@ export default defineContentScript({
       if (result.elements.length > 0) {
         highlightElements(result.elements);
       }
+    }
+
+    const SCRAPE_SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'LINK', 'META', 'SVG', 'HEAD']);
+
+    function scrapePageDataFromDom() {
+      const ids = new Set<string>();
+      const classes = new Set<string>();
+      const testIds = new Set<string>();
+      const roles = new Set<string>();
+      const ariaLabels = new Set<string>();
+      const names = new Set<string>();
+      const placeholders = new Set<string>();
+      const texts = new Set<string>();
+      const tagCounts: Record<string, number> = {};
+      const elements: Array<{
+        tag: string;
+        id: string;
+        classes: string[];
+        role: string;
+        ariaLabel: string;
+        name: string;
+        placeholder: string;
+        testId: string;
+        text: string;
+      }> = [];
+
+      for (const el of document.querySelectorAll('*')) {
+        if (SCRAPE_SKIP_TAGS.has(el.tagName)) continue;
+
+        const tag = el.tagName.toLowerCase();
+        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+
+        const id = el.getAttribute('id') || '';
+        if (id) ids.add(id);
+
+        for (const cls of el.classList) {
+          classes.add(cls);
+        }
+
+        const testId = el.getAttribute('data-testid') || el.getAttribute('data-test') || '';
+        if (testId) testIds.add(testId);
+
+        const role = el.getAttribute('role') || '';
+        if (role) roles.add(role);
+
+        const ariaLabel = el.getAttribute('aria-label') || '';
+        if (ariaLabel) ariaLabels.add(ariaLabel);
+
+        const name = el.getAttribute('name') || '';
+        if (name) names.add(name);
+
+        const placeholder = el.getAttribute('placeholder') || '';
+        if (placeholder) placeholders.add(placeholder);
+
+        let text = '';
+        for (const child of el.childNodes) {
+          if (child.nodeType === Node.TEXT_NODE) {
+            text += child.textContent || '';
+          }
+        }
+        text = text.trim();
+        if (text && text.length <= 50) texts.add(text);
+
+        if (elements.length < 500) {
+          elements.push({
+            tag,
+            id,
+            classes: Array.from(el.classList),
+            role,
+            ariaLabel,
+            name,
+            placeholder,
+            testId,
+            text: text.substring(0, 50),
+          });
+        }
+      }
+
+      return {
+        ids: Array.from(ids),
+        classes: Array.from(classes),
+        testIds: Array.from(testIds),
+        roles: Array.from(roles),
+        ariaLabels: Array.from(ariaLabels),
+        names: Array.from(names),
+        placeholders: Array.from(placeholders),
+        texts: Array.from(texts),
+        tags: tagCounts,
+        elements,
+      };
+    }
+
+    function testSelectorChain(chain: Array<{ selector: string; selectorType: string }>): number {
+      if (chain.length === 0) return 0;
+
+      let currentElements: Element[] = [document.documentElement];
+
+      for (const segment of chain) {
+        const type = (segment.selectorType as 'css' | 'xpath' | 'role') || 'css';
+        const nextElements: Element[] = [];
+
+        for (const parent of currentElements) {
+          try {
+            if (type === 'css') {
+              nextElements.push(...Array.from(parent.querySelectorAll(segment.selector)));
+            } else if (type === 'xpath') {
+              const xr = document.evaluate(
+                segment.selector, parent, null,
+                XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+              );
+              for (let i = 0; i < xr.snapshotLength; i++) {
+                const n = xr.snapshotItem(i);
+                if (n instanceof Element) nextElements.push(n);
+              }
+            } else if (type === 'role') {
+              const parts = segment.selector.split('::');
+              const role = parts[0];
+              const nameFilter = parts[1];
+              const candidates = Array.from(parent.querySelectorAll(`[role="${role}"]`));
+              const implicitMap: Record<string, string[]> = {
+                button: ['button', 'summary'], link: ['a'], textbox: ['input', 'textarea'],
+                combobox: ['select'], navigation: ['nav'], main: ['main'],
+                banner: ['header'], contentinfo: ['footer'], heading: ['h1','h2','h3','h4','h5','h6'],
+              };
+              for (const tag of implicitMap[role] || []) {
+                for (const el of parent.querySelectorAll(tag)) {
+                  if (!el.hasAttribute('role')) candidates.push(el);
+                }
+              }
+              if (nameFilter) {
+                const lower = nameFilter.toLowerCase();
+                nextElements.push(...candidates.filter(el => {
+                  const label = el.getAttribute('aria-label')?.toLowerCase() || '';
+                  const text = el.textContent?.trim().toLowerCase() || '';
+                  return label.includes(lower) || text.includes(lower);
+                }));
+              } else {
+                nextElements.push(...candidates);
+              }
+            }
+          } catch { /* skip invalid selectors */ }
+        }
+
+        if (nextElements.length === 0) return 0;
+        currentElements = nextElements;
+      }
+
+      return currentElements.length;
     }
   },
 });
