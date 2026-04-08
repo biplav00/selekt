@@ -127,7 +127,7 @@ export function findAttributeElsewhere(
     ];
 
     for (const [attr, val] of checks) {
-      if (val && val.toLowerCase().includes(lower)) {
+      if (val?.toLowerCase().includes(lower)) {
         results.push({ element: el, attribute: attr });
         break;
       }

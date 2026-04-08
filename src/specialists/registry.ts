@@ -1,10 +1,10 @@
 import type { SelectorFormat } from '@/types';
-import type { SelectorSpecialist } from './types';
 import { specialist as css } from './css';
-import { specialist as xpath } from './xpath';
-import { specialist as playwright } from './playwright';
 import { specialist as cypress } from './cypress';
+import { specialist as playwright } from './playwright';
 import { specialist as selenium } from './selenium';
+import type { SelectorSpecialist } from './types';
+import { specialist as xpath } from './xpath';
 
 const specialists = new Map<SelectorFormat, SelectorSpecialist>();
 for (const s of [css, xpath, playwright, cypress, selenium]) {

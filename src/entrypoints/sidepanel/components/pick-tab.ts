@@ -520,9 +520,12 @@ export class PickTab extends LitElement {
           <span class="format-name">${FORMAT_LABELS[format] || format}</span>
           <span class="format-best-score">${best}</span>
         </button>
-        ${expanded ? html`
+        ${
+          expanded
+            ? html`
           <div class="format-selectors">
-            ${shown.map((s) => html`
+            ${shown.map(
+              (s) => html`
               <selector-card
                 .data=${s}
                 .starred=${this._favoriteIds.has(`${s.format}::${s.selector}`)}
@@ -530,16 +533,23 @@ export class PickTab extends LitElement {
                 @selector-test=${this._onTest}
                 @selector-star=${this._onStar}
               ></selector-card>
-            `)}
-            ${selectors.length > 5 ? html`
+            `
+            )}
+            ${
+              selectors.length > 5
+                ? html`
               <button class="show-more-btn" type="button" @click=${() => {
                 /* expand all handled via full list */ void 0;
               }}>
                 Show all ${selectors.length}
               </button>
-            ` : nothing}
+            `
+                : nothing
+            }
           </div>
-        ` : nothing}
+        `
+            : nothing
+        }
       </div>
     `;
   }

@@ -458,7 +458,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
   if (/cy\.get\s*\(\s*['"\[].*data-testid.*=["']/.test(partial)) {
     const prefix = partial.match(/data-testid[=]["']([^"']*)$/)?.[1] ?? '';
     for (const el of pageElements) {
-      if (el.testId && el.testId.toLowerCase().startsWith(prefix.toLowerCase())) {
+      if (el.testId?.toLowerCase().startsWith(prefix.toLowerCase())) {
         const sel = `cy.get('[data-testid="${escapeDoubleQuoteJs(el.testId)}"]')`;
         results.push({
           selector: sel,
@@ -475,7 +475,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
   if (/cy\.findByTestId\s*\(\s*['"]/.test(partial)) {
     const prefix = partial.match(/cy\.findByTestId\s*\(\s*['"]([^'"]*)$/)?.[1] ?? '';
     for (const el of pageElements) {
-      if (el.testId && el.testId.toLowerCase().startsWith(prefix.toLowerCase())) {
+      if (el.testId?.toLowerCase().startsWith(prefix.toLowerCase())) {
         const sel = `cy.findByTestId('${escapeSingleQuoteJs(el.testId)}')`;
         results.push({
           selector: sel,

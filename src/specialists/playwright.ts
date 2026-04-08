@@ -431,7 +431,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
   if (/^page\.getByTestId\(['"]/.test(partial)) {
     const prefix = partial.match(/page\.getByTestId\(['"]([^'"]*)$/)?.[1] ?? '';
     for (const el of pageElements) {
-      if (el.testId && el.testId.toLowerCase().startsWith(prefix.toLowerCase())) {
+      if (el.testId?.toLowerCase().startsWith(prefix.toLowerCase())) {
         const sel = `page.getByTestId('${escapeSingleQuoteJs(el.testId)}')`;
         results.push({
           selector: sel,

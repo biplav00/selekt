@@ -1,6 +1,11 @@
-import type { RichElementData, ScoredSelector, SelectorFormat } from '@/types';
 import { getAllSpecialists, getSpecialist } from '@/specialists/registry';
-import type { ActionableWarning, GenerateResult, ProactiveSuggestion, SpecialistScore } from '@/specialists/types';
+import type {
+  ActionableWarning,
+  GenerateResult,
+  ProactiveSuggestion,
+  SpecialistScore,
+} from '@/specialists/types';
+import type { RichElementData, ScoredSelector, SelectorFormat } from '@/types';
 
 // Re-export shared utilities for backward compatibility
 export {

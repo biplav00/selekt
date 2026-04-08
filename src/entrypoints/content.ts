@@ -1,5 +1,5 @@
-import { computeAccessibleName } from '@/specialists/helpers/aria';
 import { clearHighlights, highlightElements, runSelectorTest } from '@/shared/selector-core';
+import { computeAccessibleName } from '@/specialists/helpers/aria';
 import type { DomTreeNode, RichElementData } from '@/types';
 import { defineContentScript } from 'wxt/utils/define-content-script';
 import { FloatingWidget } from './content/floating-widget';

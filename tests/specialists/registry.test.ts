@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { getAllSpecialists, getFormats, getSpecialist } from '@/specialists/registry';
+import { describe, expect, it } from 'vitest';
 
 describe('specialist registry', () => {
   it('getSpecialist returns specialist by format', () => {

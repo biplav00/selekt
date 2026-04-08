@@ -382,7 +382,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
     // Suggest matching IDs
     const prefix = partial.slice(1).toLowerCase();
     for (const el of pageElements) {
-      if (el.id && el.id.toLowerCase().startsWith(prefix)) {
+      if (el.id?.toLowerCase().startsWith(prefix)) {
         const sel = `#${cssEscape(el.id)}`;
         results.push({
           selector: sel,
@@ -437,7 +437,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
   } else {
     // Suggest testIds and IDs matching the prefix
     for (const el of pageElements) {
-      if (el.testId && el.testId.toLowerCase().startsWith(lower)) {
+      if (el.testId?.toLowerCase().startsWith(lower)) {
         const sel = `[data-testid="${escapeCssAttrValue(el.testId)}"]`;
         results.push({
           selector: sel,
@@ -447,7 +447,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
           kind: 'autocomplete',
         });
       }
-      if (el.id && el.id.toLowerCase().startsWith(lower)) {
+      if (el.id?.toLowerCase().startsWith(lower)) {
         const sel = `#${cssEscape(el.id)}`;
         results.push({
           selector: sel,

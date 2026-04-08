@@ -1,5 +1,5 @@
-import type { ScoredSelector } from '@/types';
 import type { ActionableWarning } from '@/specialists/types';
+import type { ScoredSelector } from '@/types';
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { sharedStyles } from '../styles/shared.js';
@@ -166,7 +166,7 @@ export class SelectorCard extends LitElement {
   statusText = '';
 
   @state()
-  private _showFactors: boolean = false;
+  private _showFactors = false;
 
   private _scoreClass(score: number): string {
     if (score >= 70) return 'score-good';
@@ -215,7 +215,10 @@ export class SelectorCard extends LitElement {
         <span
           class="score-badge ${scoreClass}"
           title="Score — click to ${this._showFactors ? 'hide' : 'show'} breakdown"
-          @click=${(e: Event) => { e.stopPropagation(); this._showFactors = !this._showFactors; }}
+          @click=${(e: Event) => {
+            e.stopPropagation();
+            this._showFactors = !this._showFactors;
+          }}
         >${score}</span>
         <span class="badge ${formatBadgeClass}">${formatLabel}</span>
         <span class="selector-text">${selector}</span>
@@ -236,22 +239,33 @@ export class SelectorCard extends LitElement {
       ${
         warnings && warnings.length > 0
           ? warnings.map((w: string | ActionableWarning) => {
-              const warning = typeof w === 'string'
-                ? { message: w, severity: 'warning' as const }
-                : w as ActionableWarning;
+              const warning =
+                typeof w === 'string'
+                  ? { message: w, severity: 'warning' as const }
+                  : (w as ActionableWarning);
               return html`
                 <div class="warning-row ${warning.severity || 'warning'}">
                   <span class="warning-icon">${warning.severity === 'error' ? '✕' : warning.severity === 'info' ? 'ℹ' : '⚠'}</span>
                   <span class="warning-text">${warning.message}</span>
-                  ${(warning as ActionableWarning).fix ? html`
+                  ${
+                    (warning as ActionableWarning).fix
+                      ? html`
                     <button class="fix-btn" @click=${(e: Event) => {
                       e.stopPropagation();
-                      this.dispatchEvent(new CustomEvent('apply-fix', {
-                        detail: { selector: (warning as ActionableWarning).fix!.selector, format: this.data!.format },
-                        bubbles: true, composed: true,
-                      }));
+                      this.dispatchEvent(
+                        new CustomEvent('apply-fix', {
+                          detail: {
+                            selector: (warning as ActionableWarning).fix!.selector,
+                            format: this.data!.format,
+                          },
+                          bubbles: true,
+                          composed: true,
+                        })
+                      );
                     }}>Fix →</button>
-                  ` : nothing}
+                  `
+                      : nothing
+                  }
                 </div>
               `;
             })

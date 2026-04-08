@@ -339,7 +339,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
   } else {
     // Suggest testids and ids matching the prefix
     for (const el of pageElements) {
-      if (el.testId && el.testId.toLowerCase().startsWith(lower)) {
+      if (el.testId?.toLowerCase().startsWith(lower)) {
         const sel = `//*[@data-testid=${escapeXPathValue(el.testId)}]`;
         results.push({
           selector: sel,
@@ -349,7 +349,7 @@ function suggest(partial: string, pageElements: PageElement[]): Suggestion[] {
           kind: 'autocomplete',
         });
       }
-      if (el.id && el.id.toLowerCase().startsWith(lower)) {
+      if (el.id?.toLowerCase().startsWith(lower)) {
         const sel = `//*[@id=${escapeXPathValue(el.id)}]`;
         results.push({
           selector: sel,
