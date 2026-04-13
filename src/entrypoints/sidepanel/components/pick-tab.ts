@@ -1,4 +1,4 @@
-import type { ElementInfo, SavedSelector, ScoredSelector } from '@/types';
+import type { ElementInfo, RichElementData, SavedSelector, ScoredSelector } from '@/types';
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import {
@@ -316,7 +316,7 @@ export class PickTab extends LitElement {
   @property({ type: Number }) historyLimit = 50;
 
   @state() private _picking = false;
-  @state() private _element: ElementInfo | null = null;
+  @state() private _element: RichElementData | null = null;
   @state() private _selectors: ScoredSelector[] = [];
   @state() private _favoriteIds = new Set<string>();
   @state() private _showDomTree = false;
@@ -336,7 +336,7 @@ export class PickTab extends LitElement {
   }
 
   private _registerListeners() {
-    onElementSelected((element: ElementInfo) => {
+    onElementSelected((element: RichElementData) => {
       this._onElementSelected(element);
     });
     onPickingCancelled(() => {
@@ -382,15 +382,15 @@ export class PickTab extends LitElement {
     }
   }
 
-  private async _onElementSelected(element: ElementInfo) {
+  private async _onElementSelected(element: RichElementData) {
     this._picking = false;
     this._clearPickTimer();
     this._element = element;
     const richElement = {
       ...element,
-      parentChain: (element as any).parentChain || [],
-      siblingTags: (element as any).siblingTags || [],
-      accessibleName: (element as any).accessibleName || '',
+      parentChain: element.parentChain || [],
+      siblingTags: element.siblingTags || [],
+      accessibleName: element.accessibleName || '',
     };
     const { selectors } = generateScoredSelectors(richElement);
     this._selectors = selectors;
@@ -480,7 +480,7 @@ export class PickTab extends LitElement {
     return chips.length > 0 ? html`<div class="attr-chips">${chips}</div>` : nothing;
   }
 
-  private _renderElementCard(element: ElementInfo) {
+  private _renderElementCard(element: RichElementData) {
     return html`
       <div class="element-card">
         <div class="element-card-header">

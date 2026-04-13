@@ -1,5 +1,5 @@
 import type { RichPageData } from '@/specialists/types';
-import type { PageElement, WatchedSelector } from '@/types';
+import type { DomTreeNode, PageElement, RichElementData, WatchedSelector } from '@/types';
 import { ensureContentScript } from '@/utils/content-script';
 
 async function getActiveTab(): Promise<chrome.tabs.Tab> {
@@ -11,7 +11,9 @@ async function getActiveTab(): Promise<chrome.tabs.Tab> {
   return tab;
 }
 
-export async function sendToTab(message: Record<string, unknown>): Promise<any> {
+export async function sendToTab(
+  message: Record<string, unknown>
+): Promise<Record<string, unknown>> {
   const tab = await getActiveTab();
   const ready = await ensureContentScript(tab.id!);
   if (!ready) throw new Error('Cannot inject content script');
@@ -34,14 +36,14 @@ export async function clearHighlights(): Promise<void> {
   await sendToTab({ type: 'CLEAR_HIGHLIGHTS' });
 }
 
-export async function getDomTree(): Promise<any> {
+export async function getDomTree(): Promise<DomTreeNode | null> {
   const response = await sendToTab({ type: 'GET_DOM_TREE' });
-  return response?.tree ?? null;
+  return (response?.tree as DomTreeNode) ?? null;
 }
 
-export async function getDomChildren(path: number[]): Promise<any[]> {
+export async function getDomChildren(path: number[]): Promise<DomTreeNode[]> {
   const response = await sendToTab({ type: 'GET_DOM_CHILDREN', path });
-  return response?.children ?? [];
+  return (response?.children as DomTreeNode[]) ?? [];
 }
 
 export async function highlightElement(path: number[]): Promise<void> {
@@ -50,11 +52,6 @@ export async function highlightElement(path: number[]): Promise<void> {
 
 export async function clearHighlight(): Promise<void> {
   await sendToTab({ type: 'CLEAR_HIGHLIGHT' });
-}
-
-export async function getRichElementData(path: number[]): Promise<any> {
-  const response = await sendToTab({ type: 'GET_RICH_ELEMENT_DATA', path });
-  return response?.data ?? null;
 }
 
 export async function watchSelectors(selectors: WatchedSelector[]): Promise<void> {
@@ -236,7 +233,7 @@ export async function testSelectorScoped(
   return response?.count ?? 0;
 }
 
-export function onElementSelected(callback: (element: any) => void): void {
+export function onElementSelected(callback: (element: RichElementData) => void): void {
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === 'ELEMENT_SELECTED') callback(message.element);
   });

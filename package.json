@@ -16,6 +16,8 @@
     "icons": "node scripts/generate-icons.js",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:ci": "vitest run --reporter=verbose",
+    "coverage": "vitest run --coverage",
     "prepare": "husky"
   },
   "devDependencies": {

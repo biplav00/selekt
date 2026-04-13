@@ -193,7 +193,7 @@ export class SelektApp extends LitElement {
       this._applyTheme();
       await this._checkConnection();
     } catch (e) {
-      console.error('[selekt] Init failed:', e);
+      // Init failed — connection will retry on tab change
     }
   }
 

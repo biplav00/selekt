@@ -5,12 +5,15 @@ type StatusCallback = (change: SelectorStatusChange) => void;
 
 const currentlyWatched: Map<string, { selector: string; type: 'css' | 'xpath' }> = new Map();
 const statusCallbacks: StatusCallback[] = [];
+let initialized = false;
 
 export function onStatusChange(callback: StatusCallback): void {
   statusCallbacks.push(callback);
 }
 
 export function initDomMonitor(): void {
+  if (initialized) return;
+  initialized = true;
   onSelectorStatusChanged((change) => {
     for (const cb of statusCallbacks) {
       cb(change);

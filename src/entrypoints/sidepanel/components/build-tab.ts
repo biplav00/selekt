@@ -1137,7 +1137,7 @@ export class BuildTab extends LitElement {
     this._freeformAutoFormat = true;
     this._freeformFormat = detectFormat(suggestion.selector);
     this._scored = scoreSelectorAs(suggestion.selector.trim(), this._freeformFormat);
-    this._runMatchCount();
+    this._scheduleMatchCount();
   }
 
   private _validateFreeform() {

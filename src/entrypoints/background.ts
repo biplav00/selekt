@@ -16,7 +16,6 @@ export default defineBackground({
 
         // Skip restricted pages
         if (tab.url?.startsWith('chrome://') || tab.url?.startsWith('about:')) {
-          console.log('Cannot activate picker on restricted pages');
           return;
         }
 
@@ -34,7 +33,7 @@ export default defineBackground({
 
           await chrome.tabs.sendMessage(tab.id, { type: 'START_PICKING' });
         } catch {
-          console.log('Could not activate picker on this page');
+          // Content script not available on this page
         }
       }
     });
@@ -43,20 +42,24 @@ export default defineBackground({
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === 'ACTIVATE_FLOATING') {
         // Relay from sidepanel to content script
-        chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
-          if (!tab?.id) {
+        chrome.tabs
+          .query({ active: true, currentWindow: true })
+          .then(async ([tab]) => {
+            if (!tab?.id) {
+              sendResponse({ success: false });
+              return;
+            }
+            try {
+              await ensureContentScript(tab.id);
+              await chrome.tabs.sendMessage(tab.id, { type: 'ACTIVATE_FLOATING' });
+              sendResponse({ success: true });
+            } catch {
+              sendResponse({ success: false });
+            }
+          })
+          .catch(() => {
             sendResponse({ success: false });
-            return;
-          }
-          try {
-            await ensureContentScript(tab.id);
-            await chrome.tabs.sendMessage(tab.id, { type: 'ACTIVATE_FLOATING' });
-            sendResponse({ success: true });
-          } catch {
-            console.log('Could not activate floating mode');
-            sendResponse({ success: false });
-          }
-        });
+          });
         return true;
       }
 
