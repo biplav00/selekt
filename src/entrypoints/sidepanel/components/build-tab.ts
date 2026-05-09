@@ -1,6 +1,12 @@
+import {
+  type AutocompleteSuggestion,
+  detectFormat,
+  generateAutocompleteSuggestions,
+  parseContext,
+} from '@/specialists/autocomplete';
 import { buildRichPageData } from '@/specialists/helpers/page-data';
 import { getSpecialist } from '@/specialists/registry';
-import type { Suggestion as SpecialistSuggestion, ValidationResult } from '@/specialists/types';
+import type { ValidationResult } from '@/specialists/types';
 import type { PageElement, RichElementData, ScoredSelector, SelectorFormat } from '@/types';
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
@@ -21,6 +27,7 @@ import {
   extractTestable,
   generateScoredSelectors,
   scoreSelector,
+  specialistScoreToScoredSelector,
 } from '../services/selector-engine.js';
 import { addFavorite } from '../services/storage.js';
 import { sharedStyles } from '../styles/shared.js';
@@ -72,27 +79,8 @@ interface Suggestion {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function detectFormat(selector: string): SelectorFormat {
-  const s = selector.trimStart();
-  if (s.startsWith('//') || s.startsWith('(/')) return 'xpath';
-  if (s.startsWith('page.')) return 'playwright';
-  if (s.startsWith('cy.')) return 'cypress';
-  if (s.startsWith('driver.')) return 'selenium';
-  return 'css';
-}
-
 function makeId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-/**
- * Wraps the new specialist-based scoreSelector (which returns SpecialistScore)
- * into the legacy ScoredSelector shape expected by the UI.
- */
-function scoreSelectorAs(selector: string, format: SelectorFormat): ScoredSelector {
-  const result = scoreSelector(selector, format);
-  const warnings = result.factors.filter((f) => f.impact < 0).map((f) => f.description);
-  return { selector, format, score: result.score, warnings };
 }
 
 // ---------------------------------------------------------------------------
@@ -340,52 +328,6 @@ export class BuildTab extends LitElement {
         color: var(--score-poor);
       }
 
-      /* ── Suggestions panel ── */
-      .suggestions-panel {
-        position: relative;
-        margin-top: 6px;
-      }
-
-      .suggestions-list {
-        background: var(--bg-secondary);
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        overflow: hidden;
-        max-height: 160px;
-        overflow-y: auto;
-      }
-
-      .suggestion-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 5px 8px;
-        cursor: pointer;
-        transition: background 0.1s;
-        font-size: 11px;
-      }
-
-      .suggestion-item:hover {
-        background: var(--bg-tertiary);
-      }
-
-      .suggestion-type {
-        font-size: 9px;
-        font-weight: 600;
-        color: var(--text-tertiary);
-        text-transform: uppercase;
-        flex-shrink: 0;
-        width: 36px;
-      }
-
-      .suggestion-label {
-        font-family: 'JetBrains Mono', 'Courier New', monospace;
-        color: var(--text-primary);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
       /* ── Action buttons ── */
       .action-row {
         display: flex;
@@ -609,6 +551,13 @@ export class BuildTab extends LitElement {
         text-overflow: ellipsis;
       }
 
+      .autocomplete-detail {
+        color: var(--text-secondary);
+        font-size: 10px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
       .autocomplete-desc {
         color: var(--text-secondary);
         font-size: 10px;
@@ -729,15 +678,14 @@ export class BuildTab extends LitElement {
   @state() private _matchCount: number | null = null;
   @state() private _matchLoading = false;
   @state() private _scored: ScoredSelector | null = null;
-  @state() private _showSuggestions = false;
   @state() private _pageElements: PageElement[] = [];
 
   // ── Autocomplete / did-you-mean / validation state ──
-  @state() private _autocompleteSuggestions: SpecialistSuggestion[] = [];
+  @state() private _autocompleteSuggestions: AutocompleteSuggestion[] = [];
   @state() private _autocompleteIndex = -1;
-  @state() private _didYouMean: SpecialistSuggestion[] = [];
+  @state() private _didYouMean: AutocompleteSuggestion[] = [];
   @state() private _validationError: ValidationResult | null = null;
-  @state() private _scopedSuggestions: SpecialistSuggestion[] = [];
+  @state() private _scopedSuggestions: AutocompleteSuggestion[] = [];
   private _highlightTimer: ReturnType<typeof setTimeout> | null = null;
 
   // ── Structured state ──
@@ -786,6 +734,8 @@ export class BuildTab extends LitElement {
 
   // Debounce timers
   private _matchDebounce: ReturnType<typeof setTimeout> | null = null;
+  private _scoreDebounce: ReturnType<typeof setTimeout> | null = null;
+  private _unsubscribers: Array<() => void> = [];
 
   // ---------------------------------------------------------------------------
   // Lifecycle
@@ -795,9 +745,21 @@ export class BuildTab extends LitElement {
     super.connectedCallback();
     this._loadPageSuggestions();
     requestScrape();
-    onSelectorStatusChanged(() => {
-      requestScrape();
-    });
+    this._unsubscribers.push(
+      onSelectorStatusChanged(() => {
+        requestScrape();
+      })
+    );
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this._matchDebounce !== null) clearTimeout(this._matchDebounce);
+    if (this._scoreDebounce !== null) clearTimeout(this._scoreDebounce);
+    this._matchDebounce = null;
+    this._scoreDebounce = null;
+    for (const off of this._unsubscribers) off();
+    this._unsubscribers = [];
   }
 
   private async _loadPageSuggestions() {
@@ -926,7 +888,7 @@ export class BuildTab extends LitElement {
     }
 
     if (val.trim()) {
-      this._scored = scoreSelectorAs(val.trim(), this._freeformFormat);
+      this._scored = specialistScoreToScoredSelector(val.trim(), this._freeformFormat);
     } else {
       this._scored = null;
       this._matchCount = null;
@@ -934,110 +896,44 @@ export class BuildTab extends LitElement {
 
     this._clearSuggestionHighlights();
     this._scheduleMatchCount();
-    this._fetchSuggestions();
+    this._scheduleFetchSuggestions();
+  }
+
+  private _scheduleFetchSuggestions() {
+    if (this._scoreDebounce !== null) clearTimeout(this._scoreDebounce);
+    this._scoreDebounce = setTimeout(() => {
+      this._scoreDebounce = null;
+      this._fetchSuggestions();
+    }, 150);
   }
 
   private _fetchSuggestions() {
-    const val = this._freeformSelector.trim();
-    if (!val) {
+    const val = this._freeformSelector;
+    const cursor = val.length; // Use end of input for now
+
+    if (!val.trim()) {
       this._autocompleteSuggestions = [];
-      this._scopedSuggestions = [];
       this._autocompleteIndex = -1;
       return;
     }
 
-    const format = detectFormat(val);
     try {
-      const specialist = getSpecialist(format);
       const pageData = getPageData();
-      const suggestions = specialist.suggest(val, pageData).slice(0, 8);
-      this._autocompleteSuggestions = suggestions;
-      this._batchFetchCounts(suggestions);
+      const ctx = parseContext(val, cursor);
+      const suggestions = generateAutocompleteSuggestions({ context: ctx, partial: val, pageData });
+      this._autocompleteSuggestions = suggestions.slice(0, 10);
     } catch {
       this._autocompleteSuggestions = [];
     }
     this._autocompleteIndex = -1;
   }
 
-  private async _batchFetchCounts(suggestions: SpecialistSuggestion[]) {
-    if (suggestions.length === 0) return;
-
-    const selectors = suggestions.map((s, i) => ({
-      id: String(i),
-      selector: s.selector,
-      selectorType: s.selectorType || 'css',
-    }));
-
-    try {
-      const counts = await batchQuerySelectors(selectors);
-      this._autocompleteSuggestions = this._autocompleteSuggestions.map((s, i) => ({
-        ...s,
-        matchCount: counts[String(i)] ?? undefined,
-      }));
-
-      // Check if any suggestion is ambiguous — fetch scoped alternatives
-      const firstCount = counts['0'];
-      if (firstCount !== undefined && firstCount > 1) {
-        this._fetchScopedSuggestions(firstCount);
-      } else {
-        this._scopedSuggestions = [];
-      }
-    } catch {
-      // Counts unavailable
-    }
+  private _batchFetchCounts(suggestions: AutocompleteSuggestion[]) {
+    // No-op: inline autocompletion doesn't need match counts
   }
 
-  private async _fetchScopedSuggestions(matchCount: number) {
-    const format = this._freeformFormat;
-    try {
-      const specialist = getSpecialist(format);
-      const richElement: RichElementData = {
-        tagName: 'div',
-        text: '',
-        attributes: {},
-        parentChain: [],
-        siblingTags: [],
-        accessibleName: '',
-      };
-      const scoped = specialist.chain(richElement, matchCount);
-      if (scoped.length === 0) {
-        this._scopedSuggestions = [];
-        return;
-      }
-
-      const selectors = scoped.map((s, i) => ({
-        id: `s${i}`,
-        selector: s.selector,
-        selectorType: format === 'xpath' ? 'xpath' : 'css',
-      }));
-      const counts = await batchQuerySelectors(selectors);
-      this._scopedSuggestions = scoped
-        .map(
-          (s, i): SpecialistSuggestion => ({
-            selector: s.selector,
-            label: s.selector,
-            description: 'Scoped selector',
-            score: s.score,
-            kind: 'scoped',
-            matchCount: counts[`s${i}`],
-            selectorType: format === 'xpath' ? 'xpath' : 'css',
-          })
-        )
-        .filter((s) => s.matchCount === 1);
-    } catch {
-      this._scopedSuggestions = [];
-    }
-  }
-
-  private _onSuggestionHover(suggestion: SpecialistSuggestion) {
-    if (this._highlightTimer) clearTimeout(this._highlightTimer);
-    this._highlightTimer = setTimeout(async () => {
-      try {
-        await testSelector(suggestion.selector, suggestion.selectorType || 'css');
-      } catch {
-        /* ignore */
-      }
-    }, 100);
+  private _onSuggestionHover(_suggestion: AutocompleteSuggestion) {
+    // No-op: inline autocompletion doesn't highlight on hover
   }
 
   private _clearSuggestionHighlights() {
@@ -1059,7 +955,10 @@ export class BuildTab extends LitElement {
     this._freeformFormat = (e.target as HTMLSelectElement).value as SelectorFormat;
     this._freeformAutoFormat = false;
     if (this._freeformSelector.trim()) {
-      this._scored = scoreSelectorAs(this._freeformSelector.trim(), this._freeformFormat);
+      this._scored = specialistScoreToScoredSelector(
+        this._freeformSelector.trim(),
+        this._freeformFormat
+      );
     }
     this._scheduleMatchCount();
   }
@@ -1121,22 +1020,11 @@ export class BuildTab extends LitElement {
     }
   }
 
-  private _onSuggestionClick(suggestion: Suggestion) {
-    this._freeformSelector = suggestion.code;
-    this._freeformAutoFormat = true;
-    this._freeformFormat = detectFormat(suggestion.code);
-    this._scored = scoreSelectorAs(suggestion.code.trim(), this._freeformFormat);
-    this._showSuggestions = false;
-    this._scheduleMatchCount();
-  }
-
-  private _applySuggestion(suggestion: SpecialistSuggestion) {
-    this._freeformSelector = suggestion.selector;
+  private _applySuggestion(suggestion: AutocompleteSuggestion) {
+    // For inline autocomplete, append the insertText to the current value
+    this._freeformSelector = this._freeformSelector + suggestion.insertText;
     this._autocompleteSuggestions = [];
     this._autocompleteIndex = -1;
-    this._freeformAutoFormat = true;
-    this._freeformFormat = detectFormat(suggestion.selector);
-    this._scored = scoreSelectorAs(suggestion.selector.trim(), this._freeformFormat);
     this._scheduleMatchCount();
   }
 
@@ -1154,230 +1042,6 @@ export class BuildTab extends LitElement {
     } catch {
       this._validationError = null;
     }
-  }
-
-  private _pageElementsToSuggestions(format: SelectorFormat): Suggestion[] {
-    const results: Suggestion[] = [];
-    for (const el of this._pageElements) {
-      const sug = this._elementToSuggestions(el, format);
-      results.push(...sug);
-    }
-    return results;
-  }
-
-  private _elementToSuggestions(el: PageElement, format: SelectorFormat): Suggestion[] {
-    const out: Suggestion[] = [];
-    const tag = el.tag;
-
-    if (format === 'css') {
-      if (el.testId)
-        out.push({
-          type: 'testid',
-          label: `${tag}[data-testid="${el.testId}"]`,
-          code: `[data-testid="${el.testId}"]`,
-        });
-      if (el.id) out.push({ type: 'id', label: `#${el.id}`, code: `#${el.id}` });
-      if (el.ariaLabel)
-        out.push({
-          type: 'aria',
-          label: `${tag}[aria-label="${el.ariaLabel}"]`,
-          code: `[aria-label="${el.ariaLabel}"]`,
-        });
-      if (el.role)
-        out.push({ type: 'role', label: `${tag}[role="${el.role}"]`, code: `[role="${el.role}"]` });
-      if (el.name)
-        out.push({ type: 'name', label: `${tag}[name="${el.name}"]`, code: `[name="${el.name}"]` });
-      if (el.placeholder)
-        out.push({
-          type: 'ph',
-          label: `${tag}[placeholder="${el.placeholder}"]`,
-          code: `[placeholder="${el.placeholder}"]`,
-        });
-      for (const c of el.classes.slice(0, 2)) {
-        out.push({ type: 'class', label: `${tag}.${c}`, code: `.${c}` });
-      }
-    } else if (format === 'xpath') {
-      if (el.testId)
-        out.push({
-          type: 'testid',
-          label: `//${tag}[@data-testid="${el.testId}"]`,
-          code: `//${tag}[@data-testid="${el.testId}"]`,
-        });
-      if (el.id)
-        out.push({
-          type: 'id',
-          label: `//${tag}[@id="${el.id}"]`,
-          code: `//${tag}[@id="${el.id}"]`,
-        });
-      if (el.ariaLabel)
-        out.push({
-          type: 'aria',
-          label: `//${tag}[@aria-label="${el.ariaLabel}"]`,
-          code: `//${tag}[@aria-label="${el.ariaLabel}"]`,
-        });
-      if (el.role)
-        out.push({
-          type: 'role',
-          label: `//${tag}[@role="${el.role}"]`,
-          code: `//${tag}[@role="${el.role}"]`,
-        });
-      if (el.text)
-        out.push({
-          type: 'text',
-          label: `//${tag}[text()="${el.text}"]`,
-          code: `//${tag}[text()="${el.text}"]`,
-        });
-      if (el.name)
-        out.push({
-          type: 'name',
-          label: `//${tag}[@name="${el.name}"]`,
-          code: `//${tag}[@name="${el.name}"]`,
-        });
-    } else if (format === 'playwright') {
-      if (el.testId)
-        out.push({
-          type: 'testid',
-          label: `page.getByTestId('${el.testId}')`,
-          code: `page.getByTestId('${el.testId}')`,
-        });
-      if (el.role) {
-        const nameOpt = el.ariaLabel
-          ? `, { name: '${el.ariaLabel}' }`
-          : el.text
-            ? `, { name: '${el.text}' }`
-            : '';
-        out.push({
-          type: 'role',
-          label: `page.getByRole('${el.role}'${nameOpt})`,
-          code: `page.getByRole('${el.role}'${nameOpt})`,
-        });
-      }
-      if (el.ariaLabel)
-        out.push({
-          type: 'label',
-          label: `page.getByLabel('${el.ariaLabel}')`,
-          code: `page.getByLabel('${el.ariaLabel}')`,
-        });
-      if (el.placeholder)
-        out.push({
-          type: 'ph',
-          label: `page.getByPlaceholder('${el.placeholder}')`,
-          code: `page.getByPlaceholder('${el.placeholder}')`,
-        });
-      if (el.text && el.text.length <= 30)
-        out.push({
-          type: 'text',
-          label: `page.getByText('${el.text}')`,
-          code: `page.getByText('${el.text}')`,
-        });
-      if (el.altText)
-        out.push({
-          type: 'alt',
-          label: `page.getByAltText('${el.altText}')`,
-          code: `page.getByAltText('${el.altText}')`,
-        });
-      if (el.title)
-        out.push({
-          type: 'title',
-          label: `page.getByTitle('${el.title}')`,
-          code: `page.getByTitle('${el.title}')`,
-        });
-    } else if (format === 'cypress') {
-      if (el.testId)
-        out.push({
-          type: 'testid',
-          label: `cy.get('[data-testid="${el.testId}"]')`,
-          code: `cy.get('[data-testid="${el.testId}"]')`,
-        });
-      if (el.id)
-        out.push({ type: 'id', label: `cy.get('#${el.id}')`, code: `cy.get('#${el.id}')` });
-      if (el.text && el.text.length <= 30)
-        out.push({
-          type: 'text',
-          label: `cy.contains('${tag}', '${el.text}')`,
-          code: `cy.contains('${tag}', '${el.text}')`,
-        });
-      if (el.role)
-        out.push({
-          type: 'role',
-          label: `cy.findByRole('${el.role}')`,
-          code: `cy.findByRole('${el.role}')`,
-        });
-      if (el.testId)
-        out.push({
-          type: 'testid',
-          label: `cy.findByTestId('${el.testId}')`,
-          code: `cy.findByTestId('${el.testId}')`,
-        });
-    } else if (format === 'selenium') {
-      if (el.id)
-        out.push({
-          type: 'id',
-          label: `By.id("${el.id}")`,
-          code: `driver.findElement(By.id("${el.id}"))`,
-        });
-      if (el.name)
-        out.push({
-          type: 'name',
-          label: `By.name("${el.name}")`,
-          code: `driver.findElement(By.name("${el.name}"))`,
-        });
-      if (el.testId)
-        out.push({
-          type: 'css',
-          label: `By.css [data-testid="${el.testId}"]`,
-          code: `driver.findElement(By.cssSelector("[data-testid='${el.testId}']"))`,
-        });
-      if (el.classes.length > 0)
-        out.push({
-          type: 'class',
-          label: `By.className("${el.classes[0]}")`,
-          code: `driver.findElement(By.className("${el.classes[0]}"))`,
-        });
-      if (el.tag)
-        out.push({
-          type: 'tag',
-          label: `By.tagName("${el.tag}")`,
-          code: `driver.findElement(By.tagName("${el.tag}"))`,
-        });
-    }
-
-    return out;
-  }
-
-  private _allSuggestions(): Suggestion[] {
-    let base: Suggestion[];
-    switch (this._freeformFormat) {
-      case 'xpath':
-        base = STATIC_XPATH_SUGGESTIONS;
-        break;
-      case 'playwright':
-        base = STATIC_PLAYWRIGHT_SUGGESTIONS;
-        break;
-      case 'cypress':
-        base = STATIC_CYPRESS_SUGGESTIONS;
-        break;
-      case 'selenium':
-        base = STATIC_SELENIUM_SUGGESTIONS;
-        break;
-      default:
-        base = STATIC_CSS_SUGGESTIONS;
-    }
-    const pageSuggestions = this._pageElementsToSuggestions(this._freeformFormat);
-    // Page suggestions first (real elements from the DOM), then static templates
-    const combined = [...pageSuggestions, ...base];
-    const query = this._freeformSelector.toLowerCase();
-    if (!query) return combined.slice(0, 25);
-
-    // Deduplicate by code
-    const seen = new Set<string>();
-    return combined
-      .filter((s) => {
-        if (seen.has(s.code)) return false;
-        seen.add(s.code);
-        return s.label.toLowerCase().includes(query) || s.code.toLowerCase().includes(query);
-      })
-      .slice(0, 25);
   }
 
   // ---------------------------------------------------------------------------
@@ -1522,7 +1186,7 @@ export class BuildTab extends LitElement {
   private async _onGenerateLocator() {
     const base = this._buildBaseSelector();
     const full = this._applyChain(base);
-    this._structResult = scoreSelectorAs(full, this._structFramework);
+    this._structResult = specialistScoreToScoredSelector(full, this._structFramework);
     this._allResults = [];
 
     // Count matches for css/xpath
@@ -1726,8 +1390,6 @@ export class BuildTab extends LitElement {
   }
 
   private _renderFreeform() {
-    const suggestions = this._allSuggestions();
-
     return html`
       <div class="freeform-input-wrap">
         <textarea
@@ -1736,12 +1398,8 @@ export class BuildTab extends LitElement {
           placeholder="Type a CSS selector, XPath, or framework locator..."
           @input=${this._onFreeformInput}
           @keydown=${this._onFreeformKeydown}
-          @focus=${() => {
-            this._showSuggestions = true;
-          }}
           @blur=${() => {
             setTimeout(() => {
-              this._showSuggestions = false;
               this._clearSuggestionHighlights();
               this._autocompleteSuggestions = [];
               this._scopedSuggestions = [];
@@ -1754,7 +1412,7 @@ export class BuildTab extends LitElement {
         ></textarea>
 
         ${
-          this._autocompleteSuggestions.length > 0 || this._scopedSuggestions.length > 0
+          this._autocompleteSuggestions.length > 0
             ? html`
                 <div class="autocomplete-dropdown">
                   ${this._autocompleteSuggestions.map(
@@ -1767,35 +1425,11 @@ export class BuildTab extends LitElement {
                         }}
                         @mouseenter=${() => this._onSuggestionHover(s)}
                       >
-                        <span class="autocomplete-selector">${s.selector}</span>
-                        <span class="match-badge ${this._matchBadgeClass(s.matchCount)}"
-                          >${s.matchCount ?? '...'}</span
-                        >
+                        <span class="autocomplete-selector">${s.label}</span>
+                        ${s.detail ? html`<span class="autocomplete-detail">${s.detail}</span>` : nothing}
                       </button>
                     `
                   )}
-                  ${
-                    this._scopedSuggestions.length > 0
-                      ? html`
-                          <div class="scoped-divider">Scoped (unique)</div>
-                          ${this._scopedSuggestions.map(
-                            (s) => html`
-                              <button
-                                class="autocomplete-item scoped"
-                                @mousedown=${(e: Event) => {
-                                  e.preventDefault();
-                                  this._applySuggestion(s);
-                                }}
-                                @mouseenter=${() => this._onSuggestionHover(s)}
-                              >
-                                <span class="autocomplete-selector">${s.selector}</span>
-                                <span class="match-badge match-unique">${s.matchCount ?? '...'}</span>
-                              </button>
-                            `
-                          )}
-                        `
-                      : nothing
-                  }
                 </div>
               `
             : nothing
@@ -1849,30 +1483,11 @@ export class BuildTab extends LitElement {
                 ${this._didYouMean.map(
                   (s) => html`
                     <button class="dym-item" @click=${() => this._applySuggestion(s)}>
-                      ${s.selector}
-                      <span class="dym-desc">${s.description}</span>
+                      ${s.label}
+                      ${s.detail ? html`<span class="dym-desc">${s.detail}</span>` : nothing}
                     </button>
                   `
                 )}
-              </div>
-            `
-          : nothing
-      }
-
-      ${
-        this._showSuggestions && suggestions.length > 0
-          ? html`
-              <div class="suggestions-panel">
-                <div class="suggestions-list">
-                  ${suggestions.map(
-                    (s) => html`
-                      <div class="suggestion-item" @mousedown=${() => this._onSuggestionClick(s)}>
-                        <span class="suggestion-type">${s.type}</span>
-                        <span class="suggestion-label">${s.label}</span>
-                      </div>
-                    `
-                  )}
-                </div>
               </div>
             `
           : nothing

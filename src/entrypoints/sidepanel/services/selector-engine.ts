@@ -56,3 +56,15 @@ export function generateScoredSelectors(element: RichElementData): {
 export function scoreSelector(selector: string, format: SelectorFormat): SpecialistScore {
   return getSpecialist(format).score(selector);
 }
+
+/**
+ * Convert SpecialistScore to ScoredSelector format used by UI.
+ */
+export function specialistScoreToScoredSelector(
+  selector: string,
+  format: SelectorFormat,
+  result: SpecialistScore
+): ScoredSelector {
+  const warnings = result.factors.filter((f) => f.impact < 0).map((f) => f.description);
+  return { selector, format, score: result.score, warnings };
+}

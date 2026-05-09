@@ -58,21 +58,54 @@ function generate(element: RichElementData): GenerateResult {
   const ariaLabel = attributes['aria-label'];
   if (ariaLabel) add(`//${tag}[@aria-label=${escapeXPathValue(ariaLabel)}]`);
 
-  // role
+  // role + state attributes (aria-checked, aria-disabled, aria-expanded, aria-pressed, aria-selected)
   const role = attributes.role;
   if (role) {
+    const stateConditions: string[] = [];
+    const checked = attributes['aria-checked'];
+    const disabled = attributes['aria-disabled'];
+    const expanded = attributes['aria-expanded'];
+    const pressed = attributes['aria-pressed'];
+    const selected = attributes['aria-selected'];
+    const current = attributes['aria-current'];
+
+    if (checked) stateConditions.push(`@aria-checked=${escapeXPathValue(checked)}`);
+    if (disabled) stateConditions.push(`@aria-disabled=${escapeXPathValue(disabled)}`);
+    if (expanded) stateConditions.push(`@aria-expanded=${escapeXPathValue(expanded)}`);
+    if (pressed) stateConditions.push(`@aria-pressed=${escapeXPathValue(pressed)}`);
+    if (selected) stateConditions.push(`@aria-selected=${escapeXPathValue(selected)}`);
+    if (current) stateConditions.push(`@aria-current=${escapeXPathValue(current)}`);
+
     if (ariaLabel) {
-      add(
-        `//${tag}[@role=${escapeXPathValue(role)} and @aria-label=${escapeXPathValue(ariaLabel)}]`
-      );
+      const labelCond = `@aria-label=${escapeXPathValue(ariaLabel)}`;
+      add(`//${tag}[@role=${escapeXPathValue(role)} and ${labelCond}]`);
+      if (stateConditions.length > 0) {
+        add(
+          `//${tag}[@role=${escapeXPathValue(role)} and ${labelCond} and ${stateConditions.join(' and ')}]`
+        );
+      }
     } else {
       add(`//${tag}[@role=${escapeXPathValue(role)}]`);
+      if (stateConditions.length > 0) {
+        add(`//${tag}[@role=${escapeXPathValue(role)} and ${stateConditions.join(' and ')}]`);
+      }
     }
   }
 
   // name
   const name = attributes.name;
   if (name) add(`//${tag}[@name=${escapeXPathValue(name)}]`);
+
+  // Native disabled attribute
+  if (attributes.disabled !== undefined) {
+    add(`//${tag}[@disabled]`);
+  }
+
+  // Native checked attribute (checkbox/radio)
+  const type = attributes.type;
+  if (attributes.checked !== undefined && (type === 'checkbox' || type === 'radio')) {
+    add(`//${tag}[@type=${escapeXPathValue(type)} and @checked]`);
+  }
 
   // normalize-space(text()) for text content (≤50 chars)
   const trimmedText = text?.trim() ?? '';
@@ -135,6 +168,28 @@ function scoreSelector(selector: string): SpecialistScore {
       description: 'Uses role attribute for semantic targeting.',
     });
     score += 20;
+  }
+
+  // hasState - ARIA or native state attributes add precision
+  const hasAriaState =
+    /@aria-checked|@aria-disabled|@aria-expanded|@aria-pressed|@aria-selected|@aria-current/.test(
+      selector
+    );
+  const hasNativeState = /@disabled|@checked/.test(selector);
+  if (hasAriaState) {
+    factors.push({
+      name: 'hasState',
+      impact: 8,
+      description: 'Uses ARIA state attribute for precise element matching.',
+    });
+    score += 8;
+  } else if (hasNativeState) {
+    factors.push({
+      name: 'hasNativeState',
+      impact: 5,
+      description: 'Uses native state attribute for precise element matching.',
+    });
+    score += 5;
   }
 
   // normalize-space text matching

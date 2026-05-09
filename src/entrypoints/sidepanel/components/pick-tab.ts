@@ -1,4 +1,10 @@
-import type { ElementInfo, RichElementData, SavedSelector, ScoredSelector } from '@/types';
+import type {
+  ElementInfo,
+  RichElementData,
+  SavedSelector,
+  ScoredSelector,
+  SelectorFormat,
+} from '@/types';
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import {
@@ -227,6 +233,44 @@ export class PickTab extends LitElement {
         margin-top: 12px;
       }
 
+      /* ── Loading state ── */
+      .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        padding: 32px 16px;
+        color: var(--text-tertiary);
+        text-align: center;
+      }
+
+      .loading-spinner {
+        width: 24px;
+        height: 24px;
+        border: 2px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      .skeleton-card {
+        height: 40px;
+        background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-tertiary) 50%, var(--bg-secondary) 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 6px;
+        margin-bottom: 4px;
+      }
+
+      @keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+
       /* ── Format groups ── */
       .format-group {
         margin-bottom: 2px;
@@ -314,15 +358,18 @@ export class PickTab extends LitElement {
   ];
 
   @property({ type: Number }) historyLimit = 50;
+  @property({ type: String }) defaultFormat: SelectorFormat = 'xpath';
 
   @state() private _picking = false;
   @state() private _element: RichElementData | null = null;
   @state() private _selectors: ScoredSelector[] = [];
+  @state() private _selectorsLoading = false;
   @state() private _favoriteIds = new Set<string>();
   @state() private _showDomTree = false;
   @state() private _expandedFormats: Set<string> = new Set();
 
   private _pickTimer: ReturnType<typeof setTimeout> | null = null;
+  private _unsubscribers: Array<() => void> = [];
 
   override connectedCallback() {
     super.connectedCallback();
@@ -333,15 +380,21 @@ export class PickTab extends LitElement {
   override disconnectedCallback() {
     super.disconnectedCallback();
     this._clearPickTimer();
+    for (const off of this._unsubscribers) off();
+    this._unsubscribers = [];
   }
 
   private _registerListeners() {
-    onElementSelected((element: RichElementData) => {
-      this._onElementSelected(element);
-    });
-    onPickingCancelled(() => {
-      this._onPickingCancelled();
-    });
+    this._unsubscribers.push(
+      onElementSelected((element: RichElementData) => {
+        this._onElementSelected(element);
+      })
+    );
+    this._unsubscribers.push(
+      onPickingCancelled(() => {
+        this._onPickingCancelled();
+      })
+    );
   }
 
   private async _loadFavorites() {
@@ -386,26 +439,42 @@ export class PickTab extends LitElement {
     this._picking = false;
     this._clearPickTimer();
     this._element = element;
-    const richElement = {
-      ...element,
-      parentChain: element.parentChain || [],
-      siblingTags: element.siblingTags || [],
-      accessibleName: element.accessibleName || '',
-    };
-    const { selectors } = generateScoredSelectors(richElement);
-    this._selectors = selectors;
-    this._expandedFormats = new Set(['playwright']);
+    this._selectors = [];
+    this._selectorsLoading = true;
+    this._expandedFormats = new Set([this.defaultFormat]);
 
-    // Auto-save top selector to recent
-    if (this._selectors.length > 0) {
-      try {
-        const top = this._selectors[0];
-        const saved = makeSavedSelector(top, element);
-        await addRecent(saved, this.historyLimit);
-      } catch {
-        // silently ignore
+    try {
+      const richElement = {
+        ...element,
+        parentChain: element.parentChain || [],
+        siblingTags: element.siblingTags || [],
+        accessibleName: element.accessibleName || '',
+      };
+      const { selectors } = generateScoredSelectors(richElement);
+      this._selectors = selectors;
+
+      // Auto-save top selector to recent
+      if (this._selectors.length > 0) {
+        try {
+          const top = this._selectors[0];
+          const saved = makeSavedSelector(top, element);
+          await addRecent(saved, this.historyLimit);
+        } catch {
+          // silently ignore
+        }
       }
+
+      // Focus the highest-scored card so keyboard users can press Enter to copy.
+      await this.updateComplete;
+      this._focusFirstCard();
+    } finally {
+      this._selectorsLoading = false;
     }
+  }
+
+  private _focusFirstCard() {
+    const first = this.renderRoot?.querySelector<HTMLElement>('selector-card');
+    first?.focus();
   }
 
   private _onPickingCancelled() {
@@ -555,6 +624,18 @@ export class PickTab extends LitElement {
   }
 
   private _renderResults() {
+    if (this._selectorsLoading) {
+      return html`
+        <div class="loading-state">
+          <div class="loading-spinner"></div>
+          <span>Generating selectors…</span>
+          <div class="skeleton-card" style="width:100%"></div>
+          <div class="skeleton-card" style="width:80%"></div>
+          <div class="skeleton-card" style="width:60%"></div>
+        </div>
+      `;
+    }
+
     if (this._selectors.length === 0) return nothing;
 
     const groups = this._groupByFormat(this._selectors);

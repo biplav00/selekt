@@ -58,13 +58,36 @@ function generate(element: RichElementData): GenerateResult {
   const ariaLabel = attributes['aria-label'];
   if (ariaLabel) add(`[aria-label="${escapeCssAttrValue(ariaLabel)}"]`);
 
-  // role + aria-label combo, or role alone
+  // role + state attributes (aria-checked, aria-disabled, aria-expanded, aria-pressed, aria-selected)
   const role = attributes.role;
   if (role) {
+    const stateSelectors: string[] = [];
+    const checked = attributes['aria-checked'];
+    const disabled = attributes['aria-disabled'];
+    const expanded = attributes['aria-expanded'];
+    const pressed = attributes['aria-pressed'];
+    const selected = attributes['aria-selected'];
+    const current = attributes['aria-current'];
+
+    if (checked) stateSelectors.push(`[aria-checked="${escapeCssAttrValue(checked)}"]`);
+    if (disabled) stateSelectors.push(`[aria-disabled="${escapeCssAttrValue(disabled)}"]`);
+    if (expanded) stateSelectors.push(`[aria-expanded="${escapeCssAttrValue(expanded)}"]`);
+    if (pressed) stateSelectors.push(`[aria-pressed="${escapeCssAttrValue(pressed)}"]`);
+    if (selected) stateSelectors.push(`[aria-selected="${escapeCssAttrValue(selected)}"]`);
+    if (current) stateSelectors.push(`[aria-current="${escapeCssAttrValue(current)}"]`);
+
     if (ariaLabel) {
       add(`[role="${escapeCssAttrValue(role)}"][aria-label="${escapeCssAttrValue(ariaLabel)}"]`);
+      if (stateSelectors.length > 0) {
+        add(
+          `[role="${escapeCssAttrValue(role)}"][aria-label="${escapeCssAttrValue(ariaLabel)}"]${stateSelectors.join('')}`
+        );
+      }
     } else {
       add(`[role="${escapeCssAttrValue(role)}"]`);
+      if (stateSelectors.length > 0) {
+        add(`[role="${escapeCssAttrValue(role)}"]${stateSelectors.join('')}`);
+      }
     }
   }
 
@@ -77,6 +100,16 @@ function generate(element: RichElementData): GenerateResult {
   const value = attributes.value;
   if (type && value && tag === 'input') {
     add(`${tag}[type="${escapeCssAttrValue(type)}"][value="${escapeCssAttrValue(value)}"]`);
+  }
+
+  // Native disabled attribute
+  if (attributes.disabled !== undefined) {
+    add(`${tag}[disabled]`);
+  }
+
+  // Native checked attribute (checkbox/radio)
+  if (attributes.checked !== undefined && (type === 'checkbox' || type === 'radio')) {
+    add(`${tag}[type="${escapeCssAttrValue(type)}"][checked]`);
   }
 
   // class (non-dynamic only)
@@ -159,6 +192,28 @@ function scoreSelector(selector: string): SpecialistScore {
       description: 'Uses aria-label for accessible identification.',
     });
     score += 25;
+  }
+
+  // hasState - ARIA or native state attributes add precision
+  const hasAriaState =
+    /\[aria-checked|\[aria-disabled|\[aria-expanded|\[aria-pressed|\[aria-selected|\[aria-current/.test(
+      selector
+    );
+  const hasNativeState = /\[disabled\]|\[checked\]/.test(selector);
+  if (hasAriaState) {
+    factors.push({
+      name: 'hasState',
+      impact: 8,
+      description: 'Uses ARIA state attribute for precise element matching.',
+    });
+    score += 8;
+  } else if (hasNativeState) {
+    factors.push({
+      name: 'hasNativeState',
+      impact: 5,
+      description: 'Uses native state attribute for precise element matching.',
+    });
+    score += 5;
   }
 
   // isShort

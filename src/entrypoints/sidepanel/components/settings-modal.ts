@@ -130,10 +130,28 @@ export class SettingsModal extends LitElement {
 
   // Local draft state
   private _draft: Settings = { ...this.settings };
+  private _previousFocus: HTMLElement | null = null;
 
   override willUpdate(changed: Map<string, unknown>) {
     if (changed.has('settings') || (changed.has('open') && this.open)) {
       this._draft = { ...this.settings };
+    }
+  }
+
+  override updated(changed: Map<string, unknown>) {
+    if (!changed.has('open')) return;
+    if (this.open) {
+      // Remember whatever had focus before opening, so we can restore it on close.
+      const active = (document.activeElement as HTMLElement | null) ?? null;
+      if (active && active !== document.body) this._previousFocus = active;
+      // Move focus into the modal.
+      const first = this.shadowRoot?.querySelector<HTMLElement>(
+        '.card button, .card select, .card input'
+      );
+      first?.focus();
+    } else if (this._previousFocus) {
+      this._previousFocus.focus();
+      this._previousFocus = null;
     }
   }
 

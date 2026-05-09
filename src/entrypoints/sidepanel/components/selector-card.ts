@@ -48,6 +48,17 @@ export class SelectorCard extends LitElement {
         background: var(--bg-tertiary);
       }
 
+      .row:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+        border-color: var(--accent);
+      }
+
+      .row:focus-visible .actions {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
       .selector-text {
         flex: 1;
         font-family: 'JetBrains Mono', 'Courier New', monospace;
@@ -202,6 +213,35 @@ export class SelectorCard extends LitElement {
     }
   }
 
+  private _onKeydown(e: KeyboardEvent) {
+    if (!this.data) return;
+    // Don't hijack typing inside nested inputs/buttons.
+    const target = e.target as HTMLElement;
+    if (target && target !== e.currentTarget && target.tagName === 'BUTTON') return;
+
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      this.dispatchEvent(
+        new CustomEvent('copy', { detail: this.data, bubbles: true, composed: true })
+      );
+    } else if (e.key === 't' || e.key === 'T') {
+      e.preventDefault();
+      this.dispatchEvent(
+        new CustomEvent('test', { detail: this.data, bubbles: true, composed: true })
+      );
+    } else if (e.key === 's' || e.key === 'S') {
+      e.preventDefault();
+      this.dispatchEvent(
+        new CustomEvent('star', { detail: this.data, bubbles: true, composed: true })
+      );
+    }
+  }
+
+  override focus(options?: FocusOptions) {
+    const row = this.shadowRoot?.querySelector<HTMLElement>('.row');
+    row?.focus(options);
+  }
+
   render() {
     if (!this.data) return nothing;
 
@@ -211,7 +251,15 @@ export class SelectorCard extends LitElement {
     const formatBadgeClass = FORMAT_BADGE_CLASS[format] ?? '';
 
     return html`
-      <div class="row" @click=${this._onRowClick} title="Click to copy">
+      <div
+        class="row"
+        tabindex="0"
+        role="button"
+        aria-label="Copy ${format} selector (Enter: copy, T: test, S: star)"
+        @click=${this._onRowClick}
+        @keydown=${this._onKeydown}
+        title="Click to copy · Enter copies, T tests, S stars"
+      >
         <span
           class="score-badge ${scoreClass}"
           title="Score — click to ${this._showFactors ? 'hide' : 'show'} breakdown"
@@ -221,7 +269,7 @@ export class SelectorCard extends LitElement {
           }}
         >${score}</span>
         <span class="badge ${formatBadgeClass}">${formatLabel}</span>
-        <span class="selector-text">${selector}</span>
+        <span class="selector-text" title=${selector}>${selector}</span>
         ${
           this.status !== 'normal' && this.statusText
             ? html`<span class="status-badge status-${this.status}">${this.statusText}</span>`

@@ -29,7 +29,38 @@ export const IMPLICIT_ROLES: Record<string, string> = {
   progress: 'progressbar',
   meter: 'meter',
   output: 'status',
+  fieldset: 'group',
+  option: 'option',
+  hr: 'separator',
+  tbody: 'rowgroup',
+  thead: 'rowgroup',
+  tfoot: 'rowgroup',
+  tr: 'row',
+  td: 'cell',
+  th: 'columnheader',
+  menu: 'menu',
 };
+
+/** Map input[type] to more specific ARIA roles. */
+const INPUT_TYPE_ROLES: Record<string, string> = {
+  checkbox: 'checkbox',
+  radio: 'radio',
+  range: 'slider',
+  number: 'spinbutton',
+  search: 'searchbox',
+  email: 'textbox',
+  tel: 'textbox',
+  url: 'textbox',
+  password: 'textbox',
+  text: 'textbox',
+  button: 'button',
+  submit: 'button',
+  reset: 'button',
+  image: 'button',
+};
+
+/** Input types that have no ARIA role (no accessible interaction). */
+const INPUT_TYPES_NO_ROLE = new Set(['hidden', 'file', 'color']);
 
 export const ROLE_TO_TAGS: Record<string, string[]> = {};
 for (const [tag, role] of Object.entries(IMPLICIT_ROLES)) {
@@ -43,7 +74,29 @@ export function getInferredRole(
   attributes: Record<string, string>
 ): string | undefined {
   if (attributes.role) return attributes.role;
-  return IMPLICIT_ROLES[tag.toLowerCase()];
+  const lower = tag.toLowerCase();
+  // input[type] has more specific role mappings
+  if (lower === 'input') {
+    const type = attributes.type?.toLowerCase();
+    if (!type) return 'textbox';
+    if (INPUT_TYPES_NO_ROLE.has(type)) return undefined;
+    return INPUT_TYPE_ROLES[type] ?? 'textbox';
+  }
+  return IMPLICIT_ROLES[lower];
+}
+
+/** Extract heading level from tag name (h1→1, h2→2, etc.) or aria-level. */
+export function getHeadingLevel(
+  tag: string,
+  attributes: Record<string, string>
+): number | undefined {
+  const ariaLevel = attributes['aria-level'];
+  if (ariaLevel) {
+    const n = Number.parseInt(ariaLevel, 10);
+    if (Number.isFinite(n) && n >= 1) return n;
+  }
+  const match = tag.toLowerCase().match(/^h([1-6])$/);
+  return match ? Number.parseInt(match[1], 10) : undefined;
 }
 
 /**

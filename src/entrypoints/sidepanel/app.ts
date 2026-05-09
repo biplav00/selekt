@@ -1,4 +1,4 @@
-import { LitElement, css, html } from 'lit';
+import { LitElement, css, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { initDomMonitor } from './services/dom-monitor.js';
 import { checkConnection } from './services/messaging.js';
@@ -168,6 +168,10 @@ export class SelektApp extends LitElement {
         color: var(--text-secondary);
         font-size: 12px;
       }
+
+      .tab-content[hidden] {
+        display: none;
+      }
     `,
   ];
 
@@ -225,6 +229,37 @@ export class SelektApp extends LitElement {
   private async _switchTab(tab: Tab) {
     this._activeTab = tab;
     await this._checkConnection();
+    await this.updateComplete;
+    const tabButton = this.shadowRoot?.getElementById(`tab-${tab}`);
+    tabButton?.focus();
+  }
+
+  private _handleTabKeydown(e: KeyboardEvent) {
+    const target = e.target as HTMLElement;
+    if (!target.closest('[role="tab"]')) return;
+
+    const tabs: Tab[] = ['pick', 'build', 'workspace'];
+    const currentIndex = tabs.indexOf(this._activeTab);
+
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      e.stopPropagation();
+      const nextTab = tabs[(currentIndex + 1) % tabs.length];
+      this._switchTab(nextTab);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      e.stopPropagation();
+      const prevTab = tabs[(currentIndex - 1 + tabs.length) % tabs.length];
+      this._switchTab(prevTab);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      e.stopPropagation();
+      this._switchTab(tabs[0]);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      e.stopPropagation();
+      this._switchTab(tabs[tabs.length - 1]);
+    }
   }
 
   private _activateFloating() {
@@ -271,6 +306,7 @@ export class SelektApp extends LitElement {
       case 'pick':
         return html`<pick-tab
           .historyLimit=${this._settings.historyLimit}
+          .defaultFormat=${this._settings.defaultFormat}
           @toast=${(e: CustomEvent) => this._showToast(e.detail)}
         ></pick-tab>`;
       case 'build':
@@ -336,32 +372,44 @@ export class SelektApp extends LitElement {
         <span>${this._connected ? 'Connected' : 'No page'}</span>
       </div>
 
-      <nav class="tab-bar" role="tablist" aria-label="Main navigation">
+      <nav class="tab-bar" role="tablist" aria-label="Main navigation" @keydown=${this._handleTabKeydown}>
         <button
           type="button"
           role="tab"
+          id="tab-pick"
           class="tab-pill ${this._activeTab === 'pick' ? 'active' : ''}"
           aria-selected=${this._activeTab === 'pick'}
+          aria-controls="panel-pick"
           @click=${() => this._switchTab('pick')}
         >Pick</button>
         <button
           type="button"
           role="tab"
+          id="tab-build"
           class="tab-pill ${this._activeTab === 'build' ? 'active' : ''}"
           aria-selected=${this._activeTab === 'build'}
+          aria-controls="panel-build"
           @click=${() => this._switchTab('build')}
         >Build</button>
         <button
           type="button"
           role="tab"
+          id="tab-workspace"
           class="tab-pill ${this._activeTab === 'workspace' ? 'active' : ''}"
           aria-selected=${this._activeTab === 'workspace'}
+          aria-controls="panel-workspace"
           @click=${() => this._switchTab('workspace')}
         >Workspace</button>
       </nav>
 
-      <div class="tab-content" role="tabpanel">
-        ${this._renderTabContent()}
+      <div class="tab-content" role="tabpanel" id="panel-pick" aria-labelledby="tab-pick">
+        ${this._activeTab === 'pick' ? this._renderTabContent() : nothing}
+      </div>
+      <div class="tab-content" role="tabpanel" id="panel-build" aria-labelledby="tab-build" hidden>
+        ${this._activeTab === 'build' ? this._renderTabContent() : nothing}
+      </div>
+      <div class="tab-content" role="tabpanel" id="panel-workspace" aria-labelledby="tab-workspace" hidden>
+        ${this._activeTab === 'workspace' ? this._renderTabContent() : nothing}
       </div>
 
       <selekt-toast></selekt-toast>

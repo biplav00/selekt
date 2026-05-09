@@ -271,6 +271,18 @@ export class FloatingWidget {
           this.setTheme(!window.matchMedia('(prefers-color-scheme: dark)').matches);
         }
       });
+
+      // Listen for theme changes from sidepanel
+      chrome.storage.onChanged.addListener((changes) => {
+        if (changes.theme) {
+          const theme = changes.theme.newValue;
+          if (theme === 'light') this.setTheme(false);
+          else if (theme === 'dark') this.setTheme(true);
+          else if (theme === 'system') {
+            this.setTheme(!window.matchMedia('(prefers-color-scheme: dark)').matches);
+          }
+        }
+      });
     } catch {
       // Not in extension context
     }
@@ -303,14 +315,23 @@ export class FloatingWidget {
   hide(): void {
     this.widget.style.display = 'none';
     this.visible = false;
+    this.cancelPendingTest();
     clearHighlights();
   }
 
   destroy(): void {
     window.removeEventListener('mousemove', this.boundDragMove);
     window.removeEventListener('mouseup', this.boundDragEnd);
+    this.cancelPendingTest();
     clearHighlights();
     this.host.remove();
+  }
+
+  private cancelPendingTest(): void {
+    if (this.testDebounce) {
+      clearTimeout(this.testDebounce);
+      this.testDebounce = null;
+    }
   }
 
   isVisible(): boolean {
@@ -360,7 +381,8 @@ export class FloatingWidget {
   }
 
   private scheduleTest(): void {
-    if (this.testDebounce) clearTimeout(this.testDebounce);
+    this.cancelPendingTest();
+    if (!this.visible) return;
     this.testDebounce = setTimeout(() => this.runTest(), 400);
   }
 

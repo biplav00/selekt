@@ -233,23 +233,58 @@ export async function testSelectorScoped(
   return response?.count ?? 0;
 }
 
-export function onElementSelected(callback: (element: RichElementData) => void): void {
+// ---------------------------------------------------------------------------
+// Runtime message subscriptions
+// ---------------------------------------------------------------------------
+// Register a single `chrome.runtime.onMessage` listener and fan out to per-type
+// callback sets. This avoids accumulating duplicate listeners when a component
+// is re-registered (e.g., on sidepanel reopen or tab re-mount), which would
+// cause events to fire N times after N registrations.
+
+type MessageCallback = (message: Record<string, unknown>) => void;
+const messageCallbacks = new Map<string, Set<MessageCallback>>();
+let runtimeListenerInstalled = false;
+
+function installRuntimeListener() {
+  if (runtimeListenerInstalled) return;
+  runtimeListenerInstalled = true;
   chrome.runtime.onMessage.addListener((message) => {
-    if (message.type === 'ELEMENT_SELECTED') callback(message.element);
+    const type = message?.type as string | undefined;
+    if (!type) return;
+    const set = messageCallbacks.get(type);
+    if (!set) return;
+    for (const cb of set) cb(message);
   });
 }
 
-export function onPickingCancelled(callback: () => void): void {
-  chrome.runtime.onMessage.addListener((message) => {
-    if (message.type === 'PICKING_CANCELLED') callback();
+function subscribe(type: string, callback: MessageCallback): () => void {
+  installRuntimeListener();
+  let set = messageCallbacks.get(type);
+  if (!set) {
+    set = new Set();
+    messageCallbacks.set(type, set);
+  }
+  set.add(callback);
+  return () => {
+    set?.delete(callback);
+  };
+}
+
+export function onElementSelected(callback: (element: RichElementData) => void): () => void {
+  return subscribe('ELEMENT_SELECTED', (message) => {
+    callback(message.element as RichElementData);
   });
+}
+
+export function onPickingCancelled(callback: () => void): () => void {
+  return subscribe('PICKING_CANCELLED', () => callback());
 }
 
 export function onSelectorStatusChanged(
   callback: (change: { id: string; oldCount: number; newCount: number }) => void
-): void {
-  chrome.runtime.onMessage.addListener((message) => {
-    if (message.type === 'SELECTOR_STATUS_CHANGED') callback(message);
+): () => void {
+  return subscribe('SELECTOR_STATUS_CHANGED', (message) => {
+    callback(message as { id: string; oldCount: number; newCount: number });
   });
 }
 
