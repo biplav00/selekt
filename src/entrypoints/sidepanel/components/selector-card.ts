@@ -1,6 +1,7 @@
+import type { ActionableWarning } from '@/specialists/types';
 import type { ScoredSelector } from '@/types';
 import { LitElement, css, html, nothing } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 import { sharedStyles } from '../styles/shared.js';
 
 const FORMAT_LABEL: Record<string, string> = {
@@ -45,6 +46,17 @@ export class SelectorCard extends LitElement {
       .row:hover {
         border-color: var(--accent);
         background: var(--bg-tertiary);
+      }
+
+      .row:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+        border-color: var(--accent);
+      }
+
+      .row:focus-visible .actions {
+        opacity: 1;
+        pointer-events: auto;
       }
 
       .selector-text {
@@ -124,17 +136,30 @@ export class SelectorCard extends LitElement {
       .warning-row {
         display: flex;
         align-items: center;
-        gap: 4px;
-        margin-top: 3px;
-        padding-left: 4px;
-        color: var(--warning);
-        font-size: 10px;
+        gap: 6px;
+        padding: 4px 10px;
+        font-size: 11px;
+        color: var(--text-secondary);
+        border-top: 1px solid var(--border);
       }
-
-      .warning-row span {
+      .warning-row.error { color: var(--error, #ef4444); }
+      .warning-row.info { color: var(--text-secondary); }
+      .warning-icon { flex-shrink: 0; font-size: 10px; }
+      .warning-text { flex: 1; }
+      .fix-btn {
+        padding: 2px 8px;
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--accent);
+        font-family: inherit;
+        font-size: 10px;
+        cursor: pointer;
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        transition: background 0.15s;
+      }
+      .fix-btn:hover {
+        background: color-mix(in srgb, var(--accent) 10%, transparent);
       }
     `,
   ];
@@ -150,6 +175,9 @@ export class SelectorCard extends LitElement {
 
   @property({ type: String })
   statusText = '';
+
+  @state()
+  private _showFactors = false;
 
   private _scoreClass(score: number): string {
     if (score >= 70) return 'score-good';
@@ -185,6 +213,35 @@ export class SelectorCard extends LitElement {
     }
   }
 
+  private _onKeydown(e: KeyboardEvent) {
+    if (!this.data) return;
+    // Don't hijack typing inside nested inputs/buttons.
+    const target = e.target as HTMLElement;
+    if (target && target !== e.currentTarget && target.tagName === 'BUTTON') return;
+
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      this.dispatchEvent(
+        new CustomEvent('copy', { detail: this.data, bubbles: true, composed: true })
+      );
+    } else if (e.key === 't' || e.key === 'T') {
+      e.preventDefault();
+      this.dispatchEvent(
+        new CustomEvent('test', { detail: this.data, bubbles: true, composed: true })
+      );
+    } else if (e.key === 's' || e.key === 'S') {
+      e.preventDefault();
+      this.dispatchEvent(
+        new CustomEvent('star', { detail: this.data, bubbles: true, composed: true })
+      );
+    }
+  }
+
+  override focus(options?: FocusOptions) {
+    const row = this.shadowRoot?.querySelector<HTMLElement>('.row');
+    row?.focus(options);
+  }
+
   render() {
     if (!this.data) return nothing;
 
@@ -194,10 +251,25 @@ export class SelectorCard extends LitElement {
     const formatBadgeClass = FORMAT_BADGE_CLASS[format] ?? '';
 
     return html`
-      <div class="row" @click=${this._onRowClick} title="Click to copy">
-        <span class="score-badge ${scoreClass}">${score}</span>
+      <div
+        class="row"
+        tabindex="0"
+        role="button"
+        aria-label="Copy ${format} selector (Enter: copy, T: test, S: star)"
+        @click=${this._onRowClick}
+        @keydown=${this._onKeydown}
+        title="Click to copy · Enter copies, T tests, S stars"
+      >
+        <span
+          class="score-badge ${scoreClass}"
+          title="Score — click to ${this._showFactors ? 'hide' : 'show'} breakdown"
+          @click=${(e: Event) => {
+            e.stopPropagation();
+            this._showFactors = !this._showFactors;
+          }}
+        >${score}</span>
         <span class="badge ${formatBadgeClass}">${formatLabel}</span>
-        <span class="selector-text">${selector}</span>
+        <span class="selector-text" title=${selector}>${selector}</span>
         ${
           this.status !== 'normal' && this.statusText
             ? html`<span class="status-badge status-${this.status}">${this.statusText}</span>`
@@ -214,14 +286,37 @@ export class SelectorCard extends LitElement {
       </div>
       ${
         warnings && warnings.length > 0
-          ? warnings.map(
-              (w) => html`
-              <div class="warning-row">
-                <span>⚠</span>
-                <span>${w}</span>
-              </div>
-            `
-            )
+          ? warnings.map((w: string | ActionableWarning) => {
+              const warning =
+                typeof w === 'string'
+                  ? { message: w, severity: 'warning' as const }
+                  : (w as ActionableWarning);
+              return html`
+                <div class="warning-row ${warning.severity || 'warning'}">
+                  <span class="warning-icon">${warning.severity === 'error' ? '✕' : warning.severity === 'info' ? 'ℹ' : '⚠'}</span>
+                  <span class="warning-text">${warning.message}</span>
+                  ${
+                    (warning as ActionableWarning).fix
+                      ? html`
+                    <button class="fix-btn" @click=${(e: Event) => {
+                      e.stopPropagation();
+                      this.dispatchEvent(
+                        new CustomEvent('apply-fix', {
+                          detail: {
+                            selector: (warning as ActionableWarning).fix!.selector,
+                            format: this.data!.format,
+                          },
+                          bubbles: true,
+                          composed: true,
+                        })
+                      );
+                    }}>Fix →</button>
+                  `
+                      : nothing
+                  }
+                </div>
+              `;
+            })
           : nothing
       }
     `;

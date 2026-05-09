@@ -1,4 +1,10 @@
-import type { ElementInfo, SavedSelector, ScoredSelector } from '@/types';
+import type {
+  ElementInfo,
+  RichElementData,
+  SavedSelector,
+  ScoredSelector,
+  SelectorFormat,
+} from '@/types';
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import {
@@ -13,8 +19,15 @@ import { sharedStyles } from '../styles/shared.js';
 import './dom-tree.js';
 import './selector-card.js';
 
-const DEFAULT_SHOW = 5;
 const PICK_TIMEOUT_MS = 30_000;
+
+const FORMAT_LABELS: Record<string, string> = {
+  css: 'CSS',
+  xpath: 'XPath',
+  playwright: 'Playwright',
+  cypress: 'Cypress',
+  selenium: 'Selenium',
+};
 
 function makeSavedSelector(scored: ScoredSelector, element: ElementInfo): SavedSelector {
   return {
@@ -220,6 +233,105 @@ export class PickTab extends LitElement {
         margin-top: 12px;
       }
 
+      /* ── Loading state ── */
+      .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        padding: 32px 16px;
+        color: var(--text-tertiary);
+        text-align: center;
+      }
+
+      .loading-spinner {
+        width: 24px;
+        height: 24px;
+        border: 2px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      .skeleton-card {
+        height: 40px;
+        background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-tertiary) 50%, var(--bg-secondary) 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 6px;
+        margin-bottom: 4px;
+      }
+
+      @keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+
+      /* ── Format groups ── */
+      .format-group {
+        margin-bottom: 2px;
+      }
+
+      .format-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 8px 10px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 12px;
+        color: var(--text-primary);
+        transition: background 0.15s;
+      }
+
+      .format-header:hover {
+        background: var(--bg-tertiary);
+      }
+
+      .format-arrow {
+        font-size: 10px;
+        color: var(--text-secondary);
+        width: 12px;
+      }
+
+      .format-name {
+        font-weight: 600;
+        flex: 1;
+        text-align: left;
+      }
+
+      .format-best-score {
+        font-size: 11px;
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+
+      .format-selectors {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 4px 0 4px 20px;
+      }
+
+      .show-more-btn {
+        padding: 4px 10px;
+        background: transparent;
+        border: 1px dashed var(--border);
+        border-radius: 4px;
+        color: var(--text-secondary);
+        font-family: inherit;
+        font-size: 11px;
+        cursor: pointer;
+      }
+
       /* ── Empty state ── */
       .empty-state {
         display: flex;
@@ -246,15 +358,18 @@ export class PickTab extends LitElement {
   ];
 
   @property({ type: Number }) historyLimit = 50;
+  @property({ type: String }) defaultFormat: SelectorFormat = 'xpath';
 
   @state() private _picking = false;
-  @state() private _element: ElementInfo | null = null;
+  @state() private _element: RichElementData | null = null;
   @state() private _selectors: ScoredSelector[] = [];
-  @state() private _showAll = false;
+  @state() private _selectorsLoading = false;
   @state() private _favoriteIds = new Set<string>();
   @state() private _showDomTree = false;
+  @state() private _expandedFormats: Set<string> = new Set();
 
   private _pickTimer: ReturnType<typeof setTimeout> | null = null;
+  private _unsubscribers: Array<() => void> = [];
 
   override connectedCallback() {
     super.connectedCallback();
@@ -265,15 +380,21 @@ export class PickTab extends LitElement {
   override disconnectedCallback() {
     super.disconnectedCallback();
     this._clearPickTimer();
+    for (const off of this._unsubscribers) off();
+    this._unsubscribers = [];
   }
 
   private _registerListeners() {
-    onElementSelected((element: ElementInfo) => {
-      this._onElementSelected(element);
-    });
-    onPickingCancelled(() => {
-      this._onPickingCancelled();
-    });
+    this._unsubscribers.push(
+      onElementSelected((element: RichElementData) => {
+        this._onElementSelected(element);
+      })
+    );
+    this._unsubscribers.push(
+      onPickingCancelled(() => {
+        this._onPickingCancelled();
+      })
+    );
   }
 
   private async _loadFavorites() {
@@ -314,23 +435,46 @@ export class PickTab extends LitElement {
     }
   }
 
-  private async _onElementSelected(element: ElementInfo) {
+  private async _onElementSelected(element: RichElementData) {
     this._picking = false;
     this._clearPickTimer();
     this._element = element;
-    this._selectors = generateScoredSelectors(element);
-    this._showAll = false;
+    this._selectors = [];
+    this._selectorsLoading = true;
+    this._expandedFormats = new Set([this.defaultFormat]);
 
-    // Auto-save top selector to recent
-    if (this._selectors.length > 0) {
-      try {
-        const top = this._selectors[0];
-        const saved = makeSavedSelector(top, element);
-        await addRecent(saved, this.historyLimit);
-      } catch {
-        // silently ignore
+    try {
+      const richElement = {
+        ...element,
+        parentChain: element.parentChain || [],
+        siblingTags: element.siblingTags || [],
+        accessibleName: element.accessibleName || '',
+      };
+      const { selectors } = generateScoredSelectors(richElement);
+      this._selectors = selectors;
+
+      // Auto-save top selector to recent
+      if (this._selectors.length > 0) {
+        try {
+          const top = this._selectors[0];
+          const saved = makeSavedSelector(top, element);
+          await addRecent(saved, this.historyLimit);
+        } catch {
+          // silently ignore
+        }
       }
+
+      // Focus the highest-scored card so keyboard users can press Enter to copy.
+      await this.updateComplete;
+      this._focusFirstCard();
+    } finally {
+      this._selectorsLoading = false;
     }
+  }
+
+  private _focusFirstCard() {
+    const first = this.renderRoot?.querySelector<HTMLElement>('selector-card');
+    first?.focus();
   }
 
   private _onPickingCancelled() {
@@ -405,7 +549,7 @@ export class PickTab extends LitElement {
     return chips.length > 0 ? html`<div class="attr-chips">${chips}</div>` : nothing;
   }
 
-  private _renderElementCard(element: ElementInfo) {
+  private _renderElementCard(element: RichElementData) {
     return html`
       <div class="element-card">
         <div class="element-card-header">
@@ -417,11 +561,94 @@ export class PickTab extends LitElement {
     `;
   }
 
+  private _groupByFormat(selectors: ScoredSelector[]): Map<string, ScoredSelector[]> {
+    const groups = new Map<string, ScoredSelector[]>();
+    for (const s of selectors) {
+      if (!groups.has(s.format)) groups.set(s.format, []);
+      groups.get(s.format)!.push(s);
+    }
+    return groups;
+  }
+
+  private _toggleFormat(format: string) {
+    const next = new Set(this._expandedFormats);
+    if (next.has(format)) next.delete(format);
+    else next.add(format);
+    this._expandedFormats = next;
+  }
+
+  private _renderFormatGroup(format: string, selectors: ScoredSelector[]) {
+    const expanded = this._expandedFormats.has(format);
+    const best = selectors[0]?.score ?? 0;
+    const shown = expanded ? selectors.slice(0, 5) : [];
+
+    return html`
+      <div class="format-group">
+        <button class="format-header" type="button" @click=${() => this._toggleFormat(format)}>
+          <span class="format-arrow">${expanded ? '▼' : '▸'}</span>
+          <span class="format-name">${FORMAT_LABELS[format] || format}</span>
+          <span class="format-best-score">${best}</span>
+        </button>
+        ${
+          expanded
+            ? html`
+          <div class="format-selectors">
+            ${shown.map(
+              (s) => html`
+              <selector-card
+                .data=${s}
+                .starred=${this._favoriteIds.has(`${s.format}::${s.selector}`)}
+                @copy=${this._onCopy}
+                @selector-test=${this._onTest}
+                @selector-star=${this._onStar}
+              ></selector-card>
+            `
+            )}
+            ${
+              selectors.length > 5
+                ? html`
+              <button class="show-more-btn" type="button" @click=${() => {
+                /* expand all handled via full list */ void 0;
+              }}>
+                Show all ${selectors.length}
+              </button>
+            `
+                : nothing
+            }
+          </div>
+        `
+            : nothing
+        }
+      </div>
+    `;
+  }
+
   private _renderResults() {
+    if (this._selectorsLoading) {
+      return html`
+        <div class="loading-state">
+          <div class="loading-spinner"></div>
+          <span>Generating selectors…</span>
+          <div class="skeleton-card" style="width:100%"></div>
+          <div class="skeleton-card" style="width:80%"></div>
+          <div class="skeleton-card" style="width:60%"></div>
+        </div>
+      `;
+    }
+
     if (this._selectors.length === 0) return nothing;
 
-    const visible = this._showAll ? this._selectors : this._selectors.slice(0, DEFAULT_SHOW);
-    const hiddenCount = this._selectors.length - DEFAULT_SHOW;
+    const groups = this._groupByFormat(this._selectors);
+
+    // Sort groups: preferred format first, then by best score descending
+    const preferredFormat = 'playwright';
+    const sortedFormats = [...groups.keys()].sort((a, b) => {
+      if (a === preferredFormat) return -1;
+      if (b === preferredFormat) return 1;
+      const scoreA = groups.get(a)![0]?.score ?? 0;
+      const scoreB = groups.get(b)![0]?.score ?? 0;
+      return scoreB - scoreA;
+    });
 
     return html`
       <div class="results-section">
@@ -430,29 +657,8 @@ export class PickTab extends LitElement {
           <span>${this._selectors.length} found</span>
         </div>
         <div class="results-list">
-          ${visible.map(
-            (s) => html`
-              <selector-card
-                .data=${s}
-                .starred=${this._favoriteIds.has(`${s.format}::${s.selector}`)}
-                @copy=${this._onCopy}
-                @test=${this._onTest}
-                @star=${this._onStar}
-              ></selector-card>
-            `
-          )}
+          ${sortedFormats.map((format) => this._renderFormatGroup(format, groups.get(format)!))}
         </div>
-        ${
-          !this._showAll && hiddenCount > 0
-            ? html`
-              <button class="show-all-btn" type="button" @click=${() => {
-                this._showAll = true;
-              }}>
-                Show all (${this._selectors.length})
-              </button>
-            `
-            : nothing
-        }
       </div>
     `;
   }

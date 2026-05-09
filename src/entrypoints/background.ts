@@ -1,4 +1,5 @@
 import { defineBackground } from 'wxt/utils/define-background';
+import { ensureContentScript } from '../utils/content-script';
 
 export default defineBackground({
   main() {
@@ -15,7 +16,6 @@ export default defineBackground({
 
         // Skip restricted pages
         if (tab.url?.startsWith('chrome://') || tab.url?.startsWith('about:')) {
-          console.log('Cannot activate picker on restricted pages');
           return;
         }
 
@@ -33,8 +33,44 @@ export default defineBackground({
 
           await chrome.tabs.sendMessage(tab.id, { type: 'START_PICKING' });
         } catch {
-          console.log('Could not activate picker on this page');
+          // Content script not available on this page
         }
+      }
+    });
+
+    // Handle floating mode messages
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.type === 'ACTIVATE_FLOATING') {
+        // Relay from sidepanel to content script
+        chrome.tabs
+          .query({ active: true, currentWindow: true })
+          .then(async ([tab]) => {
+            if (!tab?.id) {
+              sendResponse({ success: false });
+              return;
+            }
+            try {
+              await ensureContentScript(tab.id);
+              await chrome.tabs.sendMessage(tab.id, { type: 'ACTIVATE_FLOATING' });
+              sendResponse({ success: true });
+            } catch {
+              sendResponse({ success: false });
+            }
+          })
+          .catch(() => {
+            sendResponse({ success: false });
+          });
+        return true;
+      }
+
+      if (message.type === 'ACTIVATE_SIDEPANEL') {
+        // Relay from content script — open sidepanel
+        const windowId = sender.tab?.windowId;
+        if (windowId) {
+          chrome.sidePanel.open({ windowId });
+        }
+        sendResponse({ success: true });
+        return true;
       }
     });
   },

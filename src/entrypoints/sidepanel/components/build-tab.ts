@@ -1,7 +1,24 @@
-import type { PageElement, ScoredSelector, SelectorFormat } from '@/types';
+import {
+  type AutocompleteSuggestion,
+  detectFormat,
+  generateAutocompleteSuggestions,
+  parseContext,
+} from '@/specialists/autocomplete';
+import { buildRichPageData } from '@/specialists/helpers/page-data';
+import { getSpecialist } from '@/specialists/registry';
+import type { ValidationResult } from '@/specialists/types';
+import type { PageElement, RichElementData, ScoredSelector, SelectorFormat } from '@/types';
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { countMatches, fetchPageElements, testSelector } from '../services/messaging.js';
+import {
+  batchQuerySelectors,
+  clearHighlights,
+  countMatches,
+  fetchPageElements,
+  onSelectorStatusChanged,
+  testSelector,
+} from '../services/messaging.js';
+import { getPageData, requestScrape } from '../services/page-cache.js';
 import {
   escapeCssAttrValue,
   escapeDoubleQuoteJs,
@@ -10,6 +27,7 @@ import {
   extractTestable,
   generateScoredSelectors,
   scoreSelector,
+  specialistScoreToScoredSelector,
 } from '../services/selector-engine.js';
 import { addFavorite } from '../services/storage.js';
 import { sharedStyles } from '../styles/shared.js';
@@ -60,15 +78,6 @@ interface Suggestion {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function detectFormat(selector: string): SelectorFormat {
-  const s = selector.trimStart();
-  if (s.startsWith('//') || s.startsWith('(/')) return 'xpath';
-  if (s.startsWith('page.')) return 'playwright';
-  if (s.startsWith('cy.')) return 'cypress';
-  if (s.startsWith('driver.')) return 'selenium';
-  return 'css';
-}
 
 function makeId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -319,52 +328,6 @@ export class BuildTab extends LitElement {
         color: var(--score-poor);
       }
 
-      /* ── Suggestions panel ── */
-      .suggestions-panel {
-        position: relative;
-        margin-top: 6px;
-      }
-
-      .suggestions-list {
-        background: var(--bg-secondary);
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        overflow: hidden;
-        max-height: 160px;
-        overflow-y: auto;
-      }
-
-      .suggestion-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 5px 8px;
-        cursor: pointer;
-        transition: background 0.1s;
-        font-size: 11px;
-      }
-
-      .suggestion-item:hover {
-        background: var(--bg-tertiary);
-      }
-
-      .suggestion-type {
-        font-size: 9px;
-        font-weight: 600;
-        color: var(--text-tertiary);
-        text-transform: uppercase;
-        flex-shrink: 0;
-        width: 36px;
-      }
-
-      .suggestion-label {
-        font-family: 'JetBrains Mono', 'Courier New', monospace;
-        color: var(--text-primary);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
       /* ── Action buttons ── */
       .action-row {
         display: flex;
@@ -540,6 +503,168 @@ export class BuildTab extends LitElement {
         color: var(--warning);
         line-height: 1.4;
       }
+
+      /* ── Autocomplete dropdown ── */
+      .autocomplete-dropdown {
+        position: absolute;
+        left: 0;
+        right: 0;
+        background: var(--bg-primary);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 10;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+
+      .autocomplete-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 6px 10px;
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 11px;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .autocomplete-item:last-child {
+        border-bottom: none;
+      }
+
+      .autocomplete-item:hover,
+      .autocomplete-item.selected {
+        background: var(--bg-tertiary);
+      }
+
+      .autocomplete-selector {
+        font-family: monospace;
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .autocomplete-detail {
+        color: var(--text-secondary);
+        font-size: 10px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .autocomplete-desc {
+        color: var(--text-secondary);
+        font-size: 10px;
+        white-space: nowrap;
+      }
+
+      .match-badge {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 1px 6px;
+        border-radius: 8px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .match-unique {
+        background: rgba(34, 197, 94, 0.15);
+        color: #22c55e;
+      }
+      .match-ambiguous {
+        background: rgba(234, 179, 8, 0.15);
+        color: #eab308;
+      }
+      .match-none {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+      }
+      .match-loading {
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+      }
+      .scoped-divider {
+        padding: 4px 10px;
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .autocomplete-item.scoped {
+        background: color-mix(in srgb, var(--accent) 3%, transparent);
+      }
+
+      /* ── Did you mean ── */
+      .did-you-mean {
+        padding: 6px 10px;
+        font-size: 11px;
+        color: var(--text-secondary);
+      }
+
+      .dym-label {
+        display: block;
+        margin-bottom: 4px;
+        font-weight: 500;
+      }
+
+      .dym-item {
+        display: block;
+        padding: 3px 8px;
+        margin: 2px 0;
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--accent);
+        font-family: monospace;
+        font-size: 11px;
+        cursor: pointer;
+        text-align: left;
+        width: 100%;
+      }
+
+      .dym-item:hover {
+        background: var(--bg-tertiary);
+      }
+
+      .dym-desc {
+        color: var(--text-secondary);
+        font-family: inherit;
+        margin-left: 6px;
+      }
+
+      /* ── Validation error ── */
+      .validation-error {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        font-size: 11px;
+        color: var(--error, #ef4444);
+      }
+
+      .val-msg {
+        flex: 1;
+      }
+
+      .fix-btn {
+        padding: 2px 8px;
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--accent);
+        font-family: inherit;
+        font-size: 10px;
+        cursor: pointer;
+      }
     `,
   ];
 
@@ -553,8 +678,15 @@ export class BuildTab extends LitElement {
   @state() private _matchCount: number | null = null;
   @state() private _matchLoading = false;
   @state() private _scored: ScoredSelector | null = null;
-  @state() private _showSuggestions = false;
   @state() private _pageElements: PageElement[] = [];
+
+  // ── Autocomplete / did-you-mean / validation state ──
+  @state() private _autocompleteSuggestions: AutocompleteSuggestion[] = [];
+  @state() private _autocompleteIndex = -1;
+  @state() private _didYouMean: AutocompleteSuggestion[] = [];
+  @state() private _validationError: ValidationResult | null = null;
+  @state() private _scopedSuggestions: AutocompleteSuggestion[] = [];
+  private _highlightTimer: ReturnType<typeof setTimeout> | null = null;
 
   // ── Structured state ──
   @state() private _structFramework: SelectorFormat = 'playwright';
@@ -602,6 +734,8 @@ export class BuildTab extends LitElement {
 
   // Debounce timers
   private _matchDebounce: ReturnType<typeof setTimeout> | null = null;
+  private _scoreDebounce: ReturnType<typeof setTimeout> | null = null;
+  private _unsubscribers: Array<() => void> = [];
 
   // ---------------------------------------------------------------------------
   // Lifecycle
@@ -610,6 +744,22 @@ export class BuildTab extends LitElement {
   override connectedCallback() {
     super.connectedCallback();
     this._loadPageSuggestions();
+    requestScrape();
+    this._unsubscribers.push(
+      onSelectorStatusChanged(() => {
+        requestScrape();
+      })
+    );
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this._matchDebounce !== null) clearTimeout(this._matchDebounce);
+    if (this._scoreDebounce !== null) clearTimeout(this._scoreDebounce);
+    this._matchDebounce = null;
+    this._scoreDebounce = null;
+    for (const off of this._unsubscribers) off();
+    this._unsubscribers = [];
   }
 
   private async _loadPageSuggestions() {
@@ -625,6 +775,35 @@ export class BuildTab extends LitElement {
   // ---------------------------------------------------------------------------
 
   private _onFreeformKeydown(e: KeyboardEvent) {
+    // Handle autocomplete dropdown navigation first
+    if (this._autocompleteSuggestions.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        this._autocompleteIndex = Math.min(
+          this._autocompleteIndex + 1,
+          this._autocompleteSuggestions.length - 1
+        );
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        this._autocompleteIndex = Math.max(this._autocompleteIndex - 1, -1);
+        return;
+      }
+      if (e.key === 'Enter' && this._autocompleteIndex >= 0) {
+        e.preventDefault();
+        this._applySuggestion(this._autocompleteSuggestions[this._autocompleteIndex]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        this._clearSuggestionHighlights();
+        this._autocompleteSuggestions = [];
+        this._scopedSuggestions = [];
+        this._autocompleteIndex = -1;
+        return;
+      }
+    }
+
     const ta = e.target as HTMLTextAreaElement;
     const pairs: Record<string, string> = {
       '(': ')',
@@ -709,20 +888,77 @@ export class BuildTab extends LitElement {
     }
 
     if (val.trim()) {
-      this._scored = scoreSelector(val.trim(), this._freeformFormat);
+      this._scored = specialistScoreToScoredSelector(val.trim(), this._freeformFormat);
     } else {
       this._scored = null;
       this._matchCount = null;
     }
 
+    this._clearSuggestionHighlights();
     this._scheduleMatchCount();
+    this._scheduleFetchSuggestions();
+  }
+
+  private _scheduleFetchSuggestions() {
+    if (this._scoreDebounce !== null) clearTimeout(this._scoreDebounce);
+    this._scoreDebounce = setTimeout(() => {
+      this._scoreDebounce = null;
+      this._fetchSuggestions();
+    }, 150);
+  }
+
+  private _fetchSuggestions() {
+    const val = this._freeformSelector;
+    const cursor = val.length; // Use end of input for now
+
+    if (!val.trim()) {
+      this._autocompleteSuggestions = [];
+      this._autocompleteIndex = -1;
+      return;
+    }
+
+    try {
+      const pageData = getPageData();
+      const ctx = parseContext(val, cursor);
+      const suggestions = generateAutocompleteSuggestions({ context: ctx, partial: val, pageData });
+      this._autocompleteSuggestions = suggestions.slice(0, 10);
+    } catch {
+      this._autocompleteSuggestions = [];
+    }
+    this._autocompleteIndex = -1;
+  }
+
+  private _batchFetchCounts(suggestions: AutocompleteSuggestion[]) {
+    // No-op: inline autocompletion doesn't need match counts
+  }
+
+  private _onSuggestionHover(_suggestion: AutocompleteSuggestion) {
+    // No-op: inline autocompletion doesn't highlight on hover
+  }
+
+  private _clearSuggestionHighlights() {
+    if (this._highlightTimer) {
+      clearTimeout(this._highlightTimer);
+      this._highlightTimer = null;
+    }
+    clearHighlights().catch(() => {});
+  }
+
+  private _matchBadgeClass(count?: number): string {
+    if (count === undefined) return 'match-loading';
+    if (count === 0) return 'match-none';
+    if (count === 1) return 'match-unique';
+    return 'match-ambiguous';
   }
 
   private _onFormatChange(e: Event) {
     this._freeformFormat = (e.target as HTMLSelectElement).value as SelectorFormat;
     this._freeformAutoFormat = false;
     if (this._freeformSelector.trim()) {
-      this._scored = scoreSelector(this._freeformSelector.trim(), this._freeformFormat);
+      this._scored = specialistScoreToScoredSelector(
+        this._freeformSelector.trim(),
+        this._freeformFormat
+      );
     }
     this._scheduleMatchCount();
   }
@@ -736,11 +972,13 @@ export class BuildTab extends LitElement {
     const sel = this._freeformSelector.trim();
     if (!sel) {
       this._matchCount = null;
+      this._didYouMean = [];
       return;
     }
     const testable = extractTestable(sel, this._freeformFormat);
     if (!testable) {
       this._matchCount = null;
+      this._didYouMean = [];
       return;
     }
     this._matchLoading = true;
@@ -751,6 +989,18 @@ export class BuildTab extends LitElement {
       this._matchCount = null;
     } finally {
       this._matchLoading = false;
+    }
+
+    if (this._matchCount === 0) {
+      try {
+        const format = this._freeformFormat;
+        const specialist = getSpecialist(format);
+        this._didYouMean = specialist.didYouMean(sel, getPageData()).slice(0, 3);
+      } catch {
+        this._didYouMean = [];
+      }
+    } else {
+      this._didYouMean = [];
     }
   }
 
@@ -770,237 +1020,28 @@ export class BuildTab extends LitElement {
     }
   }
 
-  private _onSuggestionClick(suggestion: Suggestion) {
-    this._freeformSelector = suggestion.code;
-    this._freeformAutoFormat = true;
-    this._freeformFormat = detectFormat(suggestion.code);
-    this._scored = scoreSelector(suggestion.code.trim(), this._freeformFormat);
-    this._showSuggestions = false;
+  private _applySuggestion(suggestion: AutocompleteSuggestion) {
+    // For inline autocomplete, append the insertText to the current value
+    this._freeformSelector = this._freeformSelector + suggestion.insertText;
+    this._autocompleteSuggestions = [];
+    this._autocompleteIndex = -1;
     this._scheduleMatchCount();
   }
 
-  private _pageElementsToSuggestions(format: SelectorFormat): Suggestion[] {
-    const results: Suggestion[] = [];
-    for (const el of this._pageElements) {
-      const sug = this._elementToSuggestions(el, format);
-      results.push(...sug);
+  private _validateFreeform() {
+    const val = this._freeformSelector.trim();
+    if (!val) {
+      this._validationError = null;
+      return;
     }
-    return results;
-  }
-
-  private _elementToSuggestions(el: PageElement, format: SelectorFormat): Suggestion[] {
-    const out: Suggestion[] = [];
-    const tag = el.tag;
-
-    if (format === 'css') {
-      if (el.testId)
-        out.push({
-          type: 'testid',
-          label: `${tag}[data-testid="${el.testId}"]`,
-          code: `[data-testid="${el.testId}"]`,
-        });
-      if (el.id) out.push({ type: 'id', label: `#${el.id}`, code: `#${el.id}` });
-      if (el.ariaLabel)
-        out.push({
-          type: 'aria',
-          label: `${tag}[aria-label="${el.ariaLabel}"]`,
-          code: `[aria-label="${el.ariaLabel}"]`,
-        });
-      if (el.role)
-        out.push({ type: 'role', label: `${tag}[role="${el.role}"]`, code: `[role="${el.role}"]` });
-      if (el.name)
-        out.push({ type: 'name', label: `${tag}[name="${el.name}"]`, code: `[name="${el.name}"]` });
-      if (el.placeholder)
-        out.push({
-          type: 'ph',
-          label: `${tag}[placeholder="${el.placeholder}"]`,
-          code: `[placeholder="${el.placeholder}"]`,
-        });
-      for (const c of el.classes.slice(0, 2)) {
-        out.push({ type: 'class', label: `${tag}.${c}`, code: `.${c}` });
-      }
-    } else if (format === 'xpath') {
-      if (el.testId)
-        out.push({
-          type: 'testid',
-          label: `//${tag}[@data-testid="${el.testId}"]`,
-          code: `//${tag}[@data-testid="${el.testId}"]`,
-        });
-      if (el.id)
-        out.push({
-          type: 'id',
-          label: `//${tag}[@id="${el.id}"]`,
-          code: `//${tag}[@id="${el.id}"]`,
-        });
-      if (el.ariaLabel)
-        out.push({
-          type: 'aria',
-          label: `//${tag}[@aria-label="${el.ariaLabel}"]`,
-          code: `//${tag}[@aria-label="${el.ariaLabel}"]`,
-        });
-      if (el.role)
-        out.push({
-          type: 'role',
-          label: `//${tag}[@role="${el.role}"]`,
-          code: `//${tag}[@role="${el.role}"]`,
-        });
-      if (el.text)
-        out.push({
-          type: 'text',
-          label: `//${tag}[text()="${el.text}"]`,
-          code: `//${tag}[text()="${el.text}"]`,
-        });
-      if (el.name)
-        out.push({
-          type: 'name',
-          label: `//${tag}[@name="${el.name}"]`,
-          code: `//${tag}[@name="${el.name}"]`,
-        });
-    } else if (format === 'playwright') {
-      if (el.testId)
-        out.push({
-          type: 'testid',
-          label: `page.getByTestId('${el.testId}')`,
-          code: `page.getByTestId('${el.testId}')`,
-        });
-      if (el.role) {
-        const nameOpt = el.ariaLabel
-          ? `, { name: '${el.ariaLabel}' }`
-          : el.text
-            ? `, { name: '${el.text}' }`
-            : '';
-        out.push({
-          type: 'role',
-          label: `page.getByRole('${el.role}'${nameOpt})`,
-          code: `page.getByRole('${el.role}'${nameOpt})`,
-        });
-      }
-      if (el.ariaLabel)
-        out.push({
-          type: 'label',
-          label: `page.getByLabel('${el.ariaLabel}')`,
-          code: `page.getByLabel('${el.ariaLabel}')`,
-        });
-      if (el.placeholder)
-        out.push({
-          type: 'ph',
-          label: `page.getByPlaceholder('${el.placeholder}')`,
-          code: `page.getByPlaceholder('${el.placeholder}')`,
-        });
-      if (el.text && el.text.length <= 30)
-        out.push({
-          type: 'text',
-          label: `page.getByText('${el.text}')`,
-          code: `page.getByText('${el.text}')`,
-        });
-      if (el.altText)
-        out.push({
-          type: 'alt',
-          label: `page.getByAltText('${el.altText}')`,
-          code: `page.getByAltText('${el.altText}')`,
-        });
-      if (el.title)
-        out.push({
-          type: 'title',
-          label: `page.getByTitle('${el.title}')`,
-          code: `page.getByTitle('${el.title}')`,
-        });
-    } else if (format === 'cypress') {
-      if (el.testId)
-        out.push({
-          type: 'testid',
-          label: `cy.get('[data-testid="${el.testId}"]')`,
-          code: `cy.get('[data-testid="${el.testId}"]')`,
-        });
-      if (el.id)
-        out.push({ type: 'id', label: `cy.get('#${el.id}')`, code: `cy.get('#${el.id}')` });
-      if (el.text && el.text.length <= 30)
-        out.push({
-          type: 'text',
-          label: `cy.contains('${tag}', '${el.text}')`,
-          code: `cy.contains('${tag}', '${el.text}')`,
-        });
-      if (el.role)
-        out.push({
-          type: 'role',
-          label: `cy.findByRole('${el.role}')`,
-          code: `cy.findByRole('${el.role}')`,
-        });
-      if (el.testId)
-        out.push({
-          type: 'testid',
-          label: `cy.findByTestId('${el.testId}')`,
-          code: `cy.findByTestId('${el.testId}')`,
-        });
-    } else if (format === 'selenium') {
-      if (el.id)
-        out.push({
-          type: 'id',
-          label: `By.id("${el.id}")`,
-          code: `driver.findElement(By.id("${el.id}"))`,
-        });
-      if (el.name)
-        out.push({
-          type: 'name',
-          label: `By.name("${el.name}")`,
-          code: `driver.findElement(By.name("${el.name}"))`,
-        });
-      if (el.testId)
-        out.push({
-          type: 'css',
-          label: `By.css [data-testid="${el.testId}"]`,
-          code: `driver.findElement(By.cssSelector("[data-testid='${el.testId}']"))`,
-        });
-      if (el.classes.length > 0)
-        out.push({
-          type: 'class',
-          label: `By.className("${el.classes[0]}")`,
-          code: `driver.findElement(By.className("${el.classes[0]}"))`,
-        });
-      if (el.tag)
-        out.push({
-          type: 'tag',
-          label: `By.tagName("${el.tag}")`,
-          code: `driver.findElement(By.tagName("${el.tag}"))`,
-        });
+    try {
+      const format = detectFormat(val);
+      const specialist = getSpecialist(format);
+      const result = specialist.validateAndFix(val);
+      this._validationError = result.valid ? null : result;
+    } catch {
+      this._validationError = null;
     }
-
-    return out;
-  }
-
-  private _allSuggestions(): Suggestion[] {
-    let base: Suggestion[];
-    switch (this._freeformFormat) {
-      case 'xpath':
-        base = STATIC_XPATH_SUGGESTIONS;
-        break;
-      case 'playwright':
-        base = STATIC_PLAYWRIGHT_SUGGESTIONS;
-        break;
-      case 'cypress':
-        base = STATIC_CYPRESS_SUGGESTIONS;
-        break;
-      case 'selenium':
-        base = STATIC_SELENIUM_SUGGESTIONS;
-        break;
-      default:
-        base = STATIC_CSS_SUGGESTIONS;
-    }
-    const pageSuggestions = this._pageElementsToSuggestions(this._freeformFormat);
-    // Page suggestions first (real elements from the DOM), then static templates
-    const combined = [...pageSuggestions, ...base];
-    const query = this._freeformSelector.toLowerCase();
-    if (!query) return combined.slice(0, 25);
-
-    // Deduplicate by code
-    const seen = new Set<string>();
-    return combined
-      .filter((s) => {
-        if (seen.has(s.code)) return false;
-        seen.add(s.code);
-        return s.label.toLowerCase().includes(query) || s.code.toLowerCase().includes(query);
-      })
-      .slice(0, 25);
   }
 
   // ---------------------------------------------------------------------------
@@ -1145,7 +1186,7 @@ export class BuildTab extends LitElement {
   private async _onGenerateLocator() {
     const base = this._buildBaseSelector();
     const full = this._applyChain(base);
-    this._structResult = scoreSelector(full, this._structFramework);
+    this._structResult = specialistScoreToScoredSelector(full, this._structFramework);
     this._allResults = [];
 
     // Count matches for css/xpath
@@ -1190,8 +1231,16 @@ export class BuildTab extends LitElement {
         break;
     }
 
-    const element = { tagName, text: '', attributes: attrs };
-    this._allResults = generateScoredSelectors(element);
+    const element: RichElementData = {
+      tagName,
+      text: '',
+      attributes: attrs,
+      parentChain: [],
+      siblingTags: [],
+      accessibleName: '',
+    };
+    const { selectors } = generateScoredSelectors(element);
+    this._allResults = selectors;
     this._structResult = null;
     this._structMatchCount = null;
   }
@@ -1341,8 +1390,6 @@ export class BuildTab extends LitElement {
   }
 
   private _renderFreeform() {
-    const suggestions = this._allSuggestions();
-
     return html`
       <div class="freeform-input-wrap">
         <textarea
@@ -1351,18 +1398,69 @@ export class BuildTab extends LitElement {
           placeholder="Type a CSS selector, XPath, or framework locator..."
           @input=${this._onFreeformInput}
           @keydown=${this._onFreeformKeydown}
-          @focus=${() => {
-            this._showSuggestions = true;
-          }}
           @blur=${() => {
             setTimeout(() => {
-              this._showSuggestions = false;
+              this._clearSuggestionHighlights();
+              this._autocompleteSuggestions = [];
+              this._scopedSuggestions = [];
+              this._autocompleteIndex = -1;
             }, 150);
+            this._validateFreeform();
           }}
           spellcheck="false"
           autocomplete="off"
         ></textarea>
+
+        ${
+          this._autocompleteSuggestions.length > 0
+            ? html`
+                <div class="autocomplete-dropdown">
+                  ${this._autocompleteSuggestions.map(
+                    (s, i) => html`
+                      <button
+                        class="autocomplete-item ${i === this._autocompleteIndex ? 'selected' : ''}"
+                        @mousedown=${(e: Event) => {
+                          e.preventDefault();
+                          this._applySuggestion(s);
+                        }}
+                        @mouseenter=${() => this._onSuggestionHover(s)}
+                      >
+                        <span class="autocomplete-selector">${s.label}</span>
+                        ${s.detail ? html`<span class="autocomplete-detail">${s.detail}</span>` : nothing}
+                      </button>
+                    `
+                  )}
+                </div>
+              `
+            : nothing
+        }
       </div>
+
+      ${
+        this._validationError
+          ? html`
+              <div class="validation-error">
+                <span class="val-msg">${this._validationError.error}</span>
+                ${
+                  this._validationError.fix
+                    ? html`
+                        <button
+                          class="fix-btn"
+                          @click=${() => {
+                            if (this._validationError?.fix) {
+                              this._freeformSelector = this._validationError.fix.selector;
+                              this._validationError = null;
+                              this._runMatchCount();
+                            }
+                          }}
+                        >Fix →</button>
+                      `
+                    : nothing
+                }
+              </div>
+            `
+          : nothing
+      }
 
       <div class="freeform-row">
         <select class="format-select" .value=${this._freeformFormat} @change=${this._onFormatChange}>
@@ -1378,19 +1476,18 @@ export class BuildTab extends LitElement {
       ${this._scored ? this._renderScoreBar(this._scored) : nothing}
 
       ${
-        this._showSuggestions && suggestions.length > 0
+        this._didYouMean.length > 0
           ? html`
-              <div class="suggestions-panel">
-                <div class="suggestions-list">
-                  ${suggestions.map(
-                    (s) => html`
-                      <div class="suggestion-item" @mousedown=${() => this._onSuggestionClick(s)}>
-                        <span class="suggestion-type">${s.type}</span>
-                        <span class="suggestion-label">${s.label}</span>
-                      </div>
-                    `
-                  )}
-                </div>
+              <div class="did-you-mean">
+                <span class="dym-label">Did you mean:</span>
+                ${this._didYouMean.map(
+                  (s) => html`
+                    <button class="dym-item" @click=${() => this._applySuggestion(s)}>
+                      ${s.label}
+                      ${s.detail ? html`<span class="dym-desc">${s.detail}</span>` : nothing}
+                    </button>
+                  `
+                )}
               </div>
             `
           : nothing

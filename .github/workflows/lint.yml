@@ -29,3 +29,6 @@ jobs:
 
       - name: Run Biome format
         run: npm run format
+
+      - name: Run tests
+        run: npm run test

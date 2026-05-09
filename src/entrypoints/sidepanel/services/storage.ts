@@ -70,7 +70,11 @@ export async function clearRecent(): Promise<WorkspaceData> {
   return data;
 }
 
+let migrating = false;
+
 export async function migrateHistoryToWorkspace(): Promise<void> {
+  if (migrating) return;
+  migrating = true;
   const result = await chrome.storage.local.get(['locatorHistory', 'workspace']);
   if (result.locatorHistory && !result.workspace) {
     const history = result.locatorHistory as Array<{
