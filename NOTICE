@@ -1,0 +1,14 @@
+Locator Inspector
+
+This product includes software developed by Rui Figueira (playwright-crx)
+and portions of Microsoft Playwright and Google, licensed under Apache License 2.0.
+
+Portions Copyright (c) Rui Figueira.
+Portions Copyright (c) Microsoft Corporation.
+Portions Copyright 2017 Google Inc.
+
+See LICENSE for full Apache 2.0 terms.
+
+Changes from original playwright-crx:
+- Locator ranking and overlay logic adapted and trimmed for side-panel inspector.
+- No chrome.debugger usage in V1.

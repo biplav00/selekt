@@ -1,0 +1,133 @@
+/* Linear Clean — Vercel/Linear inspired, production-grade */
+* {
+  box-sizing: border-box;
+}
+:root {
+  --bg: #fcfcfc;
+  --surface: #ffffff;
+  --surface-hover: #f8f8f8;
+  --ink: #0a0a0a;
+  --ink-soft: #1a1a1a;
+  --muted: #71717a;
+  --muted-2: #a1a1aa;
+  --line: #e8e8ec;
+  --line-strong: #d4d4d8;
+  --accent: #3b82f6;
+  --accent-soft: #eff6ff;
+  --accent-ring: #bfdbfe;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-pill: 999px;
+}
+:root[data-theme='dark'],
+html.dark {
+  --bg: #0a0a0a;
+  --surface: #171717;
+  --surface-hover: #262626;
+  --ink: #fafafa;
+  --ink-soft: #e4e4e7;
+  --muted: #a1a1aa;
+  --muted-2: #71717a;
+  --line: #27272a;
+  --line-strong: #3f3f46;
+  --accent: #3b82f6;
+  --accent-soft: #1e293b;
+  --accent-ring: #1e40af;
+}
+
+:root {
+  --font-sans: 'Geist', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html {
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+}
+#root {
+  min-height: 100vh;
+}
+
+button {
+  font-family: inherit;
+}
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+code {
+  font-family: var(--font-mono);
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.2);
+  }
+}
+@keyframes sweep-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
