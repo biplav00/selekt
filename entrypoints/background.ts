@@ -12,11 +12,11 @@ export default defineBackground(() => {
   });
 
   // Ensure side panel is enabled
-  // @ts-expect-error - sidePanel may not be in types yet
-  if ((browser as any).sidePanel?.setPanelBehavior) {
-    // @ts-expect-error - sidePanel may not be in types yet
+  if ((browser as unknown as { sidePanel?: { setPanelBehavior?: (opts: unknown) => Promise<void> } }).sidePanel?.setPanelBehavior) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (browser as any).sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
+    (browser as any).sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {
+      void 0;
+    });
   }
 
   // Relay messages between content and sidePanel (validate sender, forward)
