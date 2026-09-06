@@ -1,0 +1,24 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
+    commit-message:
+      prefix: chore
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        patterns: ['*']
+    commit-message:
+      prefix: chore
+    # Major bumps (vite, vitest, eslint, TS) need WXT-compat testing —
+    # land them deliberately, not via auto-merge.
+    open-pull-requests-limit: 5
