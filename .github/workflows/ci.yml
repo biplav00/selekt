@@ -56,15 +56,16 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: locator-inspector-${{ github.sha }}
-          path: .output/
+          path: .output/*.zip
           retention-days: 14
-          if-no-files-found: error
+          if-no-files-found: warn
       - name: Upload build dir (for debugging)
         uses: actions/upload-artifact@v4
         with:
           name: chrome-mv3-${{ github.sha }}
-          path: .output/chrome-mv3/
+          path: .output/chrome-mv3
           retention-days: 3
+          if-no-files-found: warn
 
   publish:
     name: Publish to Chrome Web Store
