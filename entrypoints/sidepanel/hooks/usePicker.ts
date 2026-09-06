@@ -18,7 +18,9 @@ export function usePicker() {
     setMeta(m);
     setUrl(u);
     setIsInspecting(false);
-    setHistory((prev) => [{ time: stamp(), url: u, meta: m, locators: locs }, ...prev].slice(0, 20));
+    setHistory((prev) =>
+      [{ time: stamp(), url: u, meta: m, locators: locs }, ...prev].slice(0, 20)
+    );
     setTimeout(() => document.getElementById('locator-list')?.focus(), 60);
   }, []);
 

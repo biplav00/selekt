@@ -104,8 +104,8 @@ export default function App() {
               isInspecting={picker.isInspecting}
               locators={picker.locators}
               meta={picker.meta}
-            hoverPreview={picker.hoverPreview}
-            copied={copied}
+              hoverPreview={picker.hoverPreview}
+              copied={copied}
               onToggleInspect={handleToggleInspect}
               onCopy={copy}
               displayLocator={displayLocator}

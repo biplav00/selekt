@@ -6,7 +6,13 @@ interface HeaderProps {
   host: string;
 }
 
-export function Header({ onToggleSettings, showSettings, isInspecting, locatorCount, host }: HeaderProps) {
+export function Header({
+  onToggleSettings,
+  showSettings,
+  isInspecting,
+  locatorCount,
+  host,
+}: HeaderProps) {
   const readout = isInspecting
     ? 'SCAN · hover page'
     : locatorCount > 0
@@ -37,7 +43,9 @@ export function Header({ onToggleSettings, showSettings, isInspecting, locatorCo
           background: isInspecting || locatorCount > 0 ? 'var(--sig)' : 'var(--muted-2)',
           animation: isInspecting ? 'led-blink 1s steps(2) infinite' : 'none',
           boxShadow:
-            isInspecting || locatorCount > 0 ? '0 0 0 3px color-mix(in srgb, var(--sig) 25%, transparent)' : 'none',
+            isInspecting || locatorCount > 0
+              ? '0 0 0 3px color-mix(in srgb, var(--sig) 25%, transparent)'
+              : 'none',
         }}
       />
       <div style={{ minWidth: 0, flex: 1 }}>
