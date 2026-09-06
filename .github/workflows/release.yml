@@ -8,9 +8,30 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - run: echo hi
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - run: npm run lint -- --max-warnings=50
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+      - run: npm run zip
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: .output/*.zip
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+      # Chrome Web Store publish is disabled for now. To re-enable, add a
+      # guarded mobilefirstllc/cws-publish step here (see PR #9 discussion).
