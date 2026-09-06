@@ -4,12 +4,13 @@ interface TabsProps {
   activeTab: TabId;
   onSelect: (tab: TabId) => void;
   onReset: () => void;
+  compact: boolean;
 }
 
-function tabStyle(active: boolean): React.CSSProperties {
+function tabStyle(active: boolean, compact: boolean): React.CSSProperties {
   return {
     flex: 1,
-    padding: '8px 6px',
+    padding: compact ? '6px 4px' : '8px 6px',
     borderRadius: 6,
     border: 0,
     background: active ? 'var(--bar)' : 'transparent',
@@ -25,11 +26,11 @@ function tabStyle(active: boolean): React.CSSProperties {
   };
 }
 
-export function Tabs({ activeTab, onSelect, onReset }: TabsProps) {
+export function Tabs({ activeTab, onSelect, onReset, compact }: TabsProps) {
   return (
     <div
       style={{
-        padding: '10px 12px',
+        padding: compact ? '7px 10px' : '10px 12px',
         background: 'var(--bg)',
         borderBottom: '1px solid var(--line)',
         position: 'sticky',
@@ -55,7 +56,7 @@ export function Tabs({ activeTab, onSelect, onReset }: TabsProps) {
           role="tab"
           aria-selected={activeTab === 'inspect'}
           onClick={() => onSelect('inspect')}
-          style={tabStyle(activeTab === 'inspect')}
+          style={tabStyle(activeTab === 'inspect', compact)}
         >
           <span aria-hidden="true" style={{ fontSize: 12 }}>
             ⌖
@@ -67,7 +68,7 @@ export function Tabs({ activeTab, onSelect, onReset }: TabsProps) {
           role="tab"
           aria-selected={activeTab === 'manual'}
           onClick={() => onSelect('manual')}
-          style={tabStyle(activeTab === 'manual')}
+          style={tabStyle(activeTab === 'manual', compact)}
         >
           <svg
             width="12"

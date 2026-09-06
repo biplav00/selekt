@@ -20,6 +20,7 @@ interface ManualPanelProps {
   onSelectEntry: (query: string) => void;
   onClearHistory: () => void;
   displayLocator: (value: string) => string;
+  compact: boolean;
 }
 
 export function ManualPanel({
@@ -40,6 +41,7 @@ export function ManualPanel({
   onSelectEntry,
   onClearHistory,
   displayLocator,
+  compact,
 }: ManualPanelProps) {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -119,11 +121,18 @@ export function ManualPanel({
             any selector
           </span>
         </div>
-        <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div
+          style={{
+            padding: compact ? 9 : 12,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: compact ? 8 : 10,
+          }}
+        >
           <div style={{ position: 'relative' }}>
             <textarea
               value={manualLocator}
-              rows={4}
+              rows={compact ? 2 : 4}
               onChange={(event) => onLocatorChange(event.target.value)}
               onFocus={(event) => {
                 event.currentTarget.style.borderColor = 'var(--sig-deep)';
@@ -142,7 +151,7 @@ export function ManualPanel({
               spellCheck={false}
               style={{
                 width: '100%',
-                minHeight: 104,
+                minHeight: compact ? 64 : 104,
                 resize: 'vertical',
                 fontFamily: 'var(--font-code)',
                 fontSize: 13,

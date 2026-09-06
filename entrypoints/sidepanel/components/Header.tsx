@@ -4,6 +4,8 @@ interface HeaderProps {
   isInspecting: boolean;
   locatorCount: number;
   host: string;
+  compact: boolean;
+  onToggleCompact: () => void;
 }
 
 export function Header({
@@ -12,6 +14,8 @@ export function Header({
   isInspecting,
   locatorCount,
   host,
+  compact,
+  onToggleCompact,
 }: HeaderProps) {
   const readout = isInspecting
     ? 'SCAN · hover page'
@@ -93,6 +97,43 @@ export function Header({
           {host}
         </span>
       )}
+      <button
+        type="button"
+        onClick={onToggleCompact}
+        aria-label={compact ? 'Exit compact mode' : 'Enter compact mode'}
+        title={compact ? 'Exit compact mode' : 'Compact mode'}
+        aria-pressed={compact}
+        style={{
+          width: 28,
+          height: 28,
+          display: 'grid',
+          placeItems: 'center',
+          background: compact ? 'var(--bar-ink)' : 'transparent',
+          color: compact ? 'var(--bar)' : 'var(--bar-ink)',
+          border: '1px solid color-mix(in srgb, var(--bar-ink) 30%, transparent)',
+          borderRadius: 8,
+          cursor: 'pointer',
+          flexShrink: 0,
+          opacity: compact ? 1 : 0.75,
+        }}
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 14h6v6" />
+          <path d="M20 10h-6V4" />
+          <path d="M14 10l7-7" />
+          <path d="M3 21l7-7" />
+        </svg>
+      </button>
       <button
         type="button"
         id="settings-btn"

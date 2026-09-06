@@ -59,6 +59,10 @@ export default function App() {
         isInspecting={picker.isInspecting}
         locatorCount={picker.locators.length}
         host={host}
+        compact={settings.compact}
+        onToggleCompact={() => {
+          void updateSettings({ compact: !settings.compact });
+        }}
       />
       {showSettings && (
         <SettingsDialog
@@ -67,16 +71,21 @@ export default function App() {
           onClose={() => setShowSettings(false)}
         />
       )}
-      <Tabs activeTab={activeTab} onSelect={setActiveTab} onReset={handleReset} />
+      <Tabs
+        activeTab={activeTab}
+        onSelect={setActiveTab}
+        onReset={handleReset}
+        compact={settings.compact}
+      />
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
         <div
           style={{
-            padding: '14px',
-            maxWidth: 400,
+            padding: settings.compact ? '10px' : '14px',
+            maxWidth: settings.compact ? 340 : 400,
             margin: '0 auto',
             display: 'flex',
             flexDirection: 'column',
-            gap: 12,
+            gap: settings.compact ? 8 : 12,
           }}
         >
           <div
@@ -112,6 +121,7 @@ export default function App() {
               history={picker.history}
               onRestore={picker.restoreSnapshot}
               onClearHistory={picker.clearHistory}
+              compact={settings.compact}
             />
           )}
           {activeTab === 'manual' && (
@@ -135,6 +145,7 @@ export default function App() {
               onSelectEntry={manual.setManualLocator}
               onClearHistory={manual.clearHistory}
               displayLocator={displayLocator}
+              compact={settings.compact}
             />
           )}
         </div>

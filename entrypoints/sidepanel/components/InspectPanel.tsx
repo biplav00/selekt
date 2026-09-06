@@ -15,6 +15,7 @@ interface InspectPanelProps {
   history: PickerSnapshot[];
   onRestore: (snap: PickerSnapshot) => void;
   onClearHistory: () => void;
+  compact: boolean;
 }
 
 function channelLabel(index: number): string {
@@ -33,6 +34,7 @@ export function InspectPanel({
   history,
   onRestore,
   onClearHistory,
+  compact,
 }: InspectPanelProps) {
   const [openSnap, setOpenSnap] = useState<number | null>(null);
   // id has its own pill — everything else runs inline beside the tag.
@@ -52,7 +54,7 @@ export function InspectPanel({
         onClick={onToggleInspect}
         style={{
           width: '100%',
-          padding: 12,
+          padding: compact ? 9 : 12,
           borderRadius: 'var(--radius)',
           border: '1px solid var(--line)',
           background: 'var(--panel)',
@@ -165,7 +167,7 @@ export function InspectPanel({
             background: 'var(--panel)',
             border: '1px solid var(--line)',
             borderRadius: 'var(--radius)',
-            padding: 14,
+            padding: compact ? 11 : 14,
           }}
         >
           <div
@@ -205,7 +207,7 @@ export function InspectPanel({
             background: 'var(--panel)',
             border: '1px solid var(--line)',
             borderRadius: 'var(--radius)',
-            padding: '10px 12px',
+            padding: compact ? '8px 10px' : '10px 12px',
             display: 'flex',
             gap: 8,
             alignItems: 'center',
@@ -300,6 +302,7 @@ export function InspectPanel({
                 isCopied={copied === loc.value}
                 onCopy={onCopy}
                 displayValue={displayLocator(loc.value)}
+                compact={compact}
               />
             ))}
           </div>
@@ -402,6 +405,7 @@ export function InspectPanel({
                         isCopied={copied === loc.value}
                         onCopy={onCopy}
                         displayValue={displayLocator(loc.value)}
+                        compact={compact}
                       />
                     ))}
                   </div>
