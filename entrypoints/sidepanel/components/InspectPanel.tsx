@@ -1,4 +1,6 @@
-import type { Locator, Meta } from '../types';
+import { useState } from 'react';
+import type { Locator, Meta, PickerSnapshot } from '../types';
+import { HistoryAccordion } from './HistoryAccordion';
 import { LocatorItem } from './LocatorItem';
 
 interface InspectPanelProps {
@@ -6,11 +8,17 @@ interface InspectPanelProps {
   locators: Locator[];
   meta: Meta | null;
   hoverPreview: Meta | null;
-  url: string;
   copied: string | null;
   onToggleInspect: () => void;
   onCopy: (value: string) => void;
   displayLocator: (value: string) => string;
+  history: PickerSnapshot[];
+  onRestore: (snap: PickerSnapshot) => void;
+  onClearHistory: () => void;
+}
+
+function channelLabel(index: number): string {
+  return `CH-${String(index + 1).padStart(2, '0')}`;
 }
 
 export function InspectPanel({
@@ -18,12 +26,23 @@ export function InspectPanel({
   locators,
   meta,
   hoverPreview,
-  url,
   copied,
   onToggleInspect,
   onCopy,
   displayLocator,
+  history,
+  onRestore,
+  onClearHistory,
 }: InspectPanelProps) {
+  const [openSnap, setOpenSnap] = useState<number | null>(null);
+  // id has its own pill — everything else runs inline beside the tag.
+  const attrs = [
+    meta?.className ? `.${meta.className.split(/\s+/).join('.')}` : '',
+    (meta?.attributes ?? '').replace(/\s?(id|class)="[^"]*"/g, '').trim(),
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <>
       <button
@@ -33,213 +52,149 @@ export function InspectPanel({
         onClick={onToggleInspect}
         style={{
           width: '100%',
-          padding: '12px 14px',
-          borderRadius: 10,
-          border: `1px solid ${isInspecting ? 'var(--accent)' : 'var(--ink)'}`,
-          background: isInspecting ? 'var(--accent)' : 'var(--ink)',
-          color: '#fff',
+          padding: 12,
+          borderRadius: 'var(--radius)',
+          border: '1px solid var(--line)',
+          background: 'var(--panel)',
+          color: 'var(--ink)',
           fontFamily: 'var(--font-sans)',
-          fontSize: 13,
-          fontWeight: 600,
           cursor: 'pointer',
-          display: 'flex',
+          display: 'grid',
+          gridTemplateColumns: '1fr auto',
+          gap: 12,
           alignItems: 'center',
-          justifyContent: 'space-between',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.08)',
-          transition: 'all 150ms var(--ease-out-quint)',
+          textAlign: 'left',
+          transition: 'border-color 150ms var(--ease-out-quint)',
         }}
       >
-        <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <span style={{ minWidth: 0 }}>
+          <span style={{ fontSize: 13, fontWeight: 800, display: 'block', lineHeight: 1.2 }}>
+            {isInspecting ? 'Inspecting — click element' : 'Start inspecting'}
+          </span>
           <span
-            aria-hidden="true"
             style={{
-              width: 8,
-              height: 8,
-              borderRadius: 9999,
-              background: '#fff',
-              display: 'inline-block',
-              animation: isInspecting ? 'pulse-dot 1.2s var(--ease-out-quint) infinite' : 'none',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 10,
+              color: 'var(--muted)',
+              display: 'block',
+              marginTop: 2,
             }}
-          />
-          {isInspecting ? 'Inspecting — Click element' : 'Start Inspect'}
+          >
+            hover highlights · click locks · ESC exits
+          </span>
         </span>
         <span
+          aria-hidden="true"
           style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 11,
-            opacity: 0.8,
-            border: '1px solid rgba(255,255,255,0.2)',
-            padding: '2px 6px',
-            borderRadius: 6,
-            background: 'rgba(255,255,255,0.12)',
+            width: 52,
+            height: 29,
+            borderRadius: 9999,
+            background: isInspecting ? 'var(--sig)' : 'var(--panel-deep)',
+            border: `1px solid ${isInspecting ? 'var(--sig-deep)' : 'var(--line)'}`,
+            position: 'relative',
+            flexShrink: 0,
+            transition: 'background 200ms var(--ease-out-quint)',
           }}
         >
-          {isInspecting ? 'ESC' : '⌥⇧C'}
+          <span
+            style={{
+              position: 'absolute',
+              top: 2,
+              left: 2,
+              width: 23,
+              height: 23,
+              borderRadius: 9999,
+              background: 'var(--panel)',
+              border: '1px solid var(--line)',
+              transform: isInspecting ? 'translateX(23px)' : 'none',
+              transition: 'transform 220ms var(--ease-out-quint)',
+            }}
+          />
         </span>
       </button>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          fontFamily: 'var(--font-mono)',
-          fontSize: 10,
-          color: 'var(--muted)',
-        }}
-      >
-        <span>
-          {isInspecting ? 'Hover highlights • click locks' : 'Opens picker in active tab'}
-        </span>
-        <span>{isInspecting ? 'crosshair' : 'persistent'}</span>
-      </div>
 
-      {isInspecting && locators.length === 0 && (
+      {isInspecting && (
         <div
+          role="status"
           style={{
-            background: 'var(--accent-soft)',
-            border: '1px solid #bfdbfe',
-            borderRadius: 10,
+            background: 'var(--sig-soft)',
+            border: '1px solid var(--sig)',
+            borderRadius: 'var(--radius)',
             padding: '10px 12px',
-            display: 'flex',
-            gap: 10,
-            alignItems: 'center',
+            fontSize: 12,
           }}
         >
           <div
             style={{
-              width: 28,
-              height: 28,
-              borderRadius: 8,
-              background: 'var(--surface)',
-              border: '1px solid var(--line)',
-              display: 'grid',
-              placeItems: 'center',
-              flexShrink: 0,
-              fontSize: 12,
+              fontFamily: 'var(--font-mono)',
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              color: 'var(--sig-deep)',
             }}
           >
-            ◎
+            ● live scan
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600 }}>
-              Hover → Click to lock
+          {hoverPreview ? (
+            <div
+              style={{
+                fontFamily: 'var(--font-code)',
+                fontSize: 12,
+                marginTop: 4,
+                wordBreak: 'break-all',
+              }}
+            >
+              <span style={{ fontWeight: 600 }}>&lt;{hoverPreview.tag}&gt;</span>{' '}
+              <span style={{ color: 'var(--muted)' }}>
+                {hoverPreview.text?.slice(0, 36) || 'no text'}
+                {hoverPreview.id && ` #${hoverPreview.id}`}
+              </span>
             </div>
-            {hoverPreview ? (
-              <div
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 11,
-                  color: 'var(--muted)',
-                  marginTop: 2,
-                  wordBreak: 'break-all',
-                }}
-              >
-                <span style={{ color: 'var(--ink)', fontWeight: 600 }}>
-                  &lt;{hoverPreview.tag}&gt;
-                </span>{' '}
-                {hoverPreview.text?.slice(0, 36) || (
-                  <span style={{ color: '#a1a1aa' }}>no text</span>
-                )}
-                {hoverPreview.id && (
-                  <span style={{ color: 'var(--muted)' }}> #{hoverPreview.id}</span>
-                )}
-              </div>
-            ) : (
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)' }}>
-                Move over page to preview.
-              </div>
-            )}
-          </div>
+          ) : (
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)' }}>
+              Move over the page to preview…
+            </div>
+          )}
         </div>
       )}
 
       {locators.length === 0 && !isInspecting && (
         <div
           style={{
-            background: 'var(--surface)',
+            background: 'var(--panel)',
             border: '1px solid var(--line)',
-            borderRadius: 12,
-            padding: 16,
+            borderRadius: 'var(--radius)',
+            padding: 14,
           }}
         >
           <div
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: 'var(--bg)',
-              border: '1px solid var(--line)',
-              display: 'grid',
-              placeItems: 'center',
-              fontSize: 14,
-            }}
-          >
-            ◎
-          </div>
-          <div
-            style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 700, marginTop: 10 }}
-          >
-            No selection
-          </div>
-          <div
-            style={{
-              fontFamily: 'var(--font-sans)',
-              fontSize: 12,
+              fontFamily: 'var(--font-mono)',
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
               color: 'var(--muted)',
-              marginTop: 4,
-              lineHeight: 1.5,
             }}
           >
-            Start inspect to generate{' '}
-            <span
+            No lock
+          </div>
+          <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 6, lineHeight: 1.55 }}>
+            Flip the switch, hover the page, click to lock. You get paste-ready{' '}
+            <code
               style={{
-                fontFamily: 'var(--font-mono)',
-                background: '#f4f4f5',
-                padding: '1px 4px',
+                fontFamily: 'var(--font-code)',
+                background: 'var(--bg)',
+                border: '1px solid var(--line)',
+                padding: '0 4px',
                 borderRadius: 4,
                 fontSize: 11,
               }}
             >
               page.getBy*
-            </span>{' '}
-            locators — paste-ready.
-          </div>
-          <div style={{ marginTop: 12, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <span
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 10,
-                background: 'var(--bg)',
-                border: '1px solid var(--line)',
-                padding: '4px 8px',
-                borderRadius: 9999,
-              }}
-            >
-              data-testid →
-            </span>
-            <span
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 10,
-                background: 'var(--bg)',
-                border: '1px solid var(--line)',
-                padding: '4px 8px',
-                borderRadius: 9999,
-              }}
-            >
-              getByRole →
-            </span>
-            <span
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 10,
-                background: 'var(--bg)',
-                border: '1px solid var(--line)',
-                padding: '4px 8px',
-                borderRadius: 9999,
-              }}
-            >
-              getByLabel
-            </span>
+            </code>{' '}
+            lines — best first.
           </div>
         </div>
       )}
@@ -247,25 +202,25 @@ export function InspectPanel({
       {meta && (
         <div
           style={{
-            background: 'var(--surface)',
+            background: 'var(--panel)',
             border: '1px solid var(--line)',
-            borderRadius: 10,
+            borderRadius: 'var(--radius)',
             padding: '10px 12px',
             display: 'flex',
             gap: 8,
             alignItems: 'center',
-            fontFamily: 'var(--font-mono)',
-            fontSize: 11,
           }}
         >
           <span
             style={{
-              background: 'var(--ink)',
-              color: '#fff',
-              padding: '3px 8px',
-              borderRadius: 9999,
+              background: 'var(--bar)',
+              color: 'var(--bar-ink)',
+              fontFamily: 'var(--font-mono)',
               fontSize: 11,
-              fontWeight: 700,
+              fontWeight: 600,
+              padding: '3px 9px',
+              borderRadius: 9999,
+              flexShrink: 0,
             }}
           >
             &lt;{meta.tag}&gt;
@@ -273,40 +228,33 @@ export function InspectPanel({
           {meta.id && (
             <span
               style={{
-                background: 'var(--bg)',
-                border: '1px solid var(--line)',
-                padding: '2px 6px',
-                borderRadius: 9999,
+                fontFamily: 'var(--font-mono)',
                 fontSize: 11,
+                border: '1px solid var(--line)',
+                padding: '2px 8px',
+                borderRadius: 9999,
+                flexShrink: 0,
               }}
             >
               #{meta.id}
             </span>
           )}
-          {meta.text && (
-            <span
+          {attrs && (
+            <code
+              title={attrs}
               style={{
+                fontFamily: 'var(--font-code)',
+                fontSize: 11,
                 color: 'var(--muted)',
-                maxWidth: 140,
+                whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
+                minWidth: 0,
+                flex: 1,
               }}
             >
-              &ldquo;{meta.text.slice(0, 32)}&rdquo;
-            </span>
-          )}
-          {url && (
-            <span
-              style={{
-                marginLeft: 'auto',
-                fontSize: 10,
-                color: 'var(--muted)',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {new URL(url).hostname}
-            </span>
+              {attrs}
+            </code>
           )}
         </div>
       )}
@@ -318,25 +266,29 @@ export function InspectPanel({
               style={{
                 fontFamily: 'var(--font-mono)',
                 fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: '0.08em',
+                fontWeight: 600,
+                letterSpacing: '0.12em',
                 textTransform: 'uppercase',
                 color: 'var(--muted)',
               }}
             >
-              Locators · {locators.length}
+              Output · {locators.length} line{locators.length === 1 ? '' : 's'}
             </div>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)' }}>
-              first is best
+              CH-01 BEST
             </div>
           </div>
           <div
+            id="locator-list"
+            tabIndex={-1}
+            role="list"
+            aria-label="Ranked locators"
             style={{
-              background: 'var(--surface)',
+              background: 'var(--panel)',
               border: '1px solid var(--line)',
-              borderRadius: 12,
+              borderRadius: 'var(--radius)',
               overflow: 'hidden',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              outline: 'none',
             }}
           >
             {locators.map((loc, idx) => (
@@ -344,6 +296,7 @@ export function InspectPanel({
                 key={loc.value + String(idx)}
                 locator={loc}
                 isBest={idx === 0}
+                channel={channelLabel(idx)}
                 isCopied={copied === loc.value}
                 onCopy={onCopy}
                 displayValue={displayLocator(loc.value)}
@@ -351,6 +304,112 @@ export function InspectPanel({
             ))}
           </div>
         </div>
+      )}
+
+      {history.length > 0 && (
+        <HistoryAccordion title="Pick history" count={history.length} onClear={onClearHistory}>
+          {history.map((snap, i) => {
+            const open = openSnap === i;
+            const best = snap.locators[0];
+            return (
+              <div
+                key={snap.time + String(i)}
+                style={{
+                  borderBottom:
+                    i < history.length - 1 ? '1px solid var(--line)' : '1px solid transparent',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpenSnap(open ? null : i);
+                    if (!open) onRestore(snap);
+                  }}
+                  aria-expanded={open}
+                  title="Restore this pick"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    width: '100%',
+                    padding: '9px 12px',
+                    background: 'transparent',
+                    border: 0,
+                    cursor: 'pointer',
+                    color: 'var(--ink)',
+                    font: 'inherit',
+                    textAlign: 'left',
+                  }}
+                >
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: 10,
+                        fontWeight: 600,
+                        color: 'var(--muted)',
+                      }}
+                    >
+                      {snap.meta ? `<${snap.meta.tag}>` : 'pick'} · {snap.time}
+                    </span>
+                    <code
+                      style={{
+                        display: 'block',
+                        fontFamily: 'var(--font-code)',
+                        fontSize: 11,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        marginTop: 2,
+                      }}
+                    >
+                      {best ? displayLocator(best.value) : '—'}
+                    </code>
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      color: 'var(--muted)',
+                      display: 'grid',
+                      placeItems: 'center',
+                      flexShrink: 0,
+                      transform: open ? 'none' : 'rotate(-90deg)',
+                      transition: 'transform 180ms var(--ease-out-quint)',
+                    }}
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </span>
+                </button>
+                {open && (
+                  <div style={{ borderTop: '1px solid var(--line)' }}>
+                    {snap.locators.map((loc, idx) => (
+                      <LocatorItem
+                        key={loc.value + String(idx)}
+                        locator={loc}
+                        isBest={idx === 0}
+                        channel={channelLabel(idx)}
+                        isCopied={copied === loc.value}
+                        onCopy={onCopy}
+                        displayValue={displayLocator(loc.value)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </HistoryAccordion>
       )}
     </>
   );

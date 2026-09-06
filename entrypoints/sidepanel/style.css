@@ -1,47 +1,64 @@
-/* Linear Clean — Vercel/Linear inspired, production-grade */
+/* Bench — industrial instrument panel, day shift / night shift */
 * {
   box-sizing: border-box;
 }
 :root {
-  --bg: #fcfcfc;
-  --surface: #ffffff;
-  --surface-hover: #f8f8f8;
-  --ink: #0a0a0a;
-  --ink-soft: #1a1a1a;
-  --muted: #71717a;
-  --muted-2: #a1a1aa;
-  --line: #e8e8ec;
-  --line-strong: #d4d4d8;
-  --accent: #3b82f6;
-  --accent-soft: #eff6ff;
-  --accent-ring: #bfdbfe;
-  --success: #10b981;
-  --warning: #f59e0b;
+  --bg: #ebe9e2;
+  --panel: #f7f6f1;
+  --panel-deep: #e2e0d7;
+  --ink: #1d1c19;
+  --ink-soft: #2b2a25;
+  --bar: #1d1c19;
+  --bar-ink: #f7f6f1;
+  --muted: #6d6b61;
+  --muted-2: #9b988c;
+  --line: #d6d3c8;
+  --line-strong: #b3b0a2;
+  --sig: #d9480f;
+  --sig-deep: #a83408;
+  --sig-soft: #f9e3d3;
+  --ok: #2e7d44;
+  --ok-soft: #e0efe2;
+  --warn-bg: #faf3df;
+  --warn-line: #e3cf9d;
+  --warn-ink: #7a5410;
+  --err-bg: #fbe9e4;
+  --err-line: #eec0b4;
+  --err-ink: #96351f;
   --radius: 10px;
-  --radius-sm: 6px;
-  --radius-pill: 999px;
+  --radius-sm: 7px;
 }
 :root[data-theme='dark'],
 html.dark {
-  --bg: #0a0a0a;
-  --surface: #171717;
-  --surface-hover: #262626;
-  --ink: #fafafa;
-  --ink-soft: #e4e4e7;
-  --muted: #a1a1aa;
-  --muted-2: #71717a;
-  --line: #27272a;
-  --line-strong: #3f3f46;
-  --accent: #3b82f6;
-  --accent-soft: #1e293b;
-  --accent-ring: #1e40af;
+  --bg: #171612;
+  --panel: #22211b;
+  --panel-deep: #2c2b23;
+  --ink: #f0eee5;
+  --ink-soft: #d8d5c8;
+  --bar: #2a2923;
+  --bar-ink: #f0eee5;
+  --muted: #a49f8f;
+  --muted-2: #6f6c5f;
+  --line: #35332a;
+  --line-strong: #4c4a3d;
+  --sig: #ff5d1f;
+  --sig-deep: #ff8a55;
+  --sig-soft: #3a2113;
+  --ok: #58b26f;
+  --ok-soft: #1d3325;
+  --warn-bg: #332712;
+  --warn-line: #6b5426;
+  --warn-ink: #e8c26a;
+  --err-bg: #3a1f16;
+  --err-line: #72392a;
+  --err-ink: #f0977c;
 }
 
 :root {
-  --font-sans: 'Geist', system-ui, -apple-system, sans-serif;
-  --font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
+  --font-sans: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-code: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 html {
@@ -68,16 +85,17 @@ body {
 button {
   font-family: inherit;
 }
-button:focus-visible {
-  outline: 2px solid var(--accent);
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--sig);
   outline-offset: 2px;
 }
 code {
-  font-family: var(--font-mono);
+  font-family: var(--font-code);
 }
 
 ::selection {
-  background: var(--accent-soft);
+  background: var(--sig-soft);
   color: var(--ink);
 }
 
@@ -86,7 +104,7 @@ code {
   height: 6px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d4d4d8;
+  background: var(--line-strong);
   border-radius: 999px;
 }
 ::-webkit-scrollbar-track {
@@ -102,32 +120,22 @@ code {
   }
 }
 
-@keyframes pulse-dot {
+@keyframes led-blink {
   0%,
   100% {
     opacity: 1;
-    transform: scale(1);
   }
   50% {
-    opacity: 0.6;
-    transform: scale(1.2);
+    opacity: 0.35;
   }
 }
-@keyframes sweep-in {
+@keyframes rise-in {
   from {
     opacity: 0;
-    transform: translateY(3px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
   }
 }
