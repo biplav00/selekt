@@ -1,6 +1,6 @@
-# Locator Inspector — Playwright-first Side Panel
+# Selekt — Playwright-first Side Panel
 
-Incremental WXT + React 19 extension. **V1 MVP:** Side-panel picker → hover highlight → click lock → ranked `getByRole` / `getByTestId` / `getByText` locators + Copy.
+Locator Inspector rebranded as **Selekt**. Incremental WXT + React 19 extension. **V1 MVP:** Side-panel picker → hover highlight → click lock → ranked `getByRole` / `getByTestId` / `getByText` locators + Copy.
 
 Built greenfield with WXT, borrowing selector ideas from [`ruifigueira/playwright-crx`](https://github.com/ruifigueira/playwright-crx) (Apache-2.0 — see `LICENSE` / `NOTICE`).
 
@@ -10,8 +10,10 @@ Built greenfield with WXT, borrowing selector ideas from [`ruifigueira/playwrigh
 npm install
 npm run dev        # HMR, load .output/chrome-mv3 unpacked
 npm run build      # production
-npm run zip        # store package .output/locator-inspector-0.1.0-chrome.zip
+npm run zip        # store package .output/selekt-0.1.0-chrome.zip
 ```
+
+Install from **Releases** → download `selekt-0.1.0-chrome.zip` → `chrome://extensions` → Load unpacked or drag zip.
 
 Load in `chrome://extensions` → Enable Developer mode → Load unpacked → `.output/chrome-mv3`
 

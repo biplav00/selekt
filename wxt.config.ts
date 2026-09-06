@@ -4,8 +4,8 @@ import { defineConfig } from 'wxt';
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
-    name: 'Locator Inspector',
-    description: 'Playwright-first locator helper with side panel picker',
+    name: 'Selekt',
+    description: 'Selekt — Playwright-first locator helper with side panel picker',
     version: '0.1.0',
     permissions: ['storage', 'sidePanel', 'activeTab', 'tabs'],
     action: {},
