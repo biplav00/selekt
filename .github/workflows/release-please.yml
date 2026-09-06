@@ -1,0 +1,21 @@
+name: Release Please
+
+# On every push to main, inspect conventional commits and keep a
+# "chore(main): release x.y.z" PR up to date (version bump +
+# CHANGELOG.md). Merging that PR tags the release, which triggers
+# release.yml to build, zip, and publish the GitHub Release.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          release-type: node
