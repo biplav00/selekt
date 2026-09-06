@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Locator, Meta, PickerSnapshot } from '../types';
-
-function stamp(): string {
-  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
+import { HISTORY_LIMIT } from '../types';
+import { timeStamp } from '../../../utils/time';
 
 const HISTORY_KEY = 'pickerHistory';
 
@@ -34,7 +32,7 @@ export function usePicker() {
           | undefined;
         const saved = stored?.pickerHistory;
         if (Array.isArray(saved) && !cancelled) {
-          setHistory(saved.filter(isStoredSnapshot).slice(0, 20));
+          setHistory(saved.filter(isStoredSnapshot).slice(0, HISTORY_LIMIT));
         }
       } catch {
         void 0;
@@ -71,7 +69,7 @@ export function usePicker() {
     setHistory((prev) =>
       prev[0]?.url === u && prev[0]?.locators[0]?.value === locs[0]?.value
         ? prev
-        : [{ time: stamp(), url: u, meta: m, locators: locs }, ...prev].slice(0, 20)
+        : [{ time: timeStamp(), url: u, meta: m, locators: locs }, ...prev].slice(0, HISTORY_LIMIT)
     );
     setTimeout(() => document.getElementById('locator-list')?.focus(), 60);
   }, []);

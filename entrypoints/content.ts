@@ -21,8 +21,7 @@ export default defineContentScript({
   allFrames: false,
   runAt: 'document_idle',
   main(ctx) {
-    const picker = createPicker(ctx);
-    const manual = createManualHandler();
+    const picker = createPicker();
 
     ctx.onInvalidated(() => {
       picker.teardown(true);
@@ -42,7 +41,7 @@ export default defineContentScript({
     });
 
     browser.runtime.onMessage.addListener((msg: unknown, sender, sendResponse) => {
-      if (sender.id && sender.id !== browser.runtime.id) return false as unknown as boolean;
+      if (sender.id && sender.id !== browser.runtime.id) return false;
       const message = msg as { type?: string; locator?: string; selector?: string };
       if (message.type === 'picker:on') picker.activate();
       if (message.type === 'picker:off') picker.teardown();
@@ -51,7 +50,7 @@ export default defineContentScript({
         else picker.activate();
       }
       if (message.type === 'picker:highlight' && typeof message.selector === 'string') {
-        if (message.selector.length > 200) return false as unknown as boolean;
+        if (message.selector.length > 200) return false;
         try {
           const els = document.querySelectorAll(message.selector);
           if (els[0]) showPickerHighlight(els[0] as Element);
@@ -122,14 +121,12 @@ export default defineContentScript({
         );
       }
       if (message.type === 'mini:hide') hideMiniDialog();
-      return false as unknown as boolean;
+      return false;
     });
-
-    console.log('[locator] content script ready', { url: location.href });
   },
 });
 
-function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
+function createPicker() {
   let active = false;
   let lastEl: Element | null = null;
   let rafId: number | null = null;
@@ -325,9 +322,4 @@ function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
   };
 
   return { isActive: () => active, activate, teardown };
-}
-
-function createManualHandler() {
-  // Placeholder for future manual-specific logic
-  return {};
 }

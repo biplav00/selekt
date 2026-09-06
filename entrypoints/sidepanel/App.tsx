@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Header } from './components/Header';
 import { Tabs } from './components/Tabs';
 import { SettingsDialog } from './components/SettingsDialog';
@@ -102,7 +102,7 @@ export default function App() {
               clip: 'rect(0 0 0 0)',
             }}
           >
-            {copied?.startsWith('page.')
+            {copied
               ? `Copied`
               : picker.locators.length
                 ? `${picker.locators.length} locators`

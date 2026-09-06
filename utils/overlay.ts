@@ -103,11 +103,3 @@ export function highlightManualElements(elements: Element[]): void {
     setTimeout(() => document.removeEventListener('scroll', onScroll, true), 3000);
   }
 }
-
-export function getPickerOverlayCount(): number {
-  return document.querySelectorAll('#__locator-inspector-overlay').length;
-}
-
-export function getManualOverlayCount(): number {
-  return document.querySelectorAll('.__locator-manual-overlay').length;
-}

@@ -145,7 +145,7 @@ describe('Negative — must not break', () => {
     const svgNS = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(svgNS, 'svg') as unknown as Element;
     const text = document.createElementNS(svgNS, 'text') as unknown as Element;
-    (text as any).textContent = 'SVG Text';
+    text.textContent = 'SVG Text';
     svg.appendChild(text);
     document.body.appendChild(svg);
     expect(() => generateLocators(text)).not.toThrow();

@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import type { TabId } from '../types';
 
 interface TabsProps {
@@ -6,7 +7,7 @@ interface TabsProps {
   onReset: () => void;
 }
 
-function tabStyle(active: boolean): React.CSSProperties {
+function tabStyle(active: boolean): CSSProperties {
   return {
     flex: 1,
     padding: '8px 6px',

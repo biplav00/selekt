@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import type { ManualAttempt, ManualResult } from '../types';
 import { HistoryAccordion } from './HistoryAccordion';
 
@@ -55,7 +55,7 @@ export function ManualPanel({
       ? { bg: 'var(--warn-bg)', line: 'var(--warn-line)', ink: 'var(--warn-ink)' }
       : { bg: 'var(--bg)', line: 'var(--line)', ink: 'var(--muted)' };
 
-  const commitOrComplete = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const commitOrComplete = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (showSuggestions && filteredSuggestions.length > 0) {
       if (event.key === 'ArrowDown') {
         event.preventDefault();
