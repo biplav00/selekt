@@ -33,12 +33,4 @@ jobs:
           files: .output/*.zip
           generate_release_notes: true
           fail_on_unmatched_files: true
-      - name: Publish to Chrome Web Store
-        if: ${{ secrets.CWS_EXTENSION_ID != '' }}
-        with:
-          extension_id: ${{ secrets.CWS_EXTENSION_ID }}
-          client_id: ${{ secrets.CWS_CLIENT_ID }}
-          client_secret: ${{ secrets.CWS_CLIENT_SECRET }}
-          refresh_token: ${{ secrets.CWS_REFRESH_TOKEN }}
-          zip_file: .output/*.zip
       # guarded mobilefirstllc/cws-publish step here (see PR #9 discussion).
