@@ -35,29 +35,29 @@ export function Header({ onToggleSettings, showSettings }: HeaderProps) {
         >
           ⌖
         </div>
-          <div>
-            <div
-              style={{
-                fontFamily: 'var(--font-sans)',
-                fontSize: 13,
-                fontWeight: 700,
-                letterSpacing: '-0.02em',
-                lineHeight: 1,
-              }}
-            >
-              Selekt
-            </div>
-            <div
-              style={{
-                fontFamily: 'var(--font-sans)',
-                fontSize: 11,
-                color: 'var(--muted)',
-                lineHeight: 1,
-              }}
-            >
-              Playwright • Side Panel
-            </div>
+        <div>
+          <div
+            style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: 13,
+              fontWeight: 700,
+              letterSpacing: '-0.02em',
+              lineHeight: 1,
+            }}
+          >
+            Selekt
           </div>
+          <div
+            style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: 11,
+              color: 'var(--muted)',
+              lineHeight: 1,
+            }}
+          >
+            Playwright • Side Panel
+          </div>
+        </div>
       </div>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
         <div
