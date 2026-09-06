@@ -10,7 +10,9 @@ export function useSettings() {
     let cancelled = false;
     (async () => {
       try {
-        const stored = (await browser.storage?.local.get(['locatorSettings'])) as { locatorSettings?: Settings } | undefined;
+        const stored = (await browser.storage?.local.get(['locatorSettings'])) as
+          | { locatorSettings?: Settings }
+          | undefined;
         const saved = stored?.locatorSettings;
         if (saved && !cancelled) {
           setSettings(saved);
@@ -49,7 +51,11 @@ export function useSettings() {
     }
   };
 
-  return { settings, updateSettings, displayLocator: (value: string) => (settings.omitPage ? value.replace(/^page\./, '') : value) };
+  return {
+    settings,
+    updateSettings,
+    displayLocator: (value: string) => (settings.omitPage ? value.replace(/^page\./, '') : value),
+  };
 }
 
 function applyTheme(theme: 'light' | 'dark'): void {

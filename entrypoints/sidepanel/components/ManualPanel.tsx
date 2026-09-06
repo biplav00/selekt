@@ -41,10 +41,43 @@ export function ManualPanel({
   })();
 
   return (
-    <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 12, overflow: 'visible', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', isolation: 'isolate' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderBottom: '1px solid var(--line)', background: 'var(--bg)', borderTopLeftRadius: 12, borderTopRightRadius: 12 }}>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink)' }}>Manual</span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)' }}>Test any locator</span>
+    <div
+      style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--line)',
+        borderRadius: 12,
+        overflow: 'visible',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+        isolation: 'isolate',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '10px 12px',
+          borderBottom: '1px solid var(--line)',
+          background: 'var(--bg)',
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
+        }}
+      >
+        <span
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: 'var(--ink)',
+          }}
+        >
+          Manual
+        </span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)' }}>
+          Test any locator
+        </span>
       </div>
       <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ display: 'flex', gap: 8, position: 'relative' }}>
@@ -66,12 +99,17 @@ export function ManualPanel({
                 if (showSuggestions && filteredSuggestions.length > 0) {
                   if (event.key === 'ArrowDown') {
                     event.preventDefault();
-                    onSelectedSuggestionChange((selectedSuggestion + 1) % filteredSuggestions.length);
+                    onSelectedSuggestionChange(
+                      (selectedSuggestion + 1) % filteredSuggestions.length
+                    );
                     return;
                   }
                   if (event.key === 'ArrowUp') {
                     event.preventDefault();
-                    onSelectedSuggestionChange((selectedSuggestion - 1 + filteredSuggestions.length) % filteredSuggestions.length);
+                    onSelectedSuggestionChange(
+                      (selectedSuggestion - 1 + filteredSuggestions.length) %
+                        filteredSuggestions.length
+                    );
                     return;
                   }
                   if (event.key === 'Enter') {
@@ -146,7 +184,10 @@ export function ManualPanel({
                       fontSize: 11,
                       cursor: 'pointer',
                       background: idx === selectedSuggestion ? 'var(--accent-soft)' : 'transparent',
-                      borderLeft: idx === selectedSuggestion ? '2px solid var(--accent)' : '2px solid transparent',
+                      borderLeft:
+                        idx === selectedSuggestion
+                          ? '2px solid var(--accent)'
+                          : '2px solid transparent',
                       color: 'var(--ink)',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
@@ -157,8 +198,14 @@ export function ManualPanel({
                       gap: 8,
                     }}
                   >
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{suggestion}</span>
-                    <span style={{ fontSize: 10, color: 'var(--muted)', flexShrink: 0, opacity: 0.7 }}>
+                    <span
+                      style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    >
+                      {suggestion}
+                    </span>
+                    <span
+                      style={{ fontSize: 10, color: 'var(--muted)', flexShrink: 0, opacity: 0.7 }}
+                    >
                       {suggestion.startsWith('page.getByTestId')
                         ? 'testId'
                         : suggestion.startsWith('page.getByRole')
@@ -200,7 +247,17 @@ export function ManualPanel({
               flexShrink: 0,
             }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.3-4.3" />
               <path d="M8 11h6" />
@@ -225,7 +282,17 @@ export function ManualPanel({
               flexShrink: 0,
             }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
               <path d="M18 6 6 18" />
               <path d="m6 6 12 12" />
             </svg>
@@ -241,17 +308,66 @@ export function ManualPanel({
               padding: '8px 10px',
               borderRadius: 8,
               border: `1px solid ${manualResult.error ? '#fecaca' : manualResult.count > 0 ? '#fde68a' : 'var(--line)'}`,
-              background: manualResult.error ? '#fef2f2' : manualResult.count > 0 ? '#fffbeb' : 'var(--bg)',
-              color: manualResult.error ? '#991b1b' : manualResult.count > 0 ? '#92400e' : 'var(--muted)',
+              background: manualResult.error
+                ? '#fef2f2'
+                : manualResult.count > 0
+                  ? '#fffbeb'
+                  : 'var(--bg)',
+              color: manualResult.error
+                ? '#991b1b'
+                : manualResult.count > 0
+                  ? '#92400e'
+                  : 'var(--muted)',
             }}
           >
-            {manualResult.error ? <>✕ {manualResult.error}</> : manualResult.count === 0 ? <>No matches</> : <>Found {manualResult.count} — highlighted</>}
+            {manualResult.error ? (
+              <>✕ {manualResult.error}</>
+            ) : manualResult.count === 0 ? (
+              <>No matches</>
+            ) : (
+              <>Found {manualResult.count} — highlighted</>
+            )}
           </div>
         )}
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)', lineHeight: 1.4 }}>
-          Try: <code style={{ background: 'var(--bg)', border: '1px solid var(--line)', padding: '1px 4px', borderRadius: 4 }}>#id</code>{' '}
-          <code style={{ background: 'var(--bg)', border: '1px solid var(--line)', padding: '1px 4px', borderRadius: 4 }}>.cls</code>{' '}
-          <code style={{ background: 'var(--bg)', border: '1px solid var(--line)', padding: '1px 4px', borderRadius: 4 }}>[data-testid=&quot;x&quot;]</code>
+        <div
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            color: 'var(--muted)',
+            lineHeight: 1.4,
+          }}
+        >
+          Try:{' '}
+          <code
+            style={{
+              background: 'var(--bg)',
+              border: '1px solid var(--line)',
+              padding: '1px 4px',
+              borderRadius: 4,
+            }}
+          >
+            #id
+          </code>{' '}
+          <code
+            style={{
+              background: 'var(--bg)',
+              border: '1px solid var(--line)',
+              padding: '1px 4px',
+              borderRadius: 4,
+            }}
+          >
+            .cls
+          </code>{' '}
+          <code
+            style={{
+              background: 'var(--bg)',
+              border: '1px solid var(--line)',
+              padding: '1px 4px',
+              borderRadius: 4,
+            }}
+          >
+            [data-testid=&quot;x&quot;]
+          </code>
         </div>
       </div>
     </div>

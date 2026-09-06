@@ -29,7 +29,9 @@ export function useAppState() {
           target = active;
         }
         if (!target?.id) return;
-        await browser.tabs.sendMessage(target.id, { type }).catch(() => { void 0; });
+        await browser.tabs.sendMessage(target.id, { type }).catch(() => {
+          void 0;
+        });
       } catch {
         void 0;
       }

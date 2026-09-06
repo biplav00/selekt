@@ -23,7 +23,9 @@ export function useManual(activeTab: 'inspect' | 'manual', url: string) {
         target = active;
       }
       if (!target?.id) return;
-      await browser.tabs.sendMessage(target.id, { type, ...payload }).catch(() => { void 0; });
+      await browser.tabs.sendMessage(target.id, { type, ...payload }).catch(() => {
+        void 0;
+      });
     } catch {
       void 0;
     }
@@ -37,7 +39,9 @@ export function useManual(activeTab: 'inspect' | 'manual', url: string) {
       if (!target) target = httpTabs[0];
       if (!target) target = (await browser.tabs.query({ active: true, currentWindow: true }))[0];
       if (!target?.id) return;
-      const response = (await browser.tabs.sendMessage(target.id, { type: 'manual:suggestions' }).catch(() => null)) as { suggestions?: string[] } | null;
+      const response = (await browser.tabs
+        .sendMessage(target.id, { type: 'manual:suggestions' })
+        .catch(() => null)) as { suggestions?: string[] } | null;
       if (response?.suggestions) setSuggestions(response.suggestions);
     } catch {
       void 0;
@@ -49,7 +53,9 @@ export function useManual(activeTab: 'inspect' | 'manual', url: string) {
     if (activeTab !== 'manual') return;
     const trimmed = manualLocator.trim();
     if (!trimmed) {
-      sendToActiveTab('manual:clear').catch(() => { void 0; });
+      sendToActiveTab('manual:clear').catch(() => {
+        void 0;
+      });
       setManualResult(null);
       return;
     }
@@ -79,12 +85,16 @@ export function useManual(activeTab: 'inspect' | 'manual', url: string) {
       if (!target) target = httpTabs[0];
       if (!target) target = (await browser.tabs.query({ active: true, currentWindow: true }))[0];
       if (!target?.id) return;
-      const response = (await browser.tabs.sendMessage(target.id, { type: 'manual:highlight', locator: manualLocator.trim() }).catch(() => null)) as ManualResult | null;
+      const response = (await browser.tabs
+        .sendMessage(target.id, { type: 'manual:highlight', locator: manualLocator.trim() })
+        .catch(() => null)) as ManualResult | null;
       if (response) {
         setManualResult({ count: response.count ?? 0, error: response.error ?? null });
       } else {
         setTimeout(() => {
-          setManualResult((prev) => prev ?? { count: 0, error: 'No response — check page permissions' });
+          setManualResult(
+            (prev) => prev ?? { count: 0, error: 'No response — check page permissions' }
+          );
         }, 800);
       }
     } catch {
@@ -101,7 +111,9 @@ export function useManual(activeTab: 'inspect' | 'manual', url: string) {
       if (!target) target = httpTabs[0];
       if (!target) target = (await browser.tabs.query({ active: true, currentWindow: true }))[0];
       if (!target?.id) return;
-      await browser.tabs.sendMessage(target.id, { type: 'manual:clear' }).catch(() => { void 0; });
+      await browser.tabs.sendMessage(target.id, { type: 'manual:clear' }).catch(() => {
+        void 0;
+      });
     } catch {
       void 0;
     }
@@ -119,7 +131,9 @@ export function useManual(activeTab: 'inspect' | 'manual', url: string) {
     setSelectedSuggestion(0);
     setTimeout(() => {
       if (hasEmpty) {
-        const input = document.querySelector('input[aria-label="Manual locator"]') as HTMLInputElement | null;
+        const input = document.querySelector(
+          'input[aria-label="Manual locator"]'
+        ) as HTMLInputElement | null;
         if (input) {
           input.focus();
           const idx = value.indexOf("''") + 1;

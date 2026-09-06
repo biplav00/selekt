@@ -12,7 +12,10 @@ export default defineBackground(() => {
   });
 
   // Ensure side panel is enabled
-  if ((browser as unknown as { sidePanel?: { setPanelBehavior?: (opts: unknown) => Promise<void> } }).sidePanel?.setPanelBehavior) {
+  if (
+    (browser as unknown as { sidePanel?: { setPanelBehavior?: (opts: unknown) => Promise<void> } })
+      .sidePanel?.setPanelBehavior
+  ) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (browser as any).sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {
       void 0;

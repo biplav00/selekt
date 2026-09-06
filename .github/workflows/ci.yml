@@ -19,14 +19,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - name: Install
-        run: npm ci
+        run: npm ci --legacy-peer-deps
       - name: Prepare WXT
-        run: npm run prepare  # wxt prepare → .wxt/tsconfig.json for typecheck
+        run: npm run prepare
       - name: Lint
-        run: npm run lint
+        run: npm run lint -- --max-warnings=50
       - name: Format check
         run: npm run format
       - name: Typecheck
@@ -42,10 +42,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - name: Install
-        run: npm ci
+        run: npm ci --legacy-peer-deps
       - name: Build extension (chrome-mv3)
         run: npm run build
       - name: Zip for store
@@ -66,8 +66,6 @@ jobs:
           path: .output/chrome-mv3/
           retention-days: 3
 
-  # Optional: auto-publish on version tag (requires CWS secrets)
-  # To enable: set secrets CWS_EXTENSION_ID etc. in repo Settings → Secrets
   publish:
     name: Publish to Chrome Web Store
     if: startsWith(github.ref, 'refs/tags/v')
@@ -77,9 +75,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
-      - run: npm ci && npm run zip
+      - run: npm ci --legacy-peer-deps && npm run zip
       - name: Publish
         uses: mobilefirstllc/cws-publish@latest
         with:

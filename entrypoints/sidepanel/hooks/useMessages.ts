@@ -31,11 +31,16 @@ export function useMessages(options: UseMessagesOptions): void {
     };
 
     browser.runtime.onMessage.addListener(handleMessage as (message: unknown) => void);
-    return () => browser.runtime.onMessage.removeListener(handleMessage as (message: unknown) => void);
+    return () =>
+      browser.runtime.onMessage.removeListener(handleMessage as (message: unknown) => void);
   }, [onLocators, onHover, onPickerState, onManualResult]);
 }
 
-function isLocatorsPayload(payload: unknown): payload is { locators: import('../types').Locator[]; meta: import('../types').Meta | null; url: string } {
+function isLocatorsPayload(payload: unknown): payload is {
+  locators: import('../types').Locator[];
+  meta: import('../types').Meta | null;
+  url: string;
+} {
   return typeof payload === 'object' && payload !== null && 'locators' in payload;
 }
 
@@ -47,6 +52,8 @@ function isPickerStatePayload(payload: unknown): payload is import('../types').P
   return typeof payload === 'object' && payload !== null && 'active' in payload;
 }
 
-function isManualResultPayload(payload: unknown): payload is { count: number; error: string | null; cleared?: boolean } {
+function isManualResultPayload(
+  payload: unknown
+): payload is { count: number; error: string | null; cleared?: boolean } {
   return typeof payload === 'object' && payload !== null && 'count' in payload;
 }

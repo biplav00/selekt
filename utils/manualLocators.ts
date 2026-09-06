@@ -35,7 +35,8 @@ function findByRoleManual(role: string, name: string, exact: boolean): Element[]
     if (computedRole !== role) return false;
     const ariaLabel = el.getAttribute('aria-label')?.trim();
     const text = ((el as HTMLElement).innerText ?? (el as HTMLElement).textContent ?? '').trim();
-    const accessibleName = ariaLabel || text || el.getAttribute('alt') || el.getAttribute('placeholder') || '';
+    const accessibleName =
+      ariaLabel || text || el.getAttribute('alt') || el.getAttribute('placeholder') || '';
     if (exact) return accessibleName === name;
     return accessibleName.toLowerCase().includes(lowerName);
   });
@@ -60,13 +61,17 @@ export function parseManualLocator(input: string): { elements: Element[]; error?
   if (m) {
     try {
       const val = m[1].replace(/\\'/g, "'").replace(/\\"/g, '"');
-      return { elements: Array.from(document.querySelectorAll(`[data-testid="${cssEscapeManual(val)}"]`)) };
+      return {
+        elements: Array.from(document.querySelectorAll(`[data-testid="${cssEscapeManual(val)}"]`)),
+      };
     } catch {
       return { elements: [], error: 'Invalid testId' };
     }
   }
 
-  m = raw.match(/^page\.getByRole\(['"]([^'"]+)['"]\s*,?\s*(?:\{[^}]*name:\s*['"]([^'"]+)['"][^}]*\})?\)$/);
+  m = raw.match(
+    /^page\.getByRole\(['"]([^'"]+)['"]\s*,?\s*(?:\{[^}]*name:\s*['"]([^'"]+)['"][^}]*\})?\)$/
+  );
   if (m) {
     const role = m[1];
     const name = m[2];
@@ -75,7 +80,10 @@ export function parseManualLocator(input: string): { elements: Element[]; error?
       return { elements: findByRoleManual(role, name, exact) };
     }
     const all = Array.from(document.querySelectorAll('*')).filter((el) => {
-      const r = el.getAttribute('role') || ({ BUTTON: 'button', A: 'link' } as Record<string, string>)[el.tagName] || null;
+      const r =
+        el.getAttribute('role') ||
+        ({ BUTTON: 'button', A: 'link' } as Record<string, string>)[el.tagName] ||
+        null;
       return r === role;
     });
     return { elements: all as Element[] };
@@ -92,7 +100,9 @@ export function parseManualLocator(input: string): { elements: Element[]; error?
   if (m) {
     const val = m[1].replace(/\\'/g, "'");
     try {
-      return { elements: Array.from(document.querySelectorAll(`[placeholder="${cssEscapeManual(val)}"]`)) };
+      return {
+        elements: Array.from(document.querySelectorAll(`[placeholder="${cssEscapeManual(val)}"]`)),
+      };
     } catch {
       return { elements: Array.from(document.querySelectorAll(`[placeholder="${val}"]`)) };
     }
@@ -105,17 +115,23 @@ export function parseManualLocator(input: string): { elements: Element[]; error?
       .filter((l) => l.textContent?.trim() === val)
       .map((l) => {
         const forId = l.getAttribute('for');
-        return forId ? document.getElementById(forId) : l.closest('label')?.querySelector('input,select,textarea');
+        return forId
+          ? document.getElementById(forId)
+          : l.closest('label')?.querySelector('input,select,textarea');
       })
       .filter(Boolean) as Element[];
     if (byFor.length) return { elements: byFor };
-    return { elements: Array.from(document.querySelectorAll(`[aria-label="${cssEscapeManual(val)}"]`)) };
+    return {
+      elements: Array.from(document.querySelectorAll(`[aria-label="${cssEscapeManual(val)}"]`)),
+    };
   }
 
   m = raw.match(/^page\.getByAltText\(['"](.*)['"]\)$/);
   if (m) {
     const val = m[1].replace(/\\'/g, "'");
-    return { elements: Array.from(document.querySelectorAll(`img[alt="${cssEscapeManual(val)}"]`)) };
+    return {
+      elements: Array.from(document.querySelectorAll(`img[alt="${cssEscapeManual(val)}"]`)),
+    };
   }
 
   m = raw.match(/^page\.locator\(['"](.*)['"]\)$/);
@@ -124,12 +140,21 @@ export function parseManualLocator(input: string): { elements: Element[]; error?
     if (inner.startsWith('//') || inner.startsWith('xpath=')) {
       const xpath = inner.startsWith('xpath=') ? inner.slice(6) : inner;
       try {
-        const result = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        const result = document.evaluate(
+          xpath,
+          document,
+          null,
+          XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+          null
+        );
         const els: Element[] = [];
         for (let i = 0; i < result.snapshotLength; i++) els.push(result.snapshotItem(i) as Element);
         return { elements: els };
       } catch (e) {
-        return { elements: [], error: 'Invalid XPath: ' + String((e as Error).message).slice(0, 60) };
+        return {
+          elements: [],
+          error: 'Invalid XPath: ' + String((e as Error).message).slice(0, 60),
+        };
       }
     }
     try {
@@ -141,7 +166,13 @@ export function parseManualLocator(input: string): { elements: Element[]; error?
 
   if (raw.startsWith('//') || raw.startsWith('(//')) {
     try {
-      const result = document.evaluate(raw, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+      const result = document.evaluate(
+        raw,
+        document,
+        null,
+        XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+        null
+      );
       const els: Element[] = [];
       for (let i = 0; i < result.snapshotLength; i++) els.push(result.snapshotItem(i) as Element);
       return { elements: els };
@@ -153,7 +184,11 @@ export function parseManualLocator(input: string): { elements: Element[]; error?
   try {
     return { elements: Array.from(document.querySelectorAll(raw)) };
   } catch {
-    return { elements: [], error: 'Invalid selector — try CSS like #id, .class, [data-testid="x"] or page.getByTestId(\'x\')' };
+    return {
+      elements: [],
+      error:
+        'Invalid selector — try CSS like #id, .class, [data-testid="x"] or page.getByTestId(\'x\')',
+    };
   }
 }
 
@@ -182,7 +217,10 @@ export function collectManualSuggestions(): string[] {
   add('//div[@id=""]');
 
   try {
-    const testIds = Array.from(document.querySelectorAll('[data-testid]')).slice(0, 8) as HTMLElement[];
+    const testIds = Array.from(document.querySelectorAll('[data-testid]')).slice(
+      0,
+      8
+    ) as HTMLElement[];
     testIds.forEach((el) => {
       const v = el.getAttribute('data-testid');
       if (v) add(`page.getByTestId('${v.replace(/'/g, "\\'")}')`);
@@ -192,7 +230,10 @@ export function collectManualSuggestions(): string[] {
       const v = el.id;
       if (v && /^[a-zA-Z][\w-]*$/.test(v) && v.length < 30) add(`#${v}`);
     });
-    const placeholders = Array.from(document.querySelectorAll('[placeholder]')).slice(0, 5) as HTMLElement[];
+    const placeholders = Array.from(document.querySelectorAll('[placeholder]')).slice(
+      0,
+      5
+    ) as HTMLElement[];
     placeholders.forEach((el) => {
       const v = el.getAttribute('placeholder');
       if (v) add(`page.getByPlaceholder('${v.replace(/'/g, "\\'")}')`);
@@ -212,7 +253,8 @@ export function collectManualSuggestions(): string[] {
     const headings = Array.from(document.querySelectorAll('h1,h2,h3')).slice(0, 3) as HTMLElement[];
     headings.forEach((el) => {
       const t = (el.innerText ?? el.textContent ?? '').trim();
-      if (t && t.length < 40) add(`page.getByRole('heading', { name: '${t.replace(/'/g, "\\'")}' })`);
+      if (t && t.length < 40)
+        add(`page.getByRole('heading', { name: '${t.replace(/'/g, "\\'")}' })`);
     });
   } catch {
     // ignore - return static suggestions only

@@ -37,12 +37,47 @@ export default function App() {
 
   return (
     <div style={{ background: 'var(--bg)', color: 'var(--ink)', minHeight: '100vh' }}>
-      <Header onToggleSettings={() => setShowSettings((value) => !value)} showSettings={showSettings} />
-      {showSettings && <SettingsPanel settings={settings} onUpdate={updateSettings} onClose={() => setShowSettings(false)} />}
+      <Header
+        onToggleSettings={() => setShowSettings((value) => !value)}
+        showSettings={showSettings}
+      />
+      {showSettings && (
+        <SettingsPanel
+          settings={settings}
+          onUpdate={updateSettings}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
       <Tabs activeTab={activeTab} onSelect={setActiveTab} onReset={handleReset} />
-      <div style={{ padding: '16px', maxWidth: 360, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div role="status" aria-live="polite" aria-atomic="true" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
-          {copied?.startsWith('page.') ? `Copied` : picker.locators.length ? `${picker.locators.length} locators` : picker.isInspecting ? 'Inspect active' : ''}
+      <div
+        style={{
+          padding: '16px',
+          maxWidth: 360,
+          margin: '0 auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+        }}
+      >
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          style={{
+            position: 'absolute',
+            width: 1,
+            height: 1,
+            overflow: 'hidden',
+            clip: 'rect(0 0 0 0)',
+          }}
+        >
+          {copied?.startsWith('page.')
+            ? `Copied`
+            : picker.locators.length
+              ? `${picker.locators.length} locators`
+              : picker.isInspecting
+                ? 'Inspect active'
+                : ''}
         </div>
         {activeTab === 'inspect' && (
           <InspectPanel
@@ -74,7 +109,17 @@ export default function App() {
             onFetchSuggestions={manual.fetchSuggestions}
           />
         )}
-        <div style={{ paddingTop: 10, borderTop: '1px solid var(--line)', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)', display: 'flex', justifyContent: 'space-between' }}>
+        <div
+          style={{
+            paddingTop: 10,
+            borderTop: '1px solid var(--line)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            color: 'var(--muted)',
+            display: 'flex',
+            justifyContent: 'space-between',
+          }}
+        >
           <span>⌥⇧C Toggle</span>
           <span>ESC Cancel</span>
         </div>

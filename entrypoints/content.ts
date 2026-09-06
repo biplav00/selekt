@@ -48,20 +48,39 @@ export default defineContentScript({
         const { elements, error } = parseManualLocator(message.locator);
         if (error) {
           sendResponse({ count: 0, error });
-          browser.runtime.sendMessage({ type: 'manual:result', payload: { count: 0, error, locator: message.locator } }).catch(() => { void 0; });
+          browser.runtime
+            .sendMessage({
+              type: 'manual:result',
+              payload: { count: 0, error, locator: message.locator },
+            })
+            .catch(() => {
+              void 0;
+            });
         } else {
           highlightManualElements(elements);
           sendResponse({ count: elements.length, error: null });
           browser.runtime
-            .sendMessage({ type: 'manual:result', payload: { count: elements.length, error: null, locator: message.locator } })
-            .catch(() => { void 0; });
+            .sendMessage({
+              type: 'manual:result',
+              payload: { count: elements.length, error: null, locator: message.locator },
+            })
+            .catch(() => {
+              void 0;
+            });
         }
         return true;
       }
       if (message.type === 'manual:clear') {
         clearManualHighlights();
         sendResponse({ count: 0, error: null, cleared: true });
-        browser.runtime.sendMessage({ type: 'manual:result', payload: { count: 0, error: null, locator: '', cleared: true } }).catch(() => { void 0; });
+        browser.runtime
+          .sendMessage({
+            type: 'manual:result',
+            payload: { count: 0, error: null, locator: '', cleared: true },
+          })
+          .catch(() => {
+            void 0;
+          });
         return true;
       }
       if (message.type === 'manual:suggestions') {
@@ -87,7 +106,8 @@ function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
     if (event instanceof KeyboardEvent && event.key === 'Escape') return;
     event.preventDefault();
     event.stopPropagation();
-    const stopImmediate = (event as unknown as { stopImmediatePropagation?: () => void }).stopImmediatePropagation;
+    const stopImmediate = (event as unknown as { stopImmediatePropagation?: () => void })
+      .stopImmediatePropagation;
     if (typeof stopImmediate === 'function') stopImmediate.call(event);
   };
 
@@ -109,7 +129,8 @@ function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
     const path = (event as unknown as { composedPath?: () => EventTarget[] }).composedPath?.();
     if (path && path.length) {
       for (const target of path) {
-        if (target instanceof Element && (target as Element).id !== '__locator-inspector-overlay') return target as Element;
+        if (target instanceof Element && (target as Element).id !== '__locator-inspector-overlay')
+          return target as Element;
       }
     }
     return event.target as Element | null;
@@ -131,11 +152,18 @@ function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
       showPickerHighlight(lastEl);
       const preview = {
         tag: lastEl.tagName.toLowerCase(),
-        text: ((lastEl as HTMLElement).innerText ?? (lastEl as HTMLElement).textContent ?? '').slice(0, 80).trim() || lastEl.getAttribute('aria-label') || '',
+        text:
+          ((lastEl as HTMLElement).innerText ?? (lastEl as HTMLElement).textContent ?? '')
+            .slice(0, 80)
+            .trim() ||
+          lastEl.getAttribute('aria-label') ||
+          '',
         id: lastEl.getAttribute('id') || '',
         className: (lastEl as HTMLElement).className?.toString().slice(0, 80) || '',
       };
-      browser.runtime.sendMessage({ type: 'picker:hover', payload: preview }).catch(() => { void 0; });
+      browser.runtime.sendMessage({ type: 'picker:hover', payload: preview }).catch(() => {
+        void 0;
+      });
     });
   };
 
@@ -152,18 +180,33 @@ function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
       const locators = generateLocators(el as Element);
       const meta = {
         tag: (el as Element).tagName.toLowerCase(),
-        text: (((el as Element) as HTMLElement).innerText ?? ((el as Element) as HTMLElement).textContent ?? '').slice(0, 120).trim() || '',
+        text:
+          (
+            (el as Element as HTMLElement).innerText ??
+            (el as Element as HTMLElement).textContent ??
+            ''
+          )
+            .slice(0, 120)
+            .trim() || '',
         id: (el as Element).getAttribute('id') || '',
-        className: ((el as Element) as HTMLElement).className?.toString().slice(0, 80) || '',
+        className: (el as Element as HTMLElement).className?.toString().slice(0, 80) || '',
         attributes: Array.from((el as Element).attributes)
           .slice(0, 10)
           .map((attr) => `${attr.name}="${attr.value.replace(/"/g, '&quot;').slice(0, 50)}"`)
           .join(' '),
       };
-      browser.runtime.sendMessage({ type: 'locators', payload: { locators, meta, url: location.href } }).catch(() => { void 0; });
+      browser.runtime
+        .sendMessage({ type: 'locators', payload: { locators, meta, url: location.href } })
+        .catch(() => {
+          void 0;
+        });
       teardown(false);
       flashPickerOverlay();
-      browser.runtime.sendMessage({ type: 'picker:state', payload: { active: false, locked: true } }).catch(() => { void 0; });
+      browser.runtime
+        .sendMessage({ type: 'picker:state', payload: { active: false, locked: true } })
+        .catch(() => {
+          void 0;
+        });
     } catch (error) {
       console.warn('[locator] generate failed', error);
     }
@@ -180,7 +223,9 @@ function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
       if (target && lastEl && target === lastEl) {
         event.preventDefault();
         event.stopPropagation();
-        (event as unknown as { stopImmediatePropagation?: () => void }).stopImmediatePropagation?.();
+        (
+          event as unknown as { stopImmediatePropagation?: () => void }
+        ).stopImmediatePropagation?.();
       }
     }
   };
@@ -200,7 +245,9 @@ function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
       cancelAnimationFrame(rafId);
       rafId = null;
     }
-    browser.runtime.sendMessage({ type: 'picker:state', payload: { active: false } }).catch(() => { void 0; });
+    browser.runtime.sendMessage({ type: 'picker:state', payload: { active: false } }).catch(() => {
+      void 0;
+    });
   };
 
   const activate = () => {
@@ -216,7 +263,9 @@ function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
       document.addEventListener(evt, handler, cap);
     }
     document.body.style.cursor = 'crosshair';
-    browser.runtime.sendMessage({ type: 'picker:state', payload: { active: true } }).catch(() => { void 0; });
+    browser.runtime.sendMessage({ type: 'picker:state', payload: { active: true } }).catch(() => {
+      void 0;
+    });
   };
 
   return { isActive: () => active, activate, teardown };

@@ -16,7 +16,9 @@ export function useCopy(displayLocator: (value: string) => string) {
           ta.value = toCopy;
           document.body.appendChild(ta);
           ta.select();
-          ok = (document as unknown as { execCommand: (cmd: string) => boolean }).execCommand('copy');
+          ok = (document as unknown as { execCommand: (cmd: string) => boolean }).execCommand(
+            'copy'
+          );
           ta.remove();
         } catch {
           void 0;
