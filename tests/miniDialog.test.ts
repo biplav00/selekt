@@ -48,7 +48,6 @@ describe('mini dialog host', () => {
     expect(code?.textContent).toContain("getByTestId('x')");
     await refreshBest({ raw: "page.getByRole('button', { name: 'Go' })", kind: 'role' });
     expect(code?.textContent).toContain('getByRole');
-    expect(host?.shadowRoot?.querySelector('.kind')?.textContent).toBe('role');
   });
 
   it('shows the empty state with no locator', () => {

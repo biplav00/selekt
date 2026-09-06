@@ -1,13 +1,13 @@
 /**
- * Floating mini dialog — lives on the page (content-script context) in a
- * shadow root so page CSS can't touch it. One locator row + one probe row,
- * draggable by its strip, expandable back into the side panel.
+ * Floating mini dialog — the Bar, pixel-faithful, living on the page in a
+ * shadow root so page CSS can't touch it. One pill row: grip, LED,
+ * icon tabs, locator-or-textfield, copy/test, reset, expand.
  */
 import { parseManualLocator } from './manualLocators';
 import { highlightManualElements, clearManualHighlights } from './overlay';
 
 export const MINI_ROOT_ID = '__selekt-mini-root';
-const MINI_WIDTH = 300;
+const MINI_MIN_WIDTH = 230;
 
 export interface MiniBest {
   raw: string;
@@ -57,44 +57,38 @@ function displayOf(raw: string, omit: boolean): string {
 function css(): string {
   return `
     :host { color-scheme: light; }
-    .mini { width: ${MINI_WIDTH}px; background: #f7f6f1; color: #1d1c19;
-      border: 1px solid #b3b0a2; border-radius: 12px; overflow: hidden;
-      box-shadow: 0 18px 44px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.12);
-      font-family: -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 12px; }
-    .strip { background: #1d1c19; color: #f7f6f1; padding: 7px 8px 7px 10px;
-      display: flex; align-items: center; gap: 8px; cursor: move; user-select: none; }
+    .bar { background: #f7f6f1; color: #1d1c19; border: 1px solid #b3b0a2;
+      border-radius: 999px; display: flex; align-items: center; gap: 6px;
+      padding: 5px 6px 5px 5px; box-shadow: 0 14px 34px rgba(0,0,0,0.22);
+      font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+      min-width: ${MINI_MIN_WIDTH}px; max-width: 100%; resize: horizontal; overflow: hidden; }
+    .grip { display: grid; place-items: center; color: #9b988c; cursor: grab;
+      flex-shrink: 0; margin-left: 3px; touch-action: none; }
+    .grip:active { cursor: grabbing; }
     .led { width: 8px; height: 8px; border-radius: 999px; background: #d9480f; flex-shrink: 0; }
-    .led.dim { background: #6d6b61; }
-    .title { font-size: 10.5px; font-weight: 800; letter-spacing: 0.05em; }
-    .spacer { margin-left: auto; display: flex; gap: 6px; }
-    .iconbtn { width: 24px; height: 24px; display: grid; place-items: center; background: transparent;
-      color: #f7f6f1; border: 1px solid rgba(247,246,241,0.3); border-radius: 6px;
-      cursor: pointer; font-size: 12px; padding: 0; }
-    .iconbtn:hover { border-color: rgba(247,246,241,0.65); }
-    .row { display: flex; align-items: center; gap: 7px; padding: 8px 10px; }
-    .row + .row { border-top: 1px solid #d6d3c8; }
-    .kind { font-family: ui-monospace, Menlo, monospace; font-size: 9px; font-weight: 600;
-      letter-spacing: 0.06em; color: #a83408; background: #f9e3d3; border-radius: 4px;
-      padding: 2px 6px; flex-shrink: 0; text-transform: uppercase; }
-    .code { flex: 1; min-width: 0; font-family: ui-monospace, Menlo, monospace; font-size: 11px;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .code.empty { color: #9b988c; }
-    .row input { flex: 1; min-width: 0; font-family: ui-monospace, Menlo, monospace; font-size: 11px;
-      border: 0; background: transparent; outline: none; color: #1d1c19; padding: 0; }
-    .btn { width: 28px; height: 28px; border-radius: 7px; border: 1px solid #d6d3c8;
-      background: #f7f6f1; color: #1d1c19; cursor: pointer; font-size: 12px;
-      display: grid; place-items: center; flex-shrink: 0; padding: 0; }
-    .btn:hover { border-color: #1d1c19; }
-    .btn.go { background: #1d1c19; color: #f7f6f1; border-color: #1d1c19; }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .verdict { display: none; font-family: ui-monospace, Menlo, monospace; font-size: 10px;
-      color: #7a5410; background: #faf3df; border-top: 1px solid #e3cf9d; padding: 6px 10px; }
-    .verdict.show { display: block; }
-    .verdict.err { color: #96351f; background: #fbe9e4; border-color: #eec0b4; }
-    .seg { display: flex; gap: 4px; padding: 8px 10px 0; }
-    .segbtn { flex: 1; border: 0; background: transparent; font: inherit; font-size: 11.5px;
-      font-weight: 700; padding: 7px 4px; border-radius: 7px; cursor: pointer; color: #6d6b61; }
+    .led.dim { background: #b3b0a2; }
+    .seg { display: flex; background: #ebe9e2; border-radius: 999px; padding: 2px; flex-shrink: 0; }
+    .segbtn { border: 0; background: transparent; border-radius: 999px; width: 28px; height: 28px;
+      cursor: pointer; color: #6d6b61; font-size: 13px; display: grid; place-items: center; padding: 0; }
     .segbtn.on { background: #1d1c19; color: #f7f6f1; }
+    .pane { display: none; flex: 1; min-width: 0; align-items: center; gap: 6px; }
+    .pane.show { display: flex; }
+    .code { flex: 1; min-width: 0; font-family: ui-monospace, Menlo, monospace; font-size: 11.5px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .code .m { color: #6d6b61; }
+    .code.empty { color: #9b988c; }
+    .field { flex: 1; min-width: 0; font-family: ui-monospace, Menlo, monospace; font-size: 11.5px;
+      border: 0; background: transparent; outline: none; color: #1d1c19; padding: 0; }
+    .ic { width: 30px; height: 30px; border-radius: 999px; border: 1px solid #d6d3c8;
+      background: #f7f6f1; color: #1d1c19; cursor: pointer; font-size: 13px;
+      display: grid; place-items: center; flex-shrink: 0; padding: 0; }
+    .ic:hover { border-color: #1d1c19; }
+    .ic.go { background: #1d1c19; color: #f7f6f1; border-color: #1d1c19; }
+    .ic.done { background: #d9480f; border-color: #a83408; color: #fff; }
+    .ic:disabled { opacity: 0.4; cursor: not-allowed; }
+    .verdict { display: none; font-family: ui-monospace, Menlo, monospace; font-size: 10px;
+      color: #6d6b61; margin-top: 6px; padding: 0 12px; }
+    .verdict.show { display: block; }
   `;
 }
 
@@ -107,6 +101,25 @@ function el<K extends keyof HTMLElementTagNameMap>(
   for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
   if (text != null) node.textContent = text;
   return node;
+}
+
+function svgDots(): SVGSVGElement {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '10');
+  svg.setAttribute('height', '16');
+  svg.setAttribute('viewBox', '0 0 10 16');
+  svg.setAttribute('fill', 'currentColor');
+  svg.setAttribute('aria-hidden', 'true');
+  for (const cx of [2.5, 7.5]) {
+    for (const cy of [3, 8, 13]) {
+      const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.setAttribute('cx', String(cx));
+      c.setAttribute('cy', String(cy));
+      c.setAttribute('r', '1.4');
+      svg.appendChild(c);
+    }
+  }
+  return svg;
 }
 
 async function copyText(text: string): Promise<boolean> {
@@ -138,51 +151,34 @@ function buildDialog(): void {
   style.textContent = css();
   shadow.appendChild(style);
 
-  const root = el('div', { class: 'mini', role: 'dialog', 'aria-label': 'Selekt mini' });
+  const bar = el('div', { class: 'bar', role: 'dialog', 'aria-label': 'Selekt mini' });
 
-  // Strip (drag handle)
-  const strip = el('div', { class: 'strip' });
+  // Grip (drag handle) + LED
+  const grip = el('span', { class: 'grip', title: 'Drag to move' });
+  grip.appendChild(svgDots());
   const ledDot = el('span', { class: 'led', 'aria-hidden': 'true' });
-  strip.appendChild(ledDot);
-  strip.appendChild(el('span', { class: 'title' }, 'SELEKT'));
-  const spacer = el('span', { class: 'spacer' });
-  const expandBtn = el(
-    'button',
-    {
-      class: 'iconbtn',
-      title: 'Back to full sidepanel',
-      'aria-label': 'Back to full sidepanel',
-    },
-    '⤢'
-  );
-  expandBtn.addEventListener('click', () => cb.onExpand());
-  const closeBtn = el(
-    'button',
-    {
-      class: 'iconbtn',
-      title: 'Close mini dialog',
-      'aria-label': 'Close mini dialog',
-    },
-    '×'
-  );
-  closeBtn.addEventListener('click', () => {
-    clearManualHighlights();
-    hideMiniDialog();
-  });
-  spacer.appendChild(expandBtn);
-  spacer.appendChild(closeBtn);
-  strip.appendChild(spacer);
-  root.appendChild(strip);
 
-  // Inspect pane: exactly one locator
+  // Icon tabs — toggling only switches views; re-clicking active ⌖ re-arms.
+  let mode: 'inspect' | 'manual' = 'inspect';
+  const seg = el('div', { class: 'seg', role: 'tablist', 'aria-label': 'Mini mode' });
+  const inspectTab = el(
+    'button',
+    { class: 'segbtn', role: 'tab', title: 'Pick element', 'aria-label': 'Pick element' },
+    '⌖'
+  );
+  const manualTab = el(
+    'button',
+    { class: 'segbtn', role: 'tab', title: 'Manual probe', 'aria-label': 'Manual probe' },
+    '⌕'
+  );
+
+  // Inspect pane: one locator
   const inspectPane = el('div', { class: 'pane' });
-  const inspectRow = el('div', { class: 'row' });
-  const kindChip = el('span', { class: 'kind' }, '—');
   const code = el('code', { class: 'code empty' }, 'pick an element…');
   code.setAttribute('id', 'selekt-mini-code');
   const copyBtn = el(
     'button',
-    { class: 'btn', title: 'Copy locator', 'aria-label': 'Copy locator' },
+    { class: 'ic', title: 'Copy locator', 'aria-label': 'Copy locator' },
     '⎘'
   );
   copyBtn.setAttribute('id', 'selekt-mini-copy');
@@ -191,35 +187,20 @@ function buildDialog(): void {
     const ok = await copyText(currentRaw);
     if (ok) {
       copyBtn.textContent = '✓';
+      copyBtn.classList.add('done');
       setTimeout(() => {
         copyBtn.textContent = '⎘';
+        copyBtn.classList.remove('done');
       }, 1100);
     }
   });
-  const setEmpty = () => {
-    currentRaw = '';
-    code.textContent = 'pick an element…';
-    code.classList.add('empty');
-    code.removeAttribute('title');
-    kindChip.textContent = '—';
-    ledDot.classList.add('dim');
-  };
-  const resetBtn = el('button', { class: 'btn', title: 'Reset', 'aria-label': 'Reset' }, '↺');
-  resetBtn.addEventListener('click', () => {
-    setEmpty();
-    clearManualHighlights();
-    verdict.classList.remove('show', 'err');
-  });
-  inspectRow.appendChild(kindChip);
-  inspectRow.appendChild(code);
-  inspectRow.appendChild(copyBtn);
-  inspectRow.appendChild(resetBtn);
-  inspectPane.appendChild(inspectRow);
+  inspectPane.appendChild(code);
+  inspectPane.appendChild(copyBtn);
 
   // Manual pane: textfield + test only
   const manualPane = el('div', { class: 'pane' });
-  const manualRow = el('div', { class: 'row' });
   const input = document.createElement('input');
+  input.setAttribute('class', 'field');
   input.setAttribute('aria-label', 'Manual locator');
   input.setAttribute('spellcheck', 'false');
   input.setAttribute('autocomplete', 'off');
@@ -231,7 +212,7 @@ function buildDialog(): void {
     const { elements, error } = parseManualLocator(normalized);
     if (error) {
       verdict.textContent = `✕ ${error}`;
-      verdict.classList.add('show', 'err');
+      verdict.classList.add('show');
       clearManualHighlights();
     } else {
       highlightManualElements(elements);
@@ -240,7 +221,6 @@ function buildDialog(): void {
           ? 'No matches'
           : `▸ ${elements.length} match${elements.length === 1 ? '' : 'es'} — highlighted`;
       verdict.classList.add('show');
-      verdict.classList.remove('err');
     }
   };
   input.addEventListener('keydown', (event) => {
@@ -251,27 +231,31 @@ function buildDialog(): void {
   });
   const testBtn = el(
     'button',
-    { class: 'btn go', title: 'Test probe', 'aria-label': 'Test probe' },
+    { class: 'ic go', title: 'Test probe', 'aria-label': 'Test probe' },
     '▸'
   );
   testBtn.addEventListener('click', runProbe);
-  manualRow.appendChild(input);
-  manualRow.appendChild(testBtn);
-  manualPane.appendChild(manualRow);
+  manualPane.appendChild(input);
+  manualPane.appendChild(testBtn);
 
-  // Mode tabs — toggling only switches views; re-clicking active ⌖ re-arms.
-  let mode: 'inspect' | 'manual' = 'inspect';
-  const seg = el('div', { class: 'seg', role: 'tablist', 'aria-label': 'Mini mode' });
-  const inspectTab = el(
+  // Reset + expand ride in-row, always visible
+  const resetBtn = el('button', { class: 'ic', title: 'Reset', 'aria-label': 'Reset' }, '↺');
+  resetBtn.addEventListener('click', () => {
+    currentRaw = '';
+    code.textContent = 'pick an element…';
+    code.classList.add('empty');
+    code.removeAttribute('title');
+    ledDot.classList.add('dim');
+    clearManualHighlights();
+    verdict.classList.remove('show');
+  });
+  const expandBtn = el(
     'button',
-    { class: 'segbtn', role: 'tab', title: 'Pick element', 'aria-label': 'Pick element' },
-    '⌖ Inspect'
+    { class: 'ic', title: 'Back to full sidepanel', 'aria-label': 'Back to full sidepanel' },
+    '⤢'
   );
-  const manualTab = el(
-    'button',
-    { class: 'segbtn', role: 'tab', title: 'Manual probe', 'aria-label': 'Manual probe' },
-    'Manual ⌕'
-  );
+  expandBtn.addEventListener('click', () => cb.onExpand());
+
   const syncTabs = () => {
     const inspectActive = mode === 'inspect';
     for (const [btn, on] of [
@@ -297,16 +281,21 @@ function buildDialog(): void {
   });
   seg.appendChild(inspectTab);
   seg.appendChild(manualTab);
-  root.appendChild(seg);
-  root.appendChild(inspectPane);
-  root.appendChild(manualPane);
-  root.appendChild(verdict);
+
+  bar.appendChild(grip);
+  bar.appendChild(ledDot);
+  bar.appendChild(seg);
+  bar.appendChild(inspectPane);
+  bar.appendChild(manualPane);
+  bar.appendChild(resetBtn);
+  bar.appendChild(expandBtn);
+  shadow.appendChild(bar);
+  shadow.appendChild(verdict);
   syncTabs();
 
-  // Drag by the strip (never from buttons)
-  strip.addEventListener('pointerdown', (event) => {
+  // Drag by the grip only
+  grip.addEventListener('pointerdown', (event) => {
     if (!host) return;
-    if ((event.target as Element).closest?.('button')) return;
     event.preventDefault();
     const rect = host.getBoundingClientRect();
     host.style.left = `${rect.left}px`;
@@ -339,8 +328,6 @@ function buildDialog(): void {
     window.addEventListener('pointerup', up);
     window.addEventListener('pointercancel', up);
   });
-
-  shadow.appendChild(root);
 }
 
 function ensureHost(): HTMLElement | null {
@@ -383,19 +370,18 @@ export async function refreshBest(best: MiniBest): Promise<void> {
   const omit = await readOmitPage();
   if (!shadow) return;
   const code = shadow.querySelector<HTMLElement>('#selekt-mini-code');
-  const kind = shadow.querySelector<HTMLElement>('.kind');
   const led = shadow.querySelector<HTMLElement>('.led');
   if (code) {
     if (best.raw) {
-      code.textContent = displayOf(best.raw, omit);
+      const display = displayOf(best.raw, omit);
+      code.textContent = display;
       code.classList.remove('empty');
-      code.title = displayOf(best.raw, omit);
+      code.title = display;
     } else {
       code.textContent = 'pick an element…';
       code.classList.add('empty');
       code.removeAttribute('title');
     }
   }
-  if (kind) kind.textContent = best.kind || '—';
   if (led) led.classList.toggle('dim', !best.raw);
 }
