@@ -56,7 +56,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: locator-inspector-${{ github.sha }}
-          path: .output/*.zip
+          path: .output/
           retention-days: 14
           if-no-files-found: error
       - name: Upload build dir (for debugging)
