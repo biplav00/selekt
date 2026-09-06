@@ -4,8 +4,8 @@ interface HeaderProps {
   isInspecting: boolean;
   locatorCount: number;
   host: string;
-  isFloat: boolean;
-  onFloatAction: () => void;
+  mini: boolean;
+  onToggleMini: () => void;
 }
 
 export function Header({
@@ -14,8 +14,8 @@ export function Header({
   isInspecting,
   locatorCount,
   host,
-  isFloat,
-  onFloatAction,
+  mini,
+  onToggleMini,
 }: HeaderProps) {
   const readout = isInspecting
     ? 'SCAN · hover page'
@@ -99,24 +99,25 @@ export function Header({
       )}
       <button
         type="button"
-        onClick={onFloatAction}
-        aria-label={isFloat ? 'Dock back to sidebar' : 'Pop out to floating window'}
-        title={isFloat ? 'Dock back to sidebar' : 'Floating window'}
+        onClick={onToggleMini}
+        aria-label={mini ? 'Back to full sidepanel' : 'Minimize to mini dialog'}
+        title={mini ? 'Back to full sidepanel' : 'Mini dialog'}
+        aria-pressed={mini}
         style={{
           width: 28,
           height: 28,
           display: 'grid',
           placeItems: 'center',
-          background: 'transparent',
-          color: 'var(--bar-ink)',
+          background: mini ? 'var(--bar-ink)' : 'transparent',
+          color: mini ? 'var(--bar)' : 'var(--bar-ink)',
           border: '1px solid color-mix(in srgb, var(--bar-ink) 30%, transparent)',
           borderRadius: 8,
           cursor: 'pointer',
           flexShrink: 0,
-          opacity: 0.75,
+          opacity: mini ? 1 : 0.75,
         }}
       >
-        {isFloat ? (
+        {mini ? (
           <svg
             width="14"
             height="14"
@@ -128,8 +129,10 @@ export function Header({
             strokeLinejoin="round"
             aria-hidden="true"
           >
-            <path d="M19 12H5" />
-            <path d="m12 19-7-7 7-7" />
+            <path d="M15 3h6v6" />
+            <path d="M9 21H3v-6" />
+            <path d="M21 3l-7 7" />
+            <path d="M3 21l7-7" />
           </svg>
         ) : (
           <svg
@@ -143,9 +146,10 @@ export function Header({
             strokeLinejoin="round"
             aria-hidden="true"
           >
-            <path d="M15 3h6v6" />
-            <path d="M10 14 21 3" />
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+            <path d="M8 3H5a2 2 0 0 0-2 2v4" />
+            <path d="M16 3h4a2 2 0 0 1 2 2v4" />
+            <path d="M8 21H5a2 2 0 0 1-2-2v-4" />
+            <path d="M16 21h4a2 2 0 0 0 2-2v-4" />
           </svg>
         )}
       </button>

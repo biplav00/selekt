@@ -48,44 +48,5 @@ export function useAppActions(picker: PickerReturn, manual: ManualReturn) {
     }
   }, [picker]);
 
-  // Pop the panel out into a small floating window and close the sidebar.
-  const handleFloat = useCallback(async () => {
-    try {
-      const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-      const url = browser.runtime.getURL('/sidepanel.html?float=1');
-      await browser.windows.create({ url, type: 'popup', width: 360, height: 580, focused: true });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sidePanel = (browser as any).sidePanel;
-      if (sidePanel?.close && tab?.id != null) {
-        try {
-          await sidePanel.close({ tabId: tab.id });
-        } catch {
-          if (tab.windowId != null) {
-            await sidePanel.close({ windowId: tab.windowId }).catch(() => {
-              void 0;
-            });
-          }
-        }
-      }
-    } catch {
-      void 0;
-    }
-  }, []);
-
-  // Dock the floating window back into the sidebar.
-  const handleDock = useCallback(async () => {
-    try {
-      const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sidePanel = (browser as any).sidePanel;
-      if (sidePanel?.open && tab?.id != null) {
-        await sidePanel.open({ tabId: tab.id });
-      }
-    } catch {
-      void 0;
-    }
-    window.close();
-  }, []);
-
-  return { sendToTab, handleReset, handleToggleInspect, handleFloat, handleDock };
+  return { sendToTab, handleReset, handleToggleInspect };
 }

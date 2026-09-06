@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Header } from './components/Header';
 import { Tabs } from './components/Tabs';
+import { MiniBar } from './components/MiniBar';
 import { SettingsDialog } from './components/SettingsDialog';
 import { InspectPanel } from './components/InspectPanel';
 import { ManualPanel } from './components/ManualPanel';
@@ -16,10 +17,8 @@ import type { TabId } from './types';
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('inspect');
   const [showSettings, setShowSettings] = useState(false);
+  const [mini, setMini] = useState(false);
   const { settings, updateSettings, displayLocator } = useSettings();
-  // Floating popup (?float=1) always renders the compact layout.
-  const isFloat = new URLSearchParams(window.location.search).get('float') === '1';
-  const compact = isFloat;
   const picker = usePicker();
   const manual = useManual(activeTab, picker.url);
   const { copied, copy } = useCopy(displayLocator);
@@ -31,10 +30,7 @@ export default function App() {
     onManualResult: manual.setManualResult,
   });
 
-  const { sendToTab, handleReset, handleToggleInspect, handleFloat, handleDock } = useAppActions(
-    picker,
-    manual
-  );
+  const { sendToTab, handleReset, handleToggleInspect } = useAppActions(picker, manual);
 
   useGlobalShortcuts(picker.isInspecting && !showSettings, () => {
     void sendToTab('picker:off');
@@ -65,8 +61,8 @@ export default function App() {
         isInspecting={picker.isInspecting}
         locatorCount={picker.locators.length}
         host={host}
-        isFloat={isFloat}
-        onFloatAction={isFloat ? handleDock : handleFloat}
+        mini={mini}
+        onToggleMini={() => setMini((value) => !value)}
       />
       {showSettings && (
         <SettingsDialog
@@ -75,80 +71,104 @@ export default function App() {
           onClose={() => setShowSettings(false)}
         />
       )}
-      <Tabs activeTab={activeTab} onSelect={setActiveTab} onReset={handleReset} compact={compact} />
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-        <div
-          style={{
-            padding: compact ? '10px' : '14px',
-            maxWidth: compact ? 340 : 400,
-            margin: '0 auto',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: compact ? 8 : 12,
-          }}
-        >
-          <div
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-            style={{
-              position: 'absolute',
-              width: 1,
-              height: 1,
-              overflow: 'hidden',
-              clip: 'rect(0 0 0 0)',
-            }}
-          >
-            {copied?.startsWith('page.')
-              ? `Copied`
-              : picker.locators.length
-                ? `${picker.locators.length} locators`
-                : picker.isInspecting
-                  ? 'Inspect active'
-                  : ''}
-          </div>
-          {activeTab === 'inspect' && (
-            <InspectPanel
+      {mini ? (
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          <div style={{ padding: '12px', maxWidth: 400, margin: '0 auto' }}>
+            <MiniBar
+              activeTab={activeTab}
+              onSelectTab={setActiveTab}
+              best={picker.locators[0] ?? null}
               isInspecting={picker.isInspecting}
-              locators={picker.locators}
-              meta={picker.meta}
-              hoverPreview={picker.hoverPreview}
               copied={copied}
-              onToggleInspect={handleToggleInspect}
               onCopy={copy}
               displayLocator={displayLocator}
-              history={picker.history}
-              onRestore={picker.restoreSnapshot}
-              onClearHistory={picker.clearHistory}
-              compact={compact}
-            />
-          )}
-          {activeTab === 'manual' && (
-            <ManualPanel
               manualLocator={manual.manualLocator}
               onLocatorChange={manual.setManualLocator}
               manualResult={manual.manualResult}
-              onHighlight={() => {
+              onTestProbe={() => {
                 void manual.handleManualHighlight(true);
               }}
-              onClear={manual.handleManualClear}
-              suggestions={manual.suggestions}
-              showSuggestions={manual.showSuggestions}
-              selectedSuggestion={manual.selectedSuggestion}
-              onSuggestionClick={manual.handleSuggestionClick}
-              onSuggestionHover={manual.setSelectedSuggestion}
-              onShowSuggestions={manual.setShowSuggestions}
-              onSelectedSuggestionChange={manual.setSelectedSuggestion}
-              onFetchSuggestions={manual.fetchSuggestions}
-              history={manual.history}
-              onSelectEntry={manual.setManualLocator}
-              onClearHistory={manual.clearHistory}
-              displayLocator={displayLocator}
-              compact={compact}
+              onReset={handleReset}
+              onToggleInspect={handleToggleInspect}
             />
-          )}
+          </div>
         </div>
-      </div>
+      ) : (
+        <>
+          <Tabs activeTab={activeTab} onSelect={setActiveTab} onReset={handleReset} />
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            <div
+              style={{
+                padding: '14px',
+                maxWidth: 400,
+                margin: '0 auto',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+              }}
+            >
+              <div
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+                style={{
+                  position: 'absolute',
+                  width: 1,
+                  height: 1,
+                  overflow: 'hidden',
+                  clip: 'rect(0 0 0 0)',
+                }}
+              >
+                {copied?.startsWith('page.')
+                  ? `Copied`
+                  : picker.locators.length
+                    ? `${picker.locators.length} locators`
+                    : picker.isInspecting
+                      ? 'Inspect active'
+                      : ''}
+              </div>
+              {activeTab === 'inspect' && (
+                <InspectPanel
+                  isInspecting={picker.isInspecting}
+                  locators={picker.locators}
+                  meta={picker.meta}
+                  hoverPreview={picker.hoverPreview}
+                  copied={copied}
+                  onToggleInspect={handleToggleInspect}
+                  onCopy={copy}
+                  displayLocator={displayLocator}
+                  history={picker.history}
+                  onRestore={picker.restoreSnapshot}
+                  onClearHistory={picker.clearHistory}
+                />
+              )}
+              {activeTab === 'manual' && (
+                <ManualPanel
+                  manualLocator={manual.manualLocator}
+                  onLocatorChange={manual.setManualLocator}
+                  manualResult={manual.manualResult}
+                  onHighlight={() => {
+                    void manual.handleManualHighlight(true);
+                  }}
+                  onClear={manual.handleManualClear}
+                  suggestions={manual.suggestions}
+                  showSuggestions={manual.showSuggestions}
+                  selectedSuggestion={manual.selectedSuggestion}
+                  onSuggestionClick={manual.handleSuggestionClick}
+                  onSuggestionHover={manual.setSelectedSuggestion}
+                  onShowSuggestions={manual.setShowSuggestions}
+                  onSelectedSuggestionChange={manual.setSelectedSuggestion}
+                  onFetchSuggestions={manual.fetchSuggestions}
+                  history={manual.history}
+                  onSelectEntry={manual.setManualLocator}
+                  onClearHistory={manual.clearHistory}
+                  displayLocator={displayLocator}
+                />
+              )}
+            </div>
+          </div>
+        </>
+      )}
       <div
         style={{
           borderTop: '1px solid var(--line)',

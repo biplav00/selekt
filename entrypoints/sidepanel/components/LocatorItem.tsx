@@ -7,7 +7,6 @@ interface LocatorItemProps {
   isCopied: boolean;
   onCopy: (value: string) => void;
   displayValue: string;
-  compact: boolean;
 }
 
 export function LocatorItem({
@@ -17,7 +16,6 @@ export function LocatorItem({
   isCopied,
   onCopy,
   displayValue,
-  compact,
 }: LocatorItemProps) {
   const renderLocator = (value: string) => {
     const match = value.match(/^(page\.)?(getBy\w+|locator)(.*)$/);
@@ -40,7 +38,7 @@ export function LocatorItem({
         gridTemplateColumns: '1fr 30px',
         gap: 10,
         alignItems: 'center',
-        padding: compact ? '7px 10px' : '11px 12px',
+        padding: '11px 12px',
         borderBottom: '1px solid var(--line)',
         borderLeft: isBest ? '4px solid var(--sig)' : '4px solid transparent',
         background: isBest ? 'var(--sig-soft)' : 'transparent',
