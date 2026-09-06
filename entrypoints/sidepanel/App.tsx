@@ -71,7 +71,14 @@ export default function App() {
           onClose={() => setShowSettings(false)}
         />
       )}
-      <Tabs activeTab={activeTab} onSelect={setActiveTab} onReset={handleReset} />
+      <Tabs
+        activeTab={activeTab}
+        onSelect={setActiveTab}
+        onReset={() => {
+          setShowSettings(false);
+          void handleReset();
+        }}
+      />
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
         <div
           style={{

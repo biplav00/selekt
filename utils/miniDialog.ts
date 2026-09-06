@@ -456,6 +456,10 @@ export async function refreshBest(best: MiniBest): Promise<void> {
   if (!shadow) return;
   const omit = await readOmitPage();
   if (!shadow) return;
+  // A new lock is a new context — never show the previous probe verdict
+  // next to a locator it doesn't belong to.
+  const staleVerdict = shadow.querySelector<HTMLElement>('.verdict');
+  if (staleVerdict) staleVerdict.classList.remove('show');
   const code = shadow.querySelector<HTMLElement>('#selekt-mini-code');
   const led = shadow.querySelector<HTMLElement>('.led');
   if (code) {

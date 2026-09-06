@@ -59,6 +59,8 @@ export function Header({
             letterSpacing: '0.04em',
             lineHeight: 1.1,
             whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
           }}
         >
           SELEKT
@@ -88,7 +90,8 @@ export function Header({
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            maxWidth: 120,
+            maxWidth: 90,
+            minWidth: 0,
             flexShrink: 0,
           }}
         >

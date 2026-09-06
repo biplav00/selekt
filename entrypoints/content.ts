@@ -24,10 +24,19 @@ export default defineContentScript({
     const picker = createPicker(ctx);
     const manual = createManualHandler();
 
-    ctx.onInvalidated(() => picker.teardown(true));
+    ctx.onInvalidated(() => {
+      picker.teardown(true);
+      hideMiniDialog();
+    });
     // @ts-expect-error wxt locationchange may not be typed
-    ctx.addEventListener?.('wxt:locationchange', () => picker.teardown(true));
-    window.addEventListener('popstate', () => picker.teardown(true));
+    ctx.addEventListener?.('wxt:locationchange', () => {
+      picker.teardown(true);
+      hideMiniDialog();
+    });
+    window.addEventListener('popstate', () => {
+      picker.teardown(true);
+      hideMiniDialog();
+    });
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden' && picker.isActive()) hidePickerHighlight();
     });

@@ -1,17 +1,6 @@
 export default defineBackground(() => {
-  // Open side panel when action icon is clicked
-  browser.action.onClicked.addListener(async (tab) => {
-    if (tab.id != null) {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (browser as any).sidePanel.open({ tabId: tab.id });
-      } catch (e) {
-        console.warn('sidePanel.open failed', e);
-      }
-    }
-  });
-
-  // Ensure side panel is enabled
+  // Declarative open-on-click; an explicit onClicked listener would never
+  // fire while this behavior is set, so it is intentionally absent.
   if (
     (browser as unknown as { sidePanel?: { setPanelBehavior?: (opts: unknown) => Promise<void> } })
       .sidePanel?.setPanelBehavior

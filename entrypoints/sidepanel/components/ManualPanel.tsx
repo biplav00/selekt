@@ -79,6 +79,9 @@ export function ManualPanel({
       onHighlight();
     }
     if (event.key === 'Escape') {
+      // Field-level Escape must not also bubble out to the global
+      // inspect-cancel (or the settings dialog): one Escape, one action.
+      event.stopPropagation();
       if (showSuggestions) onShowSuggestions(false);
       else onClear();
     }
