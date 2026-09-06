@@ -1,17 +1,6 @@
 export default defineBackground(() => {
-  // Open side panel when action icon is clicked
-  browser.action.onClicked.addListener(async (tab) => {
-    if (tab.id != null) {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (browser as any).sidePanel.open({ tabId: tab.id });
-      } catch (e) {
-        console.warn('sidePanel.open failed', e);
-      }
-    }
-  });
-
-  // Ensure side panel is enabled
+  // Declarative open-on-click; an explicit onClicked listener would never
+  // fire while this behavior is set, so it is intentionally absent.
   if (
     (browser as unknown as { sidePanel?: { setPanelBehavior?: (opts: unknown) => Promise<void> } })
       .sidePanel?.setPanelBehavior
@@ -44,8 +33,29 @@ export default defineBackground(() => {
       msg?.type === 'picker:off' ||
       msg?.type === 'picker:toggle' ||
       msg?.type === 'manual:highlight' ||
-      msg?.type === 'manual:clear'
+      msg?.type === 'manual:clear' ||
+      msg?.type === 'mini:show' ||
+      msg?.type === 'mini:hide'
     ) {
+      return false;
+    }
+    if (msg?.type === 'mini:expand') {
+      // Floating mini dialog asked to dock back: reopen the sidebar for its
+      // tab (content-script button click counts as the user gesture), then
+      // tell the tab to take the overlay down.
+      (async () => {
+        try {
+          const tabId = sender.tab?.id;
+          if (tabId == null) return;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (browser as any).sidePanel.open({ tabId });
+          await browser.tabs.sendMessage(tabId, { type: 'mini:hide' }).catch(() => {
+            void 0;
+          });
+        } catch (e) {
+          console.warn('[background] mini:expand failed', e);
+        }
+      })();
       return false;
     }
     return false;

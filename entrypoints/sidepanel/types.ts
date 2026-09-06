@@ -26,6 +26,9 @@ export interface Settings {
 
 export type TabId = 'inspect' | 'manual';
 
+/** Max rows kept in either history list. */
+export const HISTORY_LIMIT = 20;
+
 export interface PickerSnapshot {
   time: string;
   url: string;

@@ -4,6 +4,7 @@ interface HeaderProps {
   isInspecting: boolean;
   locatorCount: number;
   host: string;
+  onMinimize: () => void;
 }
 
 export function Header({
@@ -12,6 +13,7 @@ export function Header({
   isInspecting,
   locatorCount,
   host,
+  onMinimize,
 }: HeaderProps) {
   const readout = isInspecting
     ? 'SCAN · hover page'
@@ -57,6 +59,8 @@ export function Header({
             letterSpacing: '0.04em',
             lineHeight: 1.1,
             whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
           }}
         >
           SELEKT
@@ -86,13 +90,50 @@ export function Header({
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            maxWidth: 120,
+            maxWidth: 90,
+            minWidth: 0,
             flexShrink: 0,
           }}
         >
           {host}
         </span>
       )}
+      <button
+        type="button"
+        onClick={onMinimize}
+        aria-label="Minimize to floating dialog"
+        title="Floating dialog"
+        style={{
+          width: 28,
+          height: 28,
+          display: 'grid',
+          placeItems: 'center',
+          background: 'transparent',
+          color: 'var(--bar-ink)',
+          border: '1px solid color-mix(in srgb, var(--bar-ink) 30%, transparent)',
+          borderRadius: 8,
+          cursor: 'pointer',
+          flexShrink: 0,
+          opacity: 0.75,
+        }}
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M8 3H5a2 2 0 0 0-2 2v4" />
+          <path d="M16 3h4a2 2 0 0 1 2 2v4" />
+          <path d="M8 21H5a2 2 0 0 1-2-2v-4" />
+          <path d="M16 21h4a2 2 0 0 0 2-2v-4" />
+        </svg>
+      </button>
       <button
         type="button"
         id="settings-btn"

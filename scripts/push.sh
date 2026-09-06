@@ -15,8 +15,9 @@ npm run typecheck 2>&1 || npm run compile || { echo "✗ typecheck failed"; exit
 npm run test || { echo "✗ tests failed"; exit 1; }
 npm run build || { echo "✗ build failed"; exit 1; }
 
-echo "→ Staging..."
-git add -A
+echo "→ Staging tracked changes only (never -A: that would sweep in"
+echo "  tool caches, screenshots, and local mocks — add those by hand)..."
+git add -u
 if git diff --cached --quiet; then
   echo "No changes to commit."
 else

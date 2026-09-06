@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import type { Settings } from '../types';
 
 interface SettingsDialogProps {
@@ -13,6 +13,25 @@ function focusables(root: HTMLElement): HTMLElement[] {
       'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
     )
   ).filter((el) => el.offsetParent !== null);
+}
+
+function SettingRow({ children }: { children: ReactNode }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 10,
+        padding: '8px 10px',
+        background: 'var(--bg)',
+        border: '1px solid var(--line)',
+        borderRadius: 8,
+      }}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function SettingsDialog({ settings, onUpdate, onClose }: SettingsDialogProps) {
@@ -140,18 +159,7 @@ export function SettingsDialog({ settings, onUpdate, onClose }: SettingsDialogPr
           </button>
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 10,
-            padding: '8px 10px',
-            background: 'var(--bg)',
-            border: '1px solid var(--line)',
-            borderRadius: 8,
-          }}
-        >
+        <SettingRow>
           <div>
             <div style={{ fontSize: 12, fontWeight: 700 }}>Shift</div>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)' }}>
@@ -225,20 +233,9 @@ export function SettingsDialog({ settings, onUpdate, onClose }: SettingsDialogPr
               )}
             </span>
           </button>
-        </div>
+        </SettingRow>
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-            padding: '8px 10px',
-            background: 'var(--bg)',
-            border: '1px solid var(--line)',
-            borderRadius: 8,
-          }}
-        >
+        <SettingRow>
           <div id="omit-label">
             <div style={{ fontSize: 12, fontWeight: 700 }}>
               Omit{' '}
@@ -296,7 +293,7 @@ export function SettingsDialog({ settings, onUpdate, onClose }: SettingsDialogPr
               }}
             />
           </button>
-        </div>
+        </SettingRow>
 
         <div
           style={{

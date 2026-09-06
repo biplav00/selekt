@@ -30,9 +30,12 @@ export function useMessages(options: UseMessagesOptions): void {
       }
     };
 
-    browser.runtime.onMessage.addListener(handleMessage as (message: unknown) => void);
-    return () =>
-      browser.runtime.onMessage.removeListener(handleMessage as (message: unknown) => void);
+    // Outside an extension context (previews, tests) there is no runtime —
+    // never let a missing API white-screen the panel.
+    const runtime = typeof browser === 'undefined' ? undefined : browser.runtime;
+    if (!runtime?.onMessage?.addListener) return;
+    runtime.onMessage.addListener(handleMessage as (message: unknown) => void);
+    return () => runtime.onMessage.removeListener(handleMessage as (message: unknown) => void);
   }, [onLocators, onHover, onPickerState, onManualResult]);
 }
 

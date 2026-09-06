@@ -1,6 +1,13 @@
 import { generateLocators } from '@/utils/locators';
 import { parseManualLocator, collectManualSuggestions } from '@/utils/manualLocators';
 import {
+  showMiniDialog,
+  hideMiniDialog,
+  refreshBest,
+  isMiniOpen,
+  MINI_ROOT_ID,
+} from '@/utils/miniDialog';
+import {
   ensurePickerOverlay,
   showPickerHighlight,
   hidePickerHighlight,
@@ -14,19 +21,27 @@ export default defineContentScript({
   allFrames: false,
   runAt: 'document_idle',
   main(ctx) {
-    const picker = createPicker(ctx);
-    const manual = createManualHandler();
+    const picker = createPicker();
 
-    ctx.onInvalidated(() => picker.teardown(true));
+    ctx.onInvalidated(() => {
+      picker.teardown(true);
+      hideMiniDialog();
+    });
     // @ts-expect-error wxt locationchange may not be typed
-    ctx.addEventListener?.('wxt:locationchange', () => picker.teardown(true));
-    window.addEventListener('popstate', () => picker.teardown(true));
+    ctx.addEventListener?.('wxt:locationchange', () => {
+      picker.teardown(true);
+      hideMiniDialog();
+    });
+    window.addEventListener('popstate', () => {
+      picker.teardown(true);
+      hideMiniDialog();
+    });
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden' && picker.isActive()) hidePickerHighlight();
     });
 
     browser.runtime.onMessage.addListener((msg: unknown, sender, sendResponse) => {
-      if (sender.id && sender.id !== browser.runtime.id) return false as unknown as boolean;
+      if (sender.id && sender.id !== browser.runtime.id) return false;
       const message = msg as { type?: string; locator?: string; selector?: string };
       if (message.type === 'picker:on') picker.activate();
       if (message.type === 'picker:off') picker.teardown();
@@ -35,7 +50,7 @@ export default defineContentScript({
         else picker.activate();
       }
       if (message.type === 'picker:highlight' && typeof message.selector === 'string') {
-        if (message.selector.length > 200) return false as unknown as boolean;
+        if (message.selector.length > 200) return false;
         try {
           const els = document.querySelectorAll(message.selector);
           if (els[0]) showPickerHighlight(els[0] as Element);
@@ -88,14 +103,30 @@ export default defineContentScript({
         sendResponse({ suggestions });
         return true;
       }
-      return false as unknown as boolean;
+      if (message.type === 'mini:show') {
+        const payload = message as { raw?: unknown; kind?: unknown };
+        showMiniDialog(
+          {
+            raw: typeof payload.raw === 'string' ? payload.raw : '',
+            kind: typeof payload.kind === 'string' ? payload.kind : '',
+          },
+          {
+            onPick: () => picker.activate(),
+            onExpand: () => {
+              browser.runtime.sendMessage({ type: 'mini:expand' }).catch(() => {
+                void 0;
+              });
+            },
+          }
+        );
+      }
+      if (message.type === 'mini:hide') hideMiniDialog();
+      return false;
     });
-
-    console.log('[locator] content script ready', { url: location.href });
   },
 });
 
-function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
+function createPicker() {
   let active = false;
   let lastEl: Element | null = null;
   let rafId: number | null = null;
@@ -103,6 +134,7 @@ function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
 
   const blockEvent = (event: Event) => {
     if (!active) return;
+    if (inMiniDialog(event)) return;
     if (event instanceof KeyboardEvent && event.key === 'Escape') return;
     event.preventDefault();
     event.stopPropagation();
@@ -125,11 +157,27 @@ function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
     ['submit', blockEvent, true],
   ];
 
+  // The floating mini dialog must never become a pick target and its
+  // controls must keep working while the picker is armed.
+  const inMiniDialog = (event: Event): boolean => {
+    const path = (event as unknown as { composedPath?: () => EventTarget[] }).composedPath?.();
+    if (path && path.length) {
+      for (const target of path) {
+        if (target instanceof Element && (target as Element).id === MINI_ROOT_ID) return true;
+      }
+    }
+    return !!(event.target as Element | null)?.closest?.(`#${MINI_ROOT_ID}`);
+  };
+
   const getTarget = (event: MouseEvent): Element | null => {
     const path = (event as unknown as { composedPath?: () => EventTarget[] }).composedPath?.();
     if (path && path.length) {
       for (const target of path) {
-        if (target instanceof Element && (target as Element).id !== '__locator-inspector-overlay')
+        if (
+          target instanceof Element &&
+          (target as Element).id !== '__locator-inspector-overlay' &&
+          (target as Element).id !== MINI_ROOT_ID
+        )
           return target as Element;
       }
     }
@@ -141,6 +189,7 @@ function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
     const target = getTarget(event);
     if (!target || target.id === '__locator-inspector-overlay') return;
     if ((target as Element).closest?.('#__locator-inspector-overlay')) return;
+    if ((target as Element).closest?.(`#${MINI_ROOT_ID}`)) return;
     if ((target as Element).closest?.('[aria-hidden="true"]')) return;
     lastEl = target as Element;
     const now = Date.now();
@@ -173,6 +222,7 @@ function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
     if (!target || (target as Element).id === '__locator-inspector-overlay') return;
     const el = lastEl || (target as Element);
     if ((el as Element).closest?.('#__locator-inspector-overlay')) return;
+    if ((el as Element).closest?.(`#${MINI_ROOT_ID}`)) return;
     event.preventDefault();
     event.stopPropagation();
     (event as unknown as { stopImmediatePropagation?: () => void }).stopImmediatePropagation?.();
@@ -200,6 +250,9 @@ function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
         .catch(() => {
           void 0;
         });
+      if (isMiniOpen() && locators[0]) {
+        void refreshBest({ raw: locators[0].value, kind: locators[0].kind });
+      }
       teardown(false);
       flashPickerOverlay();
       browser.runtime
@@ -269,9 +322,4 @@ function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
   };
 
   return { isActive: () => active, activate, teardown };
-}
-
-function createManualHandler() {
-  // Placeholder for future manual-specific logic
-  return {};
 }

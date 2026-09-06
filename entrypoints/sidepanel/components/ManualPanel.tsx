@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import type { ManualAttempt, ManualResult } from '../types';
 import { HistoryAccordion } from './HistoryAccordion';
 
@@ -55,7 +55,7 @@ export function ManualPanel({
       ? { bg: 'var(--warn-bg)', line: 'var(--warn-line)', ink: 'var(--warn-ink)' }
       : { bg: 'var(--bg)', line: 'var(--line)', ink: 'var(--muted)' };
 
-  const commitOrComplete = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const commitOrComplete = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (showSuggestions && filteredSuggestions.length > 0) {
       if (event.key === 'ArrowDown') {
         event.preventDefault();
@@ -79,6 +79,9 @@ export function ManualPanel({
       onHighlight();
     }
     if (event.key === 'Escape') {
+      // Field-level Escape must not also bubble out to the global
+      // inspect-cancel (or the settings dialog): one Escape, one action.
+      event.stopPropagation();
       if (showSuggestions) onShowSuggestions(false);
       else onClear();
     }
@@ -119,7 +122,14 @@ export function ManualPanel({
             any selector
           </span>
         </div>
-        <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div
+          style={{
+            padding: 12,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+          }}
+        >
           <div style={{ position: 'relative' }}>
             <textarea
               value={manualLocator}

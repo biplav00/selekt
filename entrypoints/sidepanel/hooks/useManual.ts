@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { ManualAttempt } from '../types';
+import type { ManualAttempt, ManualResult } from '../types';
+import { HISTORY_LIMIT } from '../types';
+import { timeStamp } from '../../../utils/time';
+import { findProbeTab } from '../../../utils/tabs';
 
-export interface ManualResult {
-  count: number;
-  error: string | null;
-}
-
-function stamp(): string {
-  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export function useManual(activeTab: 'inspect' | 'manual', url: string) {
   const [manualLocator, setManualLocator] = useState('');
@@ -19,16 +15,9 @@ export function useManual(activeTab: 'inspect' | 'manual', url: string) {
   const [history, setHistory] = useState<ManualAttempt[]>([]);
 
   const sendToActiveTab = useCallback(async (type: string, payload?: Record<string, unknown>) => {
+    const target = await findProbeTab();
+    if (!target?.id) return;
     try {
-      const tabs = await browser.tabs.query({});
-      const httpTabs = tabs.filter((tab) => tab.url && tab.url.startsWith('http'));
-      let target = tabs.find((tab) => tab.active && tab.url && tab.url.startsWith('http'));
-      if (!target) target = httpTabs[0];
-      if (!target) {
-        const [active] = await browser.tabs.query({ active: true, currentWindow: true });
-        target = active;
-      }
-      if (!target?.id) return;
       await browser.tabs.sendMessage(target.id, { type, ...payload }).catch(() => {
         void 0;
       });
@@ -38,13 +27,9 @@ export function useManual(activeTab: 'inspect' | 'manual', url: string) {
   }, []);
 
   const fetchSuggestions = useCallback(async () => {
+    const target = await findProbeTab();
+    if (!target?.id) return;
     try {
-      const tabs = await browser.tabs.query({});
-      const httpTabs = tabs.filter((tab) => tab.url && tab.url.startsWith('http'));
-      let target = tabs.find((tab) => tab.active && tab.url && tab.url.startsWith('http'));
-      if (!target) target = httpTabs[0];
-      if (!target) target = (await browser.tabs.query({ active: true, currentWindow: true }))[0];
-      if (!target?.id) return;
       const response = (await browser.tabs
         .sendMessage(target.id, { type: 'manual:suggestions' })
         .catch(() => null)) as { suggestions?: string[] } | null;
@@ -65,9 +50,12 @@ export function useManual(activeTab: 'inspect' | 'manual', url: string) {
       setManualResult(null);
       return;
     }
+    // Role/text patterns walk the entire DOM per run — debounce those
+    // harder so fast typing doesn't jank heavy pages.
+    const delay = /getByRole|getByText/i.test(trimmed) ? 800 : 300;
     const id = setTimeout(() => {
       void handleManualHighlight();
-    }, 300);
+    }, delay);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [manualLocator, activeTab]);
@@ -88,16 +76,21 @@ export function useManual(activeTab: 'inspect' | 'manual', url: string) {
     // would otherwise always error, so restore the page. prefix for evaluation.
     const normalized = /^(getBy[A-Z]\w*|locator)\s*\(/.test(query) ? `page.${query}` : query;
     setManualResult(null);
-    try {
-      const tabs = await browser.tabs.query({});
-      const httpTabs = tabs.filter((tab) => tab.url && tab.url.startsWith('http'));
-      let target = tabs.find((tab) => tab.active && tab.url && tab.url.startsWith('http'));
-      if (!target) target = httpTabs[0];
-      if (!target) target = (await browser.tabs.query({ active: true, currentWindow: true }))[0];
-      if (!target?.id) return;
-      const response = (await browser.tabs
+    const sendHighlight = async () => {
+      const target = await findProbeTab();
+      if (!target?.id) return null;
+      return (await browser.tabs
         .sendMessage(target.id, { type: 'manual:highlight', locator: normalized })
         .catch(() => null)) as ManualResult | null;
+    };
+    try {
+      let response = await sendHighlight();
+      // The content script may still be injecting right after navigation —
+      // one retry before reporting the page unreachable.
+      if (!response) {
+        await sleep(1000);
+        response = await sendHighlight();
+      }
       if (response) {
         const result = { count: response.count ?? 0, error: response.error ?? null };
         setManualResult(result);
@@ -105,15 +98,11 @@ export function useManual(activeTab: 'inspect' | 'manual', url: string) {
           setHistory((prev) =>
             prev[0]?.query === query
               ? prev
-              : [{ time: stamp(), query, ...result }, ...prev].slice(0, 20)
+              : [{ time: timeStamp(), query, ...result }, ...prev].slice(0, HISTORY_LIMIT)
           );
         }
       } else {
-        setTimeout(() => {
-          setManualResult(
-            (prev) => prev ?? { count: 0, error: 'No response — check page permissions' }
-          );
-        }, 800);
+        setManualResult({ count: 0, error: 'No response — check page permissions' });
       }
     } catch {
       void 0;
@@ -122,19 +111,6 @@ export function useManual(activeTab: 'inspect' | 'manual', url: string) {
 
   const handleManualClear = async () => {
     setManualResult(null);
-    try {
-      const tabs = await browser.tabs.query({});
-      const httpTabs = tabs.filter((tab) => tab.url && tab.url.startsWith('http'));
-      let target = tabs.find((tab) => tab.active && tab.url && tab.url.startsWith('http'));
-      if (!target) target = httpTabs[0];
-      if (!target) target = (await browser.tabs.query({ active: true, currentWindow: true }))[0];
-      if (!target?.id) return;
-      await browser.tabs.sendMessage(target.id, { type: 'manual:clear' }).catch(() => {
-        void 0;
-      });
-    } catch {
-      void 0;
-    }
     try {
       await sendToActiveTab('manual:clear', {});
     } catch {

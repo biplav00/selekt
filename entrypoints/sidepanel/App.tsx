@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Header } from './components/Header';
 import { Tabs } from './components/Tabs';
 import { SettingsDialog } from './components/SettingsDialog';
@@ -28,7 +28,10 @@ export default function App() {
     onManualResult: manual.setManualResult,
   });
 
-  const { sendToTab, handleReset, handleToggleInspect } = useAppActions(picker, manual);
+  const { sendToTab, handleReset, handleToggleInspect, handleMinimize } = useAppActions(
+    picker,
+    manual
+  );
 
   useGlobalShortcuts(picker.isInspecting && !showSettings, () => {
     void sendToTab('picker:off');
@@ -59,6 +62,7 @@ export default function App() {
         isInspecting={picker.isInspecting}
         locatorCount={picker.locators.length}
         host={host}
+        onMinimize={handleMinimize}
       />
       {showSettings && (
         <SettingsDialog
@@ -67,7 +71,14 @@ export default function App() {
           onClose={() => setShowSettings(false)}
         />
       )}
-      <Tabs activeTab={activeTab} onSelect={setActiveTab} onReset={handleReset} />
+      <Tabs
+        activeTab={activeTab}
+        onSelect={setActiveTab}
+        onReset={() => {
+          setShowSettings(false);
+          void handleReset();
+        }}
+      />
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
         <div
           style={{
@@ -91,7 +102,7 @@ export default function App() {
               clip: 'rect(0 0 0 0)',
             }}
           >
-            {copied?.startsWith('page.')
+            {copied
               ? `Copied`
               : picker.locators.length
                 ? `${picker.locators.length} locators`
