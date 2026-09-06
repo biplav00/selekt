@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Selekt — Three Production-Grade Directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,900;1,9..144,400&family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --gallery-bg: oklch(0.968 0.009 92);
+    --gallery-ink: oklch(0.24 0.02 60);
+    --gallery-muted: oklch(0.55 0.02 80);
+    --gallery-line: oklch(0.88 0.015 90);
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  html { -webkit-font-smoothing: antialiased; }
+  body { margin: 0; background: var(--gallery-bg); color: var(--gallery-ink); font-family: "Instrument Sans", system-ui, sans-serif; line-height: 1.5; }
+  .masthead { max-width: 1280px; margin: 0 auto; padding: clamp(28px,4vw,56px) clamp(18px,3vw,36px) 8px; display: grid; grid-template-columns: 1.4fr 0.9fr; gap: clamp(16px,3vw,48px); align-items: end; }
+  @media (max-width: 860px) { .masthead { grid-template-columns: 1fr; } }
+  .kicker { font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gallery-muted); display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .kicker::before { content: ""; width: 28px; height: 2px; background: var(--gallery-ink); display: inline-block; }
+  .masthead h1 { font-family: "Fraunces", serif; font-weight: 900; font-size: clamp(2.4rem,5vw,4.3rem); line-height: 0.95; letter-spacing: -0.03em; margin: 0; }
+  .masthead h1 em { font-family: "Instrument Serif", serif; font-style: italic; font-weight: 400; }
+  .masthead .lede { font-size: clamp(0.95rem,1.3vw,1.05rem); color: var(--gallery-muted); max-width: 46ch; margin: 14px 0 0; }
+  .masthead .lede strong { color: var(--gallery-ink); }
+  .toc { border-left: 2px solid var(--gallery-ink); padding-left: 18px; display: flex; flex-direction: column; padding-bottom: 6px; }
+  .toc a { text-decoration: none; color: var(--gallery-ink); font-weight: 600; font-size: 14px; padding: 9px 12px; display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--gallery-line); }
+  .toc a span:last-child { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--gallery-muted); font-weight: 400; }
+  .toc a:hover { background: oklch(0.94 0.02 90); }
+  .rule-double { max-width: 1280px; margin: 22px auto 0; padding: 0 clamp(18px,3vw,36px); }
+  .rule-double i { display: block; height: 2px; background: var(--gallery-ink); }
+  .rule-double i + i { height: 1px; margin-top: 2px; opacity: 0.45; }
+  .concepts { max-width: 1280px; margin: 0 auto; padding: 26px clamp(18px,3vw,36px) 80px; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px,3vw,40px); align-items: start; }
+  @media (max-width: 1060px) { .concepts { grid-template-columns: 1fr; } }
+  .concept { min-width: 0; }
+  .concept:nth-child(2) { margin-top: clamp(0px,4vw,56px); }
+  .concept:nth-child(3) { grid-column: 1 / -1; }
+  .concept-tag { display: flex; align-items: baseline; gap: 14px; margin: 0 0 12px; }
+  .concept-tag .num { font-family: "Fraunces", serif; font-weight: 900; font-size: 2rem; line-height: 1; letter-spacing: -0.03em; }
+  .concept-tag h2 { font-family: "Fraunces", serif; font-size: 1.35rem; margin: 0; letter-spacing: -0.02em; }
+  .concept-tag p { margin: 2px 0 0; font-size: 13px; color: var(--gallery-muted); max-width: 62ch; }
+  .frame { width: min(100%, 400px); height: 660px; overflow-y: auto; overflow-x: hidden; position: relative; scrollbar-width: thin; }
+  .concept-wide { display: grid; grid-template-columns: minmax(340px,400px) 1fr; gap: clamp(20px,3vw,44px); align-items: start; }
+  @media (max-width: 860px) { .concept-wide { grid-template-columns: 1fr; } }
+  .rationale { font-size: 13.5px; color: var(--gallery-muted); max-width: 52ch; }
+  .rationale h3 { font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gallery-ink); margin: 18px 0 6px; }
+  .rationale h3:first-child { margin-top: 0; }
+  .rationale ul { margin: 6px 0 0; padding-left: 18px; }
+  .rationale li { margin: 4px 0; }
+  .rationale code { font-family: "IBM Plex Mono", monospace; font-size: 12px; background: oklch(0.93 0.015 90); padding: 0 5px; border-radius: 3px; color: var(--gallery-ink); }
+  kbd { font-family: "IBM Plex Mono", monospace; font-size: 10px; border: 1px solid currentColor; border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; opacity: 0.75; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  .frame { animation: rise 0.7s var(--ease-out) both; }
+  .concept:nth-child(2) .frame { animation-delay: 0.08s; }
+  .concept:nth-child(3) .frame { animation-delay: 0.16s; }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+
+  /* ================================================================
+     04 — COMMAND (keyboard-first, Raycast-grade, light)
+     UX story: SPEED. Filter as you type, arrows + enter, never touch mouse.
+     ================================================================ */
+  .cD { --bg: oklch(0.985 0.004 250); --panel: oklch(1 0 0); --ink: oklch(0.28 0.03 255); --muted: oklch(0.56 0.02 255); --line: oklch(0.9 0.012 255); --acc: oklch(0.55 0.17 260); --acc-soft: oklch(0.95 0.03 260);
+    background: var(--bg); color: var(--ink); border: 1px solid oklch(0.82 0.015 255); font-family: "Instrument Sans", sans-serif; }
+  .cD .d-head { padding: 14px 14px 10px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 2; }
+  .cD .d-logo { width: 26px; height: 26px; border-radius: 7px; background: var(--ink); color: #fff; display: grid; place-items: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .cD .d-title { font-size: 13px; font-weight: 700; letter-spacing: -0.01em; }
+  .cD .d-title small { display: block; font-size: 10.5px; font-weight: 400; color: var(--muted); }
+  .cD .d-head kbd { margin-left: auto; }
+  .cD .d-body { padding: 12px 14px 18px; display: flex; flex-direction: column; gap: 12px; }
+  .cD .palette { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 28px oklch(0.4 0.05 260 / 0.12); overflow: hidden; }
+  .cD .palette:focus-within { border-color: var(--acc); box-shadow: 0 0 0 3px oklch(0.55 0.17 260 / 0.18); }
+  .cD .p-input { display: flex; align-items: center; gap: 9px; padding: 11px 12px; border-bottom: 1px solid var(--line); }
+  .cD .p-input svg { flex-shrink: 0; color: var(--muted); }
+  .cD .p-input input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 13.5px; color: var(--ink); }
+  .cD .p-list { max-height: 264px; overflow-y: auto; padding: 6px; }
+  .cD .p-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; width: 100%; text-align: left; background: transparent; border: 0; border-radius: 8px; padding: 8px 9px; cursor: pointer; font: inherit; color: inherit; }
+  .cD .p-row .kind { font-family: "IBM Plex Mono", monospace; font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .cD .p-row.active .kind { color: var(--acc); }
+  .cD .p-row .code { font-family: "JetBrains Mono", monospace; font-size: 12px; word-break: break-all; margin-top: 2px; line-height: 1.45; }
+  .cD .p-row .act { font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--muted); border: 1px solid var(--line); border-radius: 5px; padding: 2px 6px; white-space: nowrap; }
+  .cD .p-row.active { background: var(--acc-soft); }
+  .cD .p-row.active .act { background: var(--acc); border-color: var(--acc); color: #fff; }
+  .cD .p-empty { padding: 20px 14px; text-align: left; font-size: 12.5px; color: var(--muted); display: none; }
+  .cD .p-empty.show { display: block; }
+  .cD .p-foot { display: flex; gap: 12px; padding: 8px 12px; border-top: 1px solid var(--line); font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--muted); }
+  .cD .hist { font-size: 12px; }
+  .cD .hist .h { font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .cD .hist button { display: flex; justify-content: space-between; gap: 8px; width: 100%; background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--ink); cursor: pointer; margin-top: 6px; }
+  .cD .hist button:hover { border-color: var(--acc); }
+  .cD .hist button span:last-child { color: var(--muted); font-size: 10px; }
+  .cD .toast { position: sticky; bottom: 12px; margin: 0 auto; width: fit-content; background: var(--ink); color: #fff; font-family: "IBM Plex Mono", monospace; font-size: 11px; border-radius: 999px; padding: 7px 14px; opacity: 0; transform: translateY(6px); transition: all 0.2s var(--ease-out); pointer-events: none; }
+  .cD .toast.show { opacity: 1; transform: none; }
+  .cD .d-foot { display: flex; justify-content: space-between; font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; }
+
+  /* ================================================================
+     05 — ASSURE (validation-first, prototypes V1.1 roadmap)
+     UX story: CONFIDENCE. Match counts, strict-mode, highlight-all before paste.
+     ================================================================ */
+  .cE { --bg: oklch(0.97 0.006 100); --panel: oklch(1 0 0); --ink: oklch(0.27 0.015 100); --muted: oklch(0.55 0.015 100); --line: oklch(0.89 0.01 100); --ok: oklch(0.55 0.15 150); --ok-soft: oklch(0.94 0.05 150); --warn: oklch(0.6 0.15 75); --warn-soft: oklch(0.96 0.05 85); --bad: oklch(0.55 0.18 30); --bad-soft: oklch(0.95 0.05 30);
+    background: var(--bg); color: var(--ink); border: 1px solid oklch(0.84 0.01 100); font-family: "Archivo", sans-serif; }
+  .cE .e-head { background: var(--panel); border-bottom: 1px solid var(--line); padding: 13px 14px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 2; }
+  .cE .e-dot { width: 10px; height: 10px; border-radius: 999px; background: var(--ok); flex-shrink: 0; }
+  .cE .e-title { font-size: 13px; font-weight: 800; letter-spacing: -0.01em; }
+  .cE .e-title small { display: block; font-size: 10.5px; font-weight: 500; color: var(--muted); }
+  .cE .e-strict { margin-left: auto; font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 600; background: var(--ok-soft); color: oklch(0.42 0.12 150); border: 1px solid oklch(0.8 0.08 150); padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .cE .e-body { padding: 12px 14px 18px; display: flex; flex-direction: column; gap: 12px; }
+  .cE .e-btn { width: 100%; background: var(--ink); color: #fff; border: 0; border-radius: 9px; padding: 12px 14px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+  .cE .e-btn.live { background: var(--bad); }
+  .cE .e-target { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 8px; font-family: "IBM Plex Mono", monospace; font-size: 11px; }
+  .cE .e-target .tag { background: var(--ink); color: #fff; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+  .cE .e-target .n { margin-left: auto; font-size: 10px; color: var(--muted); }
+  .cE .e-banner { display: flex; gap: 9px; align-items: flex-start; background: var(--warn-soft); border: 1px solid oklch(0.82 0.1 85); border-radius: 10px; padding: 10px 12px; font-size: 12px; }
+  .cE .e-banner b { display: block; font-size: 12px; }
+  .cE .e-banner p { margin: 2px 0 0; color: var(--muted); font-size: 11.5px; }
+  .cE .e-tools { display: flex; gap: 8px; align-items: center; }
+  .cE .seg { display: flex; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 3px; gap: 2px; flex: 1; }
+  .cE .seg button { flex: 1; border: 0; background: transparent; font: inherit; font-family: "IBM Plex Mono", monospace; font-size: 10.5px; font-weight: 600; padding: 6px 4px; border-radius: 6px; cursor: pointer; color: var(--muted); }
+  .cE .seg button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .cE .hl { display: flex; align-items: center; gap: 7px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-family: "IBM Plex Mono", monospace; font-size: 10.5px; cursor: pointer; color: var(--ink); }
+  .cE .hl .sw { width: 28px; height: 17px; border-radius: 999px; background: oklch(0.85 0.01 100); position: relative; transition: background 0.2s; flex-shrink: 0; }
+  .cE .hl .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 999px; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 0.2); transition: transform 0.2s var(--ease-out); }
+  .cE .hl[aria-pressed="true"] .sw { background: var(--ok); }
+  .cE .hl[aria-pressed="true"] .sw::after { transform: translateX(11px); }
+  .cE .e-sec { font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; }
+  .cE .e-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .cE .e-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 10px 12px; }
+  .cE .e-row + .e-row { border-top: 1px solid var(--line); }
+  .cE .e-row.hero { background: var(--ok-soft); box-shadow: inset 3px 0 0 var(--ok); }
+  .cE .e-row.warnrow { background: var(--warn-soft); }
+  .cE .e-kind { font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; display: flex; align-items: center; gap: 7px; }
+  .cE .count { font-size: 9.5px; padding: 1px 7px; border-radius: 999px; letter-spacing: 0.04em; }
+  .cE .count.ok { background: var(--ok); color: #fff; }
+  .cE .count.warn { background: var(--warn); color: #fff; }
+  .cE .e-code { font-family: "JetBrains Mono", monospace; font-size: 11.5px; word-break: break-all; margin-top: 3px; line-height: 1.5; }
+  .cE .e-copy { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; display: grid; place-items: center; color: var(--ink); font-size: 13px; }
+  .cE .e-copy:hover { border-color: var(--ink); }
+  .cE .e-copy.done { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .cE .e-note { font-size: 11px; color: var(--muted); font-family: "IBM Plex Mono", monospace; }
+  .cE .e-foot { display: flex; justify-content: space-between; font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; }
+
+  /* ================================================================
+     06 — TRACE (devtools-grade dark, Playwright Trace Viewer lineage)
+     UX story: PRECISION. Breadcrumb, syntax-highlighted code, copy assert.
+     ================================================================ */
+  .cF { --bg: oklch(0.27 0.02 260); --bg2: oklch(0.32 0.022 260); --panel: oklch(0.35 0.025 260); --ink: oklch(0.93 0.01 260); --dim: oklch(0.7 0.02 260); --line: oklch(1 0 0 / 0.12); --acc: oklch(0.75 0.14 230); --str: oklch(0.8 0.13 150); --fn: oklch(0.78 0.12 250); --pun: oklch(0.65 0.02 260); --amber: oklch(0.78 0.14 80);
+    background: var(--bg); color: var(--ink); border: 1px solid oklch(0.4 0.03 260); font-family: "Instrument Sans", sans-serif; }
+  .cF .f-tabs { display: flex; align-items: center; gap: 2px; background: var(--bg2); border-bottom: 1px solid var(--line); padding: 8px 10px 0; position: sticky; top: 0; z-index: 2; }
+  .cF .f-tabs button { background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--dim); font: inherit; font-size: 12px; font-weight: 600; padding: 8px 10px; cursor: pointer; display: flex; gap: 6px; align-items: center; }
+  .cF .f-tabs button[aria-selected="true"] { color: var(--ink); border-color: var(--acc); }
+  .cF .f-tabs .v { margin-left: auto; font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--dim); padding-bottom: 8px; }
+  .cF .f-body { padding: 12px 14px 18px; display: flex; flex-direction: column; gap: 12px; }
+  .cF .crumbs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-family: "IBM Plex Mono", monospace; font-size: 11px; }
+  .cF .crumbs button { background: transparent; border: 1px solid transparent; border-radius: 5px; color: var(--dim); font: inherit; padding: 3px 7px; cursor: pointer; }
+  .cF .crumbs button:hover { border-color: var(--line); color: var(--ink); }
+  .cF .crumbs button[aria-current="true"] { background: var(--panel); color: var(--amber); border-color: var(--line); }
+  .cF .crumbs .sep { color: var(--pun); }
+  .cF .f-meta { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 6px 10px; font-family: "IBM Plex Mono", monospace; font-size: 10.5px; background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; }
+  .cF .f-meta dt { color: var(--dim); margin: 0; }
+  .cF .f-meta dd { margin: 0; color: var(--ink); }
+  .cF .code { background: oklch(0.22 0.02 260); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .cF .code.best { border-color: oklch(0.75 0.14 230 / 0.55); }
+  .cF .code-head { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; border-bottom: 1px solid var(--line); font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); }
+  .cF .code-head .star { color: var(--acc); }
+  .cF .code pre { margin: 0; padding: 10px 0; font-family: "JetBrains Mono", monospace; font-size: 12px; line-height: 1.7; overflow-x: auto; }
+  .cF .code .ln { display: flex; }
+  .cF .code .ln .no { width: 34px; flex-shrink: 0; text-align: right; padding-right: 10px; color: var(--pun); user-select: none; font-size: 10.5px; padding-top: 1px; }
+  .cF .code .ln .tx { padding-right: 12px; white-space: pre; }
+  .cF .t-pg { color: var(--pun); } .cF .t-fn { color: var(--fn); } .cF .t-str { color: var(--str); } .cF .t-am { color: var(--amber); }
+  .cF .code-foot { display: flex; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--line); }
+  .cF .code-foot button { flex: 1; border-radius: 6px; font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 600; padding: 7px 6px; cursor: pointer; }
+  .cF .btn-copy { background: var(--acc); border: 1px solid var(--acc); color: oklch(0.25 0.05 260); }
+  .cF .btn-assert { background: transparent; border: 1px solid var(--line); color: var(--ink); }
+  .cF .btn-assert:hover, .cF .btn-copy:hover { filter: brightness(1.1); }
+  .cF .code-foot button.done { background: var(--str); border-color: var(--str); color: oklch(0.25 0.05 150); }
+  .cF .f-sec { font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); display: flex; align-items: center; gap: 10px; }
+  .cF .f-sec::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .cF .f-alt { border: 1px solid var(--line); border-radius: 8px; }
+  .cF .f-alt button { display: flex; justify-content: space-between; gap: 8px; width: 100%; background: transparent; border: 0; color: var(--ink); font-family: "JetBrains Mono", monospace; font-size: 11px; padding: 9px 11px; cursor: pointer; text-align: left; }
+  .cF .f-alt button + button { border-top: 1px solid var(--line); }
+  .cF .f-alt button:hover { background: oklch(1 0 0 / 0.04); }
+  .cF .f-alt .m { color: var(--pun); font-size: 10px; white-space: nowrap; }
+  .cF .f-foot { display: flex; justify-content: space-between; font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--dim); border-top: 1px solid var(--line); padding-top: 10px; }
+
+  footer { max-width: 1280px; margin: 0 auto; padding: 0 clamp(18px,3vw,36px) 60px; color: var(--gallery-muted); font-size: 13px; }
+  footer .build { border-top: 2px solid var(--gallery-ink); padding-top: 14px; display: flex; gap: 16px; flex-wrap: wrap; justify-content: space-between; }
+  footer code { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--gallery-ink); }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div>
+    <div class="kicker">Selekt · Round two · production-grade</div>
+    <h1>Designed to <em>ship, not to impress.</em></h1>
+    <p class="lede">Round one explored personality. These three optimize for <strong>usability under pressure</strong>: keyboard speed, pre-paste confidence, devtool precision. Each mock is live — filter, validate, copy — at the real 400px panel width.</p>
+  </div>
+  <nav class="toc" aria-label="Directions">
+    <a href="#concept-d"><span>04 — Command, keyboard-first</span><span>speed · ⌘K</span></a>
+    <a href="#concept-e"><span>05 — Assure, validation-first</span><span>confidence · V1.1</span></a>
+    <a href="#concept-f"><span>06 — Trace, devtools-grade</span><span>precision · dark</span></a>
+  </nav>
+</header>
+<div class="rule-double" aria-hidden="true"><i></i><i></i></div>
+
+<main class="concepts">
+
+  <!-- ==================== 04 COMMAND ==================== -->
+  <section class="concept" id="concept-d">
+    <div class="concept-tag">
+      <span class="num">04</span>
+      <div><h2>Command</h2><p>Keyboard-first. The panel is a command bar: type to filter locators, <kbd>↑</kbd><kbd>↓</kbd> to move, <kbd>↵</kbd> to copy best. Recent picks persist below (hello, V2 history).</p></div>
+    </div>
+    <div class="frame cD" aria-label="Concept D mock">
+      <div class="d-head">
+        <span class="d-logo">⌖</span>
+        <span class="d-title">Selekt<small>checkout · shop.demo</small></span>
+        <kbd>⌘K</kbd>
+      </div>
+      <div class="d-body">
+        <div class="palette">
+          <div class="p-input">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input id="d-filter" type="text" placeholder="Filter locators — try “role”…" aria-label="Filter locators" autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="p-list" role="listbox" aria-label="Locators" id="d-list">
+            <button class="p-row active" role="option" aria-selected="true" data-text="testid page.getbytestid checkout-submit">
+              <span><span class="kind">testId · best</span><span class="code" style="display:block">page.getByTestId('checkout-submit')</span></span>
+              <span class="act">↵ copy</span>
+            </button>
+            <button class="p-row" role="option" aria-selected="false" data-text="role button checkout name">
+              <span><span class="kind">role</span><span class="code" style="display:block">page.getByRole('button', { name: 'Checkout' })</span></span>
+              <span class="act">↵ copy</span>
+            </button>
+            <button class="p-row" role="option" aria-selected="false" data-text="text checkout">
+              <span><span class="kind">text</span><span class="code" style="display:block">page.getByText('Checkout')</span></span>
+              <span class="act">↵ copy</span>
+            </button>
+            <button class="p-row" role="option" aria-selected="false" data-text="css locator checkout-btn fallback">
+              <span><span class="kind">css · fallback</span><span class="code" style="display:block">page.locator('#checkout-btn')</span></span>
+              <span class="act">↵ copy</span>
+            </button>
+          </div>
+          <div class="p-empty" id="d-empty">No locator matches “<b id="d-q"></b>”. Clear the filter or re-inspect the element.</div>
+          <div class="p-foot"><span>↑↓ navigate</span><span>↵ copy</span><span>esc clear</span></div>
+        </div>
+        <div class="hist">
+          <div class="h"><span>Recent picks</span><span>last 3</span></div>
+          <button data-copy="page.getByTestId('newsletter-join')"><span>page.getByTestId('newsletter-join')</span><span>2m</span></button>
+          <button data-copy="page.getByRole('link', { name: 'Pricing' })"><span>page.getByRole('link', { name: 'Pricing' })</span><span>9m</span></button>
+        </div>
+        <div class="toast" id="d-toast">Copied ✓</div>
+        <div class="d-foot"><span>⌥⇧C toggle picker</span><span>4 locators</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 05 ASSURE ==================== -->
+  <section class="concept" id="concept-e">
+    <div class="concept-tag">
+      <span class="num">05</span>
+      <div><h2>Assure</h2><p>Validation-first — a working sketch of the V1.1 roadmap. Every locator carries its match count, strict-mode passes or fails up top, highlight-all previews matches on the page.</p></div>
+    </div>
+    <div class="frame cE" aria-label="Concept E mock">
+      <div class="e-head">
+        <span class="e-dot"></span>
+        <span class="e-title">Selekt Assure<small>&lt;button&gt; #checkout-btn · shop.demo</small></span>
+        <span class="e-strict" id="e-strict">STRICT ✓</span>
+      </div>
+      <div class="e-body">
+        <button class="e-btn" data-inspect="e" aria-pressed="false"><span data-inspect-label>Start inspecting</span><span>⌥⇧C</span></button>
+        <div class="e-target"><span class="tag">&lt;button&gt;</span><span>“Checkout” · #checkout-btn</span><span class="n">3 candidates</span></div>
+        <div class="e-banner" role="alert">
+          <span style="font-size:15px">⚠</span>
+          <span><b>1 of 3 locators is ambiguous</b><p><code style="font-family:'IBM Plex Mono',monospace;font-size:11px">getByText</code> matches 3 nodes — strict mode would fail. Prefer testId.</p></span>
+        </div>
+        <div class="e-tools">
+          <div class="seg" role="group" aria-label="Copy format">
+            <button aria-pressed="true" data-fmt="full">page.getBy*</button>
+            <button aria-pressed="false" data-fmt="short">getBy* only</button>
+          </div>
+          <button class="hl" data-hl aria-pressed="false"><span class="sw"></span>Highlight all</button>
+        </div>
+        <div>
+          <div class="e-sec"><span>Validated locators</span><span>counts live</span></div>
+          <div class="e-card" style="margin-top:8px" id="e-list">
+            <div class="e-row hero">
+              <div><div class="e-kind">testId <span class="count ok">1 match</span></div><div class="e-code" data-full="page.getByTestId('checkout-submit')" data-short="getByTestId('checkout-submit')">page.getByTestId('checkout-submit')</div></div>
+              <button class="e-copy" data-copy="page.getByTestId('checkout-submit')" aria-label="Copy testId locator">⎘</button>
+            </div>
+            <div class="e-row">
+              <div><div class="e-kind">role <span class="count ok">1 match</span></div><div class="e-code" data-full="page.getByRole('button', { name: 'Checkout' })" data-short="getByRole('button', { name: 'Checkout' })">page.getByRole('button', { name: 'Checkout' })</div></div>
+              <button class="e-copy" data-copy="page.getByRole('button', { name: 'Checkout' })" aria-label="Copy role locator">⎘</button>
+            </div>
+            <div class="e-row warnrow">
+              <div><div class="e-kind">text <span class="count warn">3 matches</span></div><div class="e-code" data-full="page.getByText('Checkout')" data-short="getByText('Checkout')">page.getByText('Checkout')</div></div>
+              <button class="e-copy" data-copy="page.getByText('Checkout')" aria-label="Copy text locator">⎘</button>
+            </div>
+          </div>
+        </div>
+        <div class="e-note">Green = unique, safe to paste. Amber = strict-mode violation, refine first.</div>
+        <div class="e-foot"><span>counts re-check on DOM change</span><span>v0.1.0</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 06 TRACE (wide) ==================== -->
+  <section class="concept" id="concept-f">
+    <div class="concept-tag">
+      <span class="num">06</span>
+      <div><h2>Trace</h2><p>Devtools-grade dark. Breadcrumb path, element spec sheet, syntax-highlighted code viewer with line numbers — plus a second action power users will love: copy the assertion, not just the locator.</p></div>
+    </div>
+    <div class="concept-wide">
+      <div class="frame cF" aria-label="Concept F mock">
+        <div class="f-tabs" role="tablist" aria-label="Panel">
+          <button role="tab" aria-selected="true">⌖ Inspect</button>
+          <button role="tab" aria-selected="false">◉ Record</button>
+          <span class="v">v0.1.0</span>
+        </div>
+        <div class="f-body">
+          <div class="crumbs" aria-label="Element path">
+            <button>body</button><span class="sep">›</span><button>main</button><span class="sep">›</span><button>form#cart</button><span class="sep">›</span><button aria-current="true">button#checkout-btn</button>
+          </div>
+          <dl class="f-meta">
+            <dt>role</dt><dd>button “Checkout”</dd>
+            <dt>testid</dt><dd>checkout-submit ✓</dd>
+          </dl>
+          <div class="f-sec">Best locator</div>
+          <div class="code best">
+            <div class="code-head"><span><span class="star">★</span> testId · strict ✓ · 1 match</span><span>locator.ts</span></div>
+            <pre aria-label="Best locator code"><span class="ln"><span class="no">1</span><span class="tx"><span class="t-pg">page</span><span class="t-pn">.</span><span class="t-fn">getByTestId</span><span class="t-pn">(</span><span class="t-str">'checkout-submit'</span><span class="t-pn">)</span></span></span></pre>
+            <div class="code-foot">
+              <button class="btn-copy" data-copy="page.getByTestId('checkout-submit')">Copy locator</button>
+              <button class="btn-assert" data-copy="await expect(page.getByTestId('checkout-submit')).toBeVisible();">Copy assert</button>
+            </div>
+          </div>
+          <div class="f-sec">Alternatives</div>
+          <div class="f-alt">
+            <button data-copy="page.getByRole('button', { name: 'Checkout' })"><span><span class="t-fn">getByRole</span><span class="t-pn">(</span><span class="t-str">'button'</span><span class="t-pn">, { name: </span><span class="t-str">'Checkout'</span><span class="t-pn"> })</span></span><span class="m">1 match · copy</span></button>
+            <button data-copy="page.getByText('Checkout')"><span><span class="t-fn">getByText</span><span class="t-pn">(</span><span class="t-str">'Checkout'</span><span class="t-pn">)</span></span><span class="m" style="color:var(--amber)">3 matches · risky</span></button>
+            <button data-copy="page.locator('#checkout-btn')"><span><span class="t-fn">locator</span><span class="t-pn">(</span><span class="t-str">'#checkout-btn'</span><span class="t-pn">)</span></span><span class="m">css fallback · copy</span></button>
+          </div>
+          <div class="f-foot"><span>⌥⇧C pick</span><span>shop.demo/cart</span></div>
+        </div>
+      </div>
+      <div class="rationale">
+        <h3>UX decisions worth shipping (any direction)</h3>
+        <ul>
+          <li><b>Match counts on every row (05).</b> The single highest-value V1.1 feature — it answers “can I paste this?” at a glance. Green <code>1 match</code> vs amber <code>3 matches</code> beats any BEST badge.</li>
+          <li><b>Filter + keyboard map (04).</b> Power users live in <code>↑↓ + ↵</code>; the palette pattern also scales to 10+ candidates where scrolling dies.</li>
+          <li><b>Copy assert (06).</b> Second action next to copy — <code>await expect(loc).toBeVisible()</code> — turns the panel from picker into test authoring.</li>
+          <li><b>Copy format toggle (05).</b> <code>page.getBy*</code> vs <code>getBy*</code> settled once in a segmented control instead of buried in settings.</li>
+        </ul>
+        <h3>How to pick</h3>
+        <ul>
+          <li><b>04 Command</b> — fastest for experts, weakest for first-run discoverability. Needs the empty-state teaching from round one.</li>
+          <li><b>05 Assure</b> — safest default: it teaches good locators while you work. Slightly taller rows due to badges.</li>
+          <li><b>06 Trace</b> — most at home beside Playwright tooling; dark-only is a deliberate constraint, keep the light theme from 04/05.</li>
+        </ul>
+        <h3>Recommendation</h3>
+        <p style="margin:6px 0 0">Ship <b>05 Assure</b> as the panel skeleton (validation is the roadmap), add <b>04’s filter input</b> above the list when candidates exceed 5, and lift <b>06’s Copy assert</b> as the secondary button on the best row. That composite is genuinely better UX than any single direction.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="build">
+    <span>Built as <code>docs/selekt-pro.html</code> — open directly, no build step. All three mocks are interactive.</span>
+    <span><code>filter · validation · syntax highlight</code></span>
+  </div>
+</footer>
+
+<script>
+  async function copyText(t, btn) {
+    try { await navigator.clipboard.writeText(t); } catch (e) {}
+    if (!btn) return;
+    const prev = btn.textContent;
+    btn.textContent = '✓';
+    btn.classList.add('done');
+    setTimeout(() => { btn.textContent = prev; btn.classList.remove('done'); }, 1100);
+  }
+  document.querySelectorAll('[data-copy]').forEach(btn => {
+    btn.addEventListener('click', () => copyText(btn.getAttribute('data-copy') || '', btn.classList.contains('btn-copy') || btn.classList.contains('btn-assert') || btn.classList.contains('e-copy') ? btn : null));
+  });
+
+  /* ---- 04 Command: live filter + arrow navigation + enter to copy ---- */
+  const dInput = document.getElementById('d-filter');
+  const dRows = Array.from(document.querySelectorAll('#d-list .p-row'));
+  const dEmpty = document.getElementById('d-empty');
+  const dQ = document.getElementById('d-q');
+  const dToast = document.getElementById('d-toast');
+  let dActive = 0;
+  function dVisible() { return dRows.filter(r => r.style.display !== 'none'); }
+  function dSetActive(row) {
+    dRows.forEach(r => { r.classList.remove('active'); r.setAttribute('aria-selected', 'false'); });
+    if (row) { row.classList.add('active'); row.setAttribute('aria-selected', 'true'); }
+  }
+  function dCopyActive() {
+    const vis = dVisible();
+    const row = vis.find(r => r.classList.contains('active')) || vis[0];
+    if (!row) return;
+    const code = row.querySelector('.code').textContent;
+    copyText(code);
+    dToast.textContent = 'Copied ✓ ' + code.slice(0, 38) + (code.length > 38 ? '…' : '');
+    dToast.classList.add('show');
+    clearTimeout(dToast._t);
+    dToast._t = setTimeout(() => dToast.classList.remove('show'), 1600);
+  }
+  dInput.addEventListener('input', () => {
+    const q = dInput.value.trim().toLowerCase();
+    let n = 0;
+    dRows.forEach(r => {
+      const hit = !q || (r.getAttribute('data-text') || '').includes(q);
+      r.style.display = hit ? '' : 'none';
+      if (hit) n++;
+    });
+    dEmpty.classList.toggle('show', n === 0);
+    dQ.textContent = dInput.value.trim();
+    const vis = dVisible();
+    dSetActive(vis[0] || null);
+  });
+  dInput.addEventListener('keydown', e => {
+    const vis = dVisible();
+    if (!vis.length) return;
+    let i = vis.findIndex(r => r.classList.contains('active'));
+    if (e.key === 'ArrowDown') { e.preventDefault(); dSetActive(vis[(i + 1) % vis.length]); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); dSetActive(vis[(i - 1 + vis.length) % vis.length]); }
+    else if (e.key === 'Enter') { e.preventDefault(); dCopyActive(); }
+    else if (e.key === 'Escape') { dInput.value = ''; dInput.dispatchEvent(new Event('input')); }
+  });
+  dRows.forEach(r => r.addEventListener('click', () => { dSetActive(r); dCopyActive(); }));
+
+  /* ---- 05 Assure: inspect toggle, format switch, highlight-all ---- */
+  const eBtn = document.querySelector('[data-inspect="e"]');
+  eBtn.addEventListener('click', () => {
+    const on = eBtn.getAttribute('aria-pressed') !== 'true';
+    eBtn.setAttribute('aria-pressed', String(on));
+    eBtn.classList.toggle('live', on);
+    eBtn.querySelector('[data-inspect-label]').textContent = on ? 'Inspecting — click an element' : 'Start inspecting';
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && eBtn.classList.contains('live')) eBtn.click();
+  });
+  document.querySelectorAll('[data-fmt]').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('[data-fmt]').forEach(x => x.setAttribute('aria-pressed', 'false'));
+    b.setAttribute('aria-pressed', 'true');
+    const short = b.getAttribute('data-fmt') === 'short';
+    document.querySelectorAll('#e-list .e-code').forEach(code => {
+      code.textContent = short ? code.getAttribute('data-short') : code.getAttribute('data-full');
+    });
+    document.querySelectorAll('#e-list .e-copy').forEach(cp => {
+      const row = cp.closest('.e-row').querySelector('.e-code');
+      cp.setAttribute('data-copy', short ? row.getAttribute('data-short') : row.getAttribute('data-full'));
+    });
+  }));
+  const hl = document.querySelector('[data-hl]');
+  hl.addEventListener('click', () => {
+    hl.setAttribute('aria-pressed', String(hl.getAttribute('aria-pressed') !== 'true'));
+  });
+
+  /* ---- 06 Trace: tabs + crumbs are selectable states ---- */
+  document.querySelectorAll('.cF .f-tabs button').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.cF .f-tabs button').forEach(x => x.setAttribute('aria-selected', 'false'));
+    t.setAttribute('aria-selected', 'true');
+  }));
+  document.querySelectorAll('.cF .crumbs button').forEach(c => c.addEventListener('click', () => {
+    document.querySelectorAll('.cF .crumbs button').forEach(x => x.removeAttribute('aria-current'));
+    c.setAttribute('aria-current', 'true');
+  }));
+</script>
+</body>
+</html>

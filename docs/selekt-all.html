@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Selekt — All 9 Directions, One Page</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,900;1,9..144,400&family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg: oklch(0.968 0.009 92);
+    --ink: oklch(0.24 0.02 60);
+    --muted: oklch(0.55 0.02 80);
+    --line: oklch(0.88 0.015 90);
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  html { -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Instrument Sans", system-ui, sans-serif; line-height: 1.5; }
+  .masthead { max-width: 1280px; margin: 0 auto; padding: clamp(28px,4vw,52px) clamp(18px,3vw,36px) 0; }
+  .kicker { font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .kicker::before { content: ""; width: 28px; height: 2px; background: var(--ink); display: inline-block; }
+  h1 { font-family: "Fraunces", serif; font-weight: 900; font-size: clamp(2.4rem,5vw,4.2rem); line-height: 0.95; letter-spacing: -0.03em; margin: 0; }
+  h1 em { font-family: "Instrument Serif", serif; font-style: italic; font-weight: 400; }
+  .lede { color: var(--muted); max-width: 60ch; margin: 12px 0 0; }
+  .lede strong { color: var(--ink); }
+  .lede code { font-family: "IBM Plex Mono", monospace; font-size: 12px; background: oklch(0.93 0.015 90); padding: 0 5px; border-radius: 3px; color: var(--ink); }
+  nav.rounds { position: sticky; top: 0; z-index: 10; background: oklch(0.968 0.009 92 / 0.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); margin-top: 24px; }
+  nav.rounds .in { max-width: 1280px; margin: 0 auto; padding: 10px clamp(18px,3vw,36px); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  nav.rounds .rl { font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-right: 6px; }
+  nav.rounds a.n { text-decoration: none; font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 600; color: var(--ink); border: 1px solid var(--line); background: oklch(1 0 0); border-radius: 999px; padding: 5px 11px; }
+  nav.rounds a.n:hover { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  nav.rounds a.n.r2 { border-style: dashed; }
+  main { max-width: 1280px; margin: 0 auto; padding: 8px clamp(18px,3vw,36px) 70px; }
+  .round-label { font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 40px 0 4px; display: flex; align-items: center; gap: 10px; }
+  .round-label::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  section.entry { display: grid; grid-template-columns: 1fr 432px; gap: clamp(20px,3vw,44px); align-items: start; padding: 26px 0; border-bottom: 1px solid var(--line); }
+  section.entry:nth-child(even of .entry) .meta { order: 2; }
+  @media (max-width: 960px) { section.entry { grid-template-columns: 1fr; } section.entry:nth-child(even of .entry) .meta { order: 0; } }
+  .meta .num { font-family: "Fraunces", serif; font-weight: 900; font-size: 2.6rem; line-height: 1; letter-spacing: -0.03em; }
+  .meta h2 { font-family: "Fraunces", serif; font-size: 1.6rem; margin: 6px 0 2px; letter-spacing: -0.02em; }
+  .meta .story { font-size: 13px; color: var(--muted); margin: 0 0 12px; max-width: 44ch; }
+  .meta .story strong { color: var(--ink); }
+  .meta ul { margin: 0 0 14px; padding-left: 18px; font-size: 13px; color: var(--muted); max-width: 48ch; }
+  .meta li { margin: 4px 0; }
+  .meta li b { color: var(--ink); }
+  .meta code { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; background: oklch(0.93 0.015 90); padding: 0 5px; border-radius: 3px; color: var(--ink); }
+  .open { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--ink); text-decoration: none; border-bottom: 1.5px solid var(--ink); padding-bottom: 1px; }
+  .open:hover { opacity: 0.6; }
+  .shot { width: 100%; max-width: 432px; }
+  .shot iframe { width: 100%; height: 700px; border: 1px solid oklch(0.78 0.015 90); border-radius: 14px; background: #fff; display: block; box-shadow: 0 18px 50px oklch(0.3 0.02 80 / 0.14); }
+  .shot .cap { display: flex; justify-content: space-between; font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--muted); margin-top: 8px; }
+  footer { max-width: 1280px; margin: 0 auto; padding: 0 clamp(18px,3vw,36px) 60px; color: var(--muted); font-size: 13px; }
+  footer .build { border-top: 2px solid var(--ink); padding-top: 14px; }
+  footer code { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--ink); }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  .shot { animation: rise 0.6s var(--ease-out) both; }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: 0.01ms !important; } html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="kicker">Selekt · complete gallery · 9 directions</div>
+  <h1>Everything, <em>on one page.</em></h1>
+  <p class="lede">All nine side-panel directions, each a <strong>live interactive mock</strong> — toggle, filter, validate, export, generate. Scroll or jump by number. Standalone files remain at <code>docs/selekt-redesign.html</code> · <code>docs/selekt-pro.html</code> · <code>docs/selekt-round3.html</code>.</p>
+</header>
+
+<nav class="rounds" aria-label="Jump to direction">
+  <div class="in">
+    <span class="rl">Round 1</span>
+    <a class="n" href="#d01">01 Ledger</a><a class="n" href="#d02">02 Bench</a><a class="n" href="#d03">03 Atelier</a>
+    <span class="rl" style="margin-left:10px">Round 2</span>
+    <a class="n r2" href="#d04">04 Command</a><a class="n r2" href="#d05">05 Assure</a><a class="n r2" href="#d06">06 Trace</a>
+    <span class="rl" style="margin-left:10px">Round 3</span>
+    <a class="n r2" href="#d07">07 Session</a><a class="n r2" href="#d08">08 Steps</a><a class="n r2" href="#d09">09 Codegen</a>
+  </div>
+</nav>
+
+<main>
+  <div class="round-label">Round 1 — personality · selekt-redesign.html</div>
+
+  <section class="entry" id="d01">
+    <div class="meta"><div class="num">01</div><h2>Field Ledger</h2>
+      <p class="story">Editorial warmth. <strong>UX story: memorability</strong> — locators as numbered ledger folios, BEST as a rubber stamp.</p>
+      <ul><li><b>Try:</b> Start inspecting → live hover readout, copy buttons with ✓ states</li><li>Warp-paper tones, Fraunces italic, rules instead of cards</li></ul>
+      <a class="open" href="selekt-redesign.html#concept-a" target="_blank" rel="noopener">Open standalone ↗</a></div>
+    <div class="shot"><iframe title="01 Field Ledger" loading="lazy" src="selekt-redesign.html#concept-a"></iframe><div class="cap"><span>01 · ledger</span><span>live mock ↓ scroll inside</span></div></div>
+  </section>
+
+  <section class="entry" id="d02">
+    <div class="meta"><div class="num">02</div><h2>Bench Instrument</h2>
+      <p class="story">Tactile hardware. <strong>UX story: scan speed</strong> — LED status strip, toggle-switch inspect, channel rows with one hero line.</p>
+      <ul><li><b>Try:</b> flip the inspect switch → LED + readout change, tab switching</li><li>Recommended panel skeleton in round one</li></ul>
+      <a class="open" href="selekt-redesign.html#concept-b" target="_blank" rel="noopener">Open standalone ↗</a></div>
+    <div class="shot"><iframe title="02 Bench Instrument" loading="lazy" src="selekt-redesign.html#concept-b"></iframe><div class="cap"><span>02 · bench</span><span>live mock ↓ scroll inside</span></div></div>
+  </section>
+
+  <section class="entry" id="d03">
+    <div class="meta"><div class="num">03</div><h2>Drafting Atelier</h2>
+      <p class="story">Blueprint sheet. <strong>UX story: composed density</strong> — hairline grid, spec-table readout, amber best-line. Dark that earns it.</p>
+      <ul><li><b>Try:</b> inspect toggle → spec state updates, manual probe verdicts</li><li>Instrument Serif italic annotations, zero glow</li></ul>
+      <a class="open" href="selekt-redesign.html#concept-c" target="_blank" rel="noopener">Open standalone ↗</a></div>
+    <div class="shot"><iframe title="03 Drafting Atelier" loading="lazy" src="selekt-redesign.html#concept-c"></iframe><div class="cap"><span>03 · atelier</span><span>live mock ↓ scroll inside</span></div></div>
+  </section>
+
+  <div class="round-label">Round 2 — usability · selekt-pro.html</div>
+
+  <section class="entry" id="d04">
+    <div class="meta"><div class="num">04</div><h2>Command</h2>
+      <p class="story">Keyboard-first. <strong>UX story: speed</strong> — filter as you type, <code>↑↓ + ↵</code> to copy, recent picks below.</p>
+      <ul><li><b>Try:</b> type “role” in the filter → narrows live; <code>Enter</code> copies with toast</li><li>Scales to 10+ candidates where scrolling dies</li></ul>
+      <a class="open" href="selekt-pro.html#concept-d" target="_blank" rel="noopener">Open standalone ↗</a></div>
+    <div class="shot"><iframe title="04 Command" loading="lazy" src="selekt-pro.html#concept-d"></iframe><div class="cap"><span>04 · command</span><span>live mock ↓ scroll inside</span></div></div>
+  </section>
+
+  <section class="entry" id="d05">
+    <div class="meta"><div class="num">05</div><h2>Assure</h2>
+      <p class="story">Validation-first. <strong>UX story: confidence</strong> — match counts per row, strict verdict, highlight-all, format switch.</p>
+      <ul><li><b>Try:</b> <code>page.getBy*</code> ↔ <code>getBy*</code> toggle rewrites every row; flip Highlight all</li><li>Prototypes the V1.1 roadmap directly</li></ul>
+      <a class="open" href="selekt-pro.html#concept-e" target="_blank" rel="noopener">Open standalone ↗</a></div>
+    <div class="shot"><iframe title="05 Assure" loading="lazy" src="selekt-pro.html#concept-e"></iframe><div class="cap"><span>05 · assure</span><span>live mock ↓ scroll inside</span></div></div>
+  </section>
+
+  <section class="entry" id="d06">
+    <div class="meta"><div class="num">06</div><h2>Trace</h2>
+      <p class="story">Devtools-grade. <strong>UX story: precision</strong> — breadcrumb, syntax-highlighted viewer, <b>Copy assert</b> second action.</p>
+      <ul><li><b>Try:</b> click breadcrumb segments, Copy locator vs Copy assert</li><li>Most at home beside Playwright tooling</li></ul>
+      <a class="open" href="selekt-pro.html#concept-f" target="_blank" rel="noopener">Open standalone ↗</a></div>
+    <div class="shot"><iframe title="06 Trace" loading="lazy" src="selekt-pro.html#concept-f"></iframe><div class="cap"><span>06 · trace</span><span>live mock ↓ scroll inside</span></div></div>
+  </section>
+
+  <div class="round-label">Round 3 — workflow · selekt-round3.html</div>
+
+  <section class="entry" id="d07">
+    <div class="meta"><div class="num">07</div><h2>Session</h2>
+      <p class="story">History-first. <strong>UX story: continuity</strong> — timeline, one-click restore, pins survive Clear, export compiles a spec.</p>
+      <ul><li><b>Try:</b> tap a timeline card to restore it; pin one, hit Clear, export the rest</li><li>The V2 roadmap with zero new concepts to learn</li></ul>
+      <a class="open" href="selekt-round3.html#concept-g" target="_blank" rel="noopener">Open standalone ↗</a></div>
+    <div class="shot"><iframe title="07 Session" loading="lazy" src="selekt-round3.html#concept-g"></iframe><div class="cap"><span>07 · session</span><span>live mock ↓ scroll inside</span></div></div>
+  </section>
+
+  <section class="entry" id="d08">
+    <div class="meta"><div class="num">08</div><h2>Steps</h2>
+      <p class="story">Guided flow. <strong>UX story: onboarding</strong> — Pick → Verify → Paste rail that teaches strict-mode thinking.</p>
+      <ul><li><b>Try:</b> Start inspecting → Continue unlocks; walk Verify checks into Paste</li><li>Ship as dismissible first-run coach, not a permanent mode</li></ul>
+      <a class="open" href="selekt-round3.html#concept-h" target="_blank" rel="noopener">Open standalone ↗</a></div>
+    <div class="shot"><iframe title="08 Steps" loading="lazy" src="selekt-round3.html#concept-h"></iframe><div class="cap"><span>08 · steps</span><span>live mock ↓ scroll inside</span></div></div>
+  </section>
+
+  <section class="entry" id="d09">
+    <div class="meta"><div class="num">09</div><h2>Codegen</h2>
+      <p class="story">Spec authoring. <strong>UX story: output</strong> — action chips append highlighted lines to a live spec with copy + download.</p>
+      <ul><li><b>Try:</b> tap + Visible / + Click chips → lines appear in preview; × removes; Download .ts works</li><li>Panel stops being a utility, becomes an authoring surface</li></ul>
+      <a class="open" href="selekt-round3.html#concept-i" target="_blank" rel="noopener">Open standalone ↗</a></div>
+    <div class="shot"><iframe title="09 Codegen" loading="lazy" src="selekt-round3.html#concept-i"></iframe><div class="cap"><span>09 · codegen</span><span>live mock ↓ scroll inside</span></div></div>
+  </section>
+</main>
+
+<footer><div class="build"><span>Endgame composite per round-3 rationale: <code>05 skeleton + 07 timeline + 04 filter</code>, best-row <code>Copy / Assert / + Step</code>, <code>08 rail</code> as first-run coach.</span></div></footer>
+
+</body>
+</html>
