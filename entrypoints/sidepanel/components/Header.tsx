@@ -4,8 +4,7 @@ interface HeaderProps {
   isInspecting: boolean;
   locatorCount: number;
   host: string;
-  mini: boolean;
-  onToggleMini: () => void;
+  onMinimize: () => void;
 }
 
 export function Header({
@@ -14,8 +13,7 @@ export function Header({
   isInspecting,
   locatorCount,
   host,
-  mini,
-  onToggleMini,
+  onMinimize,
 }: HeaderProps) {
   const readout = isInspecting
     ? 'SCAN · hover page'
@@ -99,59 +97,39 @@ export function Header({
       )}
       <button
         type="button"
-        onClick={onToggleMini}
-        aria-label={mini ? 'Back to full sidepanel' : 'Minimize to mini dialog'}
-        title={mini ? 'Back to full sidepanel' : 'Mini dialog'}
-        aria-pressed={mini}
+        onClick={onMinimize}
+        aria-label="Minimize to floating dialog"
+        title="Floating dialog"
         style={{
           width: 28,
           height: 28,
           display: 'grid',
           placeItems: 'center',
-          background: mini ? 'var(--bar-ink)' : 'transparent',
-          color: mini ? 'var(--bar)' : 'var(--bar-ink)',
+          background: 'transparent',
+          color: 'var(--bar-ink)',
           border: '1px solid color-mix(in srgb, var(--bar-ink) 30%, transparent)',
           borderRadius: 8,
           cursor: 'pointer',
           flexShrink: 0,
-          opacity: mini ? 1 : 0.75,
+          opacity: 0.75,
         }}
       >
-        {mini ? (
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M15 3h6v6" />
-            <path d="M9 21H3v-6" />
-            <path d="M21 3l-7 7" />
-            <path d="M3 21l7-7" />
-          </svg>
-        ) : (
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M8 3H5a2 2 0 0 0-2 2v4" />
-            <path d="M16 3h4a2 2 0 0 1 2 2v4" />
-            <path d="M8 21H5a2 2 0 0 1-2-2v-4" />
-            <path d="M16 21h4a2 2 0 0 0 2-2v-4" />
-          </svg>
-        )}
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M8 3H5a2 2 0 0 0-2 2v4" />
+          <path d="M16 3h4a2 2 0 0 1 2 2v4" />
+          <path d="M8 21H5a2 2 0 0 1-2-2v-4" />
+          <path d="M16 21h4a2 2 0 0 0 2-2v-4" />
+        </svg>
       </button>
       <button
         type="button"

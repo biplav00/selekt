@@ -44,8 +44,29 @@ export default defineBackground(() => {
       msg?.type === 'picker:off' ||
       msg?.type === 'picker:toggle' ||
       msg?.type === 'manual:highlight' ||
-      msg?.type === 'manual:clear'
+      msg?.type === 'manual:clear' ||
+      msg?.type === 'mini:show' ||
+      msg?.type === 'mini:hide'
     ) {
+      return false;
+    }
+    if (msg?.type === 'mini:expand') {
+      // Floating mini dialog asked to dock back: reopen the sidebar for its
+      // tab (content-script button click counts as the user gesture), then
+      // tell the tab to take the overlay down.
+      (async () => {
+        try {
+          const tabId = sender.tab?.id;
+          if (tabId == null) return;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (browser as any).sidePanel.open({ tabId });
+          await browser.tabs.sendMessage(tabId, { type: 'mini:hide' }).catch(() => {
+            void 0;
+          });
+        } catch (e) {
+          console.warn('[background] mini:expand failed', e);
+        }
+      })();
       return false;
     }
     return false;

@@ -48,5 +48,18 @@ export function useAppActions(picker: PickerReturn, manual: ManualReturn) {
     }
   }, [picker]);
 
-  return { sendToTab, handleReset, handleToggleInspect };
+  // Minimize into the floating page dialog: hand the current best locator
+  // to the tab, then close the sidebar (a side panel may close itself).
+  const handleMinimize = useCallback(async () => {
+    const best = picker.locators[0];
+    await sendToTab('picker:off');
+    picker.setIsInspecting(false);
+    await sendToTab('mini:show', {
+      raw: best?.value ?? '',
+      kind: best?.kind ?? '',
+    });
+    window.close();
+  }, [picker]);
+
+  return { sendToTab, handleReset, handleToggleInspect, handleMinimize };
 }

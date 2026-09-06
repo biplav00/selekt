@@ -1,6 +1,13 @@
 import { generateLocators } from '@/utils/locators';
 import { parseManualLocator, collectManualSuggestions } from '@/utils/manualLocators';
 import {
+  showMiniDialog,
+  hideMiniDialog,
+  refreshBest,
+  isMiniOpen,
+  MINI_ROOT_ID,
+} from '@/utils/miniDialog';
+import {
   ensurePickerOverlay,
   showPickerHighlight,
   hidePickerHighlight,
@@ -88,6 +95,24 @@ export default defineContentScript({
         sendResponse({ suggestions });
         return true;
       }
+      if (message.type === 'mini:show') {
+        const payload = message as { raw?: unknown; kind?: unknown };
+        showMiniDialog(
+          {
+            raw: typeof payload.raw === 'string' ? payload.raw : '',
+            kind: typeof payload.kind === 'string' ? payload.kind : '',
+          },
+          {
+            onPick: () => picker.activate(),
+            onExpand: () => {
+              browser.runtime.sendMessage({ type: 'mini:expand' }).catch(() => {
+                void 0;
+              });
+            },
+          }
+        );
+      }
+      if (message.type === 'mini:hide') hideMiniDialog();
       return false as unknown as boolean;
     });
 
@@ -103,6 +128,7 @@ function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
 
   const blockEvent = (event: Event) => {
     if (!active) return;
+    if (inMiniDialog(event)) return;
     if (event instanceof KeyboardEvent && event.key === 'Escape') return;
     event.preventDefault();
     event.stopPropagation();
@@ -125,11 +151,27 @@ function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
     ['submit', blockEvent, true],
   ];
 
+  // The floating mini dialog must never become a pick target and its
+  // controls must keep working while the picker is armed.
+  const inMiniDialog = (event: Event): boolean => {
+    const path = (event as unknown as { composedPath?: () => EventTarget[] }).composedPath?.();
+    if (path && path.length) {
+      for (const target of path) {
+        if (target instanceof Element && (target as Element).id === MINI_ROOT_ID) return true;
+      }
+    }
+    return !!(event.target as Element | null)?.closest?.(`#${MINI_ROOT_ID}`);
+  };
+
   const getTarget = (event: MouseEvent): Element | null => {
     const path = (event as unknown as { composedPath?: () => EventTarget[] }).composedPath?.();
     if (path && path.length) {
       for (const target of path) {
-        if (target instanceof Element && (target as Element).id !== '__locator-inspector-overlay')
+        if (
+          target instanceof Element &&
+          (target as Element).id !== '__locator-inspector-overlay' &&
+          (target as Element).id !== MINI_ROOT_ID
+        )
           return target as Element;
       }
     }
@@ -141,6 +183,7 @@ function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
     const target = getTarget(event);
     if (!target || target.id === '__locator-inspector-overlay') return;
     if ((target as Element).closest?.('#__locator-inspector-overlay')) return;
+    if ((target as Element).closest?.(`#${MINI_ROOT_ID}`)) return;
     if ((target as Element).closest?.('[aria-hidden="true"]')) return;
     lastEl = target as Element;
     const now = Date.now();
@@ -173,6 +216,7 @@ function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
     if (!target || (target as Element).id === '__locator-inspector-overlay') return;
     const el = lastEl || (target as Element);
     if ((el as Element).closest?.('#__locator-inspector-overlay')) return;
+    if ((el as Element).closest?.(`#${MINI_ROOT_ID}`)) return;
     event.preventDefault();
     event.stopPropagation();
     (event as unknown as { stopImmediatePropagation?: () => void }).stopImmediatePropagation?.();
@@ -200,6 +244,9 @@ function createPicker(ctx: { onInvalidated: (cb: () => void) => void }) {
         .catch(() => {
           void 0;
         });
+      if (isMiniOpen() && locators[0]) {
+        void refreshBest({ raw: locators[0].value, kind: locators[0].kind });
+      }
       teardown(false);
       flashPickerOverlay();
       browser.runtime
