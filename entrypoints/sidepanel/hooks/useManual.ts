@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { ManualAttempt } from '../types';
 
 export interface ManualResult {
   count: number;
   error: string | null;
+}
+
+function stamp(): string {
+  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 export function useManual(activeTab: 'inspect' | 'manual', url: string) {
@@ -11,6 +16,7 @@ export function useManual(activeTab: 'inspect' | 'manual', url: string) {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestion, setSelectedSuggestion] = useState(0);
+  const [history, setHistory] = useState<ManualAttempt[]>([]);
 
   const sendToActiveTab = useCallback(async (type: string, payload?: Record<string, unknown>) => {
     try {
@@ -75,8 +81,12 @@ export function useManual(activeTab: 'inspect' | 'manual', url: string) {
     }
   }, [activeTab, url, fetchSuggestions]);
 
-  const handleManualHighlight = async () => {
-    if (!manualLocator.trim()) return;
+  const handleManualHighlight = async (record = false) => {
+    const query = manualLocator.trim();
+    if (!query) return;
+    // Accept the shortened form too: bare getBy*/locator( isn't valid CSS and
+    // would otherwise always error, so restore the page. prefix for evaluation.
+    const normalized = /^(getBy[A-Z]\w*|locator)\s*\(/.test(query) ? `page.${query}` : query;
     setManualResult(null);
     try {
       const tabs = await browser.tabs.query({});
@@ -86,10 +96,18 @@ export function useManual(activeTab: 'inspect' | 'manual', url: string) {
       if (!target) target = (await browser.tabs.query({ active: true, currentWindow: true }))[0];
       if (!target?.id) return;
       const response = (await browser.tabs
-        .sendMessage(target.id, { type: 'manual:highlight', locator: manualLocator.trim() })
+        .sendMessage(target.id, { type: 'manual:highlight', locator: normalized })
         .catch(() => null)) as ManualResult | null;
       if (response) {
-        setManualResult({ count: response.count ?? 0, error: response.error ?? null });
+        const result = { count: response.count ?? 0, error: response.error ?? null };
+        setManualResult(result);
+        if (record) {
+          setHistory((prev) =>
+            prev[0]?.query === query
+              ? prev
+              : [{ time: stamp(), query, ...result }, ...prev].slice(0, 20)
+          );
+        }
       } else {
         setTimeout(() => {
           setManualResult(
@@ -132,8 +150,8 @@ export function useManual(activeTab: 'inspect' | 'manual', url: string) {
     setTimeout(() => {
       if (hasEmpty) {
         const input = document.querySelector(
-          'input[aria-label="Manual locator"]'
-        ) as HTMLInputElement | null;
+          'textarea[aria-label="Manual locator"]'
+        ) as HTMLTextAreaElement | null;
         if (input) {
           input.focus();
           const idx = value.indexOf("''") + 1;
@@ -152,6 +170,8 @@ export function useManual(activeTab: 'inspect' | 'manual', url: string) {
     setManualLocator,
     manualResult,
     setManualResult,
+    history,
+    clearHistory: () => setHistory([]),
     suggestions,
     showSuggestions,
     setShowSuggestions,

@@ -26,6 +26,20 @@ export interface Settings {
 
 export type TabId = 'inspect' | 'manual';
 
+export interface PickerSnapshot {
+  time: string;
+  url: string;
+  meta: Meta | null;
+  locators: Locator[];
+}
+
+export interface ManualAttempt {
+  time: string;
+  query: string;
+  count: number;
+  error: string | null;
+}
+
 export type RuntimeMessage =
   | { type: 'locators'; payload: { locators: Locator[]; meta: Meta | null; url: string } }
   | { type: 'picker:hover'; payload: Meta }

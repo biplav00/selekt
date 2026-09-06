@@ -27,8 +27,10 @@ async function sendToTab(type: string, payload?: Record<string, unknown>): Promi
 export function useAppActions(picker: PickerReturn, manual: ManualReturn) {
   const handleReset = useCallback(async () => {
     picker.clearPicker();
+    picker.clearHistory();
     manual.setManualLocator('');
     manual.setManualResult(null);
+    manual.clearHistory();
     picker.setIsInspecting(false);
     await sendToTab('picker:off');
     await sendToTab('picker:clear');
