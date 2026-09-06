@@ -91,6 +91,10 @@ function css(): string {
       color: #7a5410; background: #faf3df; border-top: 1px solid #e3cf9d; padding: 6px 10px; }
     .verdict.show { display: block; }
     .verdict.err { color: #96351f; background: #fbe9e4; border-color: #eec0b4; }
+    .seg { display: flex; gap: 4px; padding: 8px 10px 0; }
+    .segbtn { flex: 1; border: 0; background: transparent; font: inherit; font-size: 11.5px;
+      font-weight: 700; padding: 7px 4px; border-radius: 7px; cursor: pointer; color: #6d6b61; }
+    .segbtn.on { background: #1d1c19; color: #f7f6f1; }
   `;
 }
 
@@ -138,7 +142,8 @@ function buildDialog(): void {
 
   // Strip (drag handle)
   const strip = el('div', { class: 'strip' });
-  strip.appendChild(el('span', { class: 'led', 'aria-hidden': 'true' }));
+  const ledDot = el('span', { class: 'led', 'aria-hidden': 'true' });
+  strip.appendChild(ledDot);
   strip.appendChild(el('span', { class: 'title' }, 'SELEKT'));
   const spacer = el('span', { class: 'spacer' });
   const expandBtn = el(
@@ -169,7 +174,8 @@ function buildDialog(): void {
   strip.appendChild(spacer);
   root.appendChild(strip);
 
-  // Inspect row: one locator
+  // Inspect pane: exactly one locator
+  const inspectPane = el('div', { class: 'pane' });
   const inspectRow = el('div', { class: 'row' });
   const kindChip = el('span', { class: 'kind' }, '—');
   const code = el('code', { class: 'code empty' }, 'pick an element…');
@@ -190,19 +196,28 @@ function buildDialog(): void {
       }, 1100);
     }
   });
-  const pickBtn = el(
-    'button',
-    { class: 'btn', title: 'Pick element', 'aria-label': 'Pick element' },
-    '⌖'
-  );
-  pickBtn.addEventListener('click', () => cb.onPick());
+  const setEmpty = () => {
+    currentRaw = '';
+    code.textContent = 'pick an element…';
+    code.classList.add('empty');
+    code.removeAttribute('title');
+    kindChip.textContent = '—';
+    ledDot.classList.add('dim');
+  };
+  const resetBtn = el('button', { class: 'btn', title: 'Reset', 'aria-label': 'Reset' }, '↺');
+  resetBtn.addEventListener('click', () => {
+    setEmpty();
+    clearManualHighlights();
+    verdict.classList.remove('show', 'err');
+  });
   inspectRow.appendChild(kindChip);
   inspectRow.appendChild(code);
   inspectRow.appendChild(copyBtn);
-  inspectRow.appendChild(pickBtn);
-  root.appendChild(inspectRow);
+  inspectRow.appendChild(resetBtn);
+  inspectPane.appendChild(inspectRow);
 
-  // Manual row: textfield + test
+  // Manual pane: textfield + test only
+  const manualPane = el('div', { class: 'pane' });
   const manualRow = el('div', { class: 'row' });
   const input = document.createElement('input');
   input.setAttribute('aria-label', 'Manual locator');
@@ -242,8 +257,51 @@ function buildDialog(): void {
   testBtn.addEventListener('click', runProbe);
   manualRow.appendChild(input);
   manualRow.appendChild(testBtn);
-  root.appendChild(manualRow);
+  manualPane.appendChild(manualRow);
+
+  // Mode tabs — toggling only switches views; re-clicking active ⌖ re-arms.
+  let mode: 'inspect' | 'manual' = 'inspect';
+  const seg = el('div', { class: 'seg', role: 'tablist', 'aria-label': 'Mini mode' });
+  const inspectTab = el(
+    'button',
+    { class: 'segbtn', role: 'tab', title: 'Pick element', 'aria-label': 'Pick element' },
+    '⌖ Inspect'
+  );
+  const manualTab = el(
+    'button',
+    { class: 'segbtn', role: 'tab', title: 'Manual probe', 'aria-label': 'Manual probe' },
+    'Manual ⌕'
+  );
+  const syncTabs = () => {
+    const inspectActive = mode === 'inspect';
+    for (const [btn, on] of [
+      [inspectTab, inspectActive],
+      [manualTab, !inspectActive],
+    ] as const) {
+      btn.classList.toggle('on', on);
+      btn.setAttribute('aria-selected', String(on));
+    }
+    inspectPane.style.display = inspectActive ? '' : 'none';
+    manualPane.style.display = inspectActive ? 'none' : '';
+  };
+  inspectTab.addEventListener('click', () => {
+    if (mode === 'inspect') cb.onPick();
+    else {
+      mode = 'inspect';
+      syncTabs();
+    }
+  });
+  manualTab.addEventListener('click', () => {
+    mode = 'manual';
+    syncTabs();
+  });
+  seg.appendChild(inspectTab);
+  seg.appendChild(manualTab);
+  root.appendChild(seg);
+  root.appendChild(inspectPane);
+  root.appendChild(manualPane);
   root.appendChild(verdict);
+  syncTabs();
 
   // Drag by the strip (never from buttons)
   strip.addEventListener('pointerdown', (event) => {

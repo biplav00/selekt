@@ -56,4 +56,43 @@ describe('mini dialog host', () => {
     const host = document.getElementById(MINI_ROOT_ID);
     expect(host?.shadowRoot?.querySelector('#selekt-mini-code')?.textContent).toContain('pick an');
   });
+
+  it('toggles tabs without scanning; re-clicking ⌖ re-arms the pick', async () => {
+    let picks = 0;
+    showMiniDialog(
+      { raw: "page.getByTestId('x')", kind: 'testId' },
+      {
+        onPick: () => {
+          picks++;
+        },
+        onExpand: () => {},
+      }
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const root = document.getElementById(MINI_ROOT_ID)?.shadowRoot;
+    const tabs = root?.querySelectorAll('.segbtn');
+    const panes = root?.querySelectorAll('.pane');
+    const inspectTab = tabs?.[0] as HTMLElement;
+    const manualTab = tabs?.[1] as HTMLElement;
+    const inspectPane = panes?.[0] as HTMLElement;
+    // toggling to manual must not scan
+    manualTab.click();
+    expect(picks).toBe(0);
+    expect(inspectPane.style.display).toBe('none');
+    // switching back must not scan either
+    inspectTab.click();
+    expect(picks).toBe(0);
+    expect(inspectPane.style.display).not.toBe('none');
+    // re-clicking the active ⌖ re-arms
+    inspectTab.click();
+    expect(picks).toBe(1);
+  });
+
+  it('reset clears the locked locator', async () => {
+    showMiniDialog({ raw: "page.getByTestId('x')", kind: 'testId' }, callbacks);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const root = document.getElementById(MINI_ROOT_ID)?.shadowRoot;
+    (root?.querySelector('[aria-label="Reset"]') as HTMLElement).click();
+    expect(root?.querySelector('#selekt-mini-code')?.textContent).toContain('pick an');
+  });
 });
