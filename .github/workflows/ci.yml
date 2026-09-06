@@ -2,7 +2,7 @@ name: CI — Build, Lint, Test, Package
 
 on:
   push:
-    branches: [main, develop, 'feat/*', 'fix/*']
+    branches: [main, develop, 'feat/*', 'fix/*', 'chore/*']
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
@@ -16,10 +16,10 @@ jobs:
     name: Lint • Typecheck • Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - name: Install
         run: npm ci --legacy-peer-deps
@@ -39,10 +39,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: quality
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - name: Install
         run: npm ci --legacy-peer-deps
@@ -53,37 +53,16 @@ jobs:
       - name: Verify artifact
         run: ls -lh .output/*.zip && unzip -l .output/*.zip | head -n 30
       - name: Upload zip
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: locator-inspector-${{ github.sha }}
           path: .output/*.zip
           retention-days: 14
           if-no-files-found: warn
       - name: Upload build dir (for debugging)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: chrome-mv3-${{ github.sha }}
           path: .output/chrome-mv3
           retention-days: 3
           if-no-files-found: warn
-
-  publish:
-    name: Publish to Chrome Web Store
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci --legacy-peer-deps && npm run zip
-      - name: Publish
-        uses: mobilefirstllc/cws-publish@latest
-        with:
-          extension_id: ${{ secrets.CWS_EXTENSION_ID }}
-          client_id: ${{ secrets.CWS_CLIENT_ID }}
-          client_secret: ${{ secrets.CWS_CLIENT_SECRET }}
-          refresh_token: ${{ secrets.CWS_REFRESH_TOKEN }}
-          zip_file: .output/*.zip
