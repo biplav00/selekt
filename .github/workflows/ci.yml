@@ -23,8 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -47,14 +47,14 @@ jobs:
       - name: Verify artifact
         run: ls -lh .output/*.zip && unzip -l .output/*.zip | head -n 30
       - name: Upload zip
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: locator-inspector-${{ github.sha }}
           path: .output/*.zip
           retention-days: 14
           if-no-files-found: warn
       - name: Upload build dir (for debugging)
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: chrome-mv3-${{ github.sha }}
           path: .output/chrome-mv3
