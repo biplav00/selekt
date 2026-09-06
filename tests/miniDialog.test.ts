@@ -94,4 +94,32 @@ describe('mini dialog host', () => {
     (root?.querySelector('[aria-label="Reset"]') as HTMLElement).click();
     expect(root?.querySelector('#selekt-mini-code')?.textContent).toContain('pick an');
   });
+
+  it('does not leak clicks, keys, or wheel to the page', async () => {
+    const seen: string[] = [];
+    for (const type of ['click', 'mousedown', 'keydown', 'wheel']) {
+      document.addEventListener(type, () => seen.push(type));
+    }
+    showMiniDialog({ raw: "page.getByTestId('x')", kind: 'testId' }, callbacks);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const root = document.getElementById(MINI_ROOT_ID)?.shadowRoot;
+    const composed = { bubbles: true, composed: true } as EventInit;
+    root?.querySelector('#selekt-mini-copy')?.dispatchEvent(new MouseEvent('click', composed));
+    root?.querySelector('#selekt-mini-copy')?.dispatchEvent(new MouseEvent('mousedown', composed));
+    const input = root?.querySelector('[aria-label="Manual locator"]');
+    input?.dispatchEvent(new KeyboardEvent('keydown', { ...composed, key: 'a' }));
+    input?.dispatchEvent(new WheelEvent('wheel', composed));
+    // Escape must still reach the page so an armed picker can be cancelled.
+    input?.dispatchEvent(new KeyboardEvent('keydown', { ...composed, key: 'Escape' }));
+    expect(seen.sort()).toEqual(['keydown']);
+  });
+
+  it('resurrects the dialog if the page rips it out', async () => {
+    showMiniDialog({ raw: "page.getByTestId('x')", kind: 'testId' }, callbacks);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    document.getElementById(MINI_ROOT_ID)?.remove();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(document.getElementById(MINI_ROOT_ID)).not.toBeNull();
+    expect(isMiniOpen()).toBe(true);
+  });
 });

@@ -38,6 +38,59 @@ let shadow: ShadowRoot | null = null;
 let currentRaw = '';
 let lastPos: { x: number; y: number } | null = null;
 let callbacks: MiniCallbacks | null = null;
+// True while the dialog should exist — lets us resurrect it if the page
+// (or another extension) rips the host out from under us.
+let wantedOpen = false;
+let resurrections = 0;
+let observerWired = false;
+let resizeWired = false;
+
+// Never let dialog interactions leak into the page underneath: a copy
+// click must not also click the link below it (which navigates and takes
+// the dialog down with the page — the "closes by itself" ghost).
+const STOPPED_EVENTS = [
+  'click',
+  'mousedown',
+  'mouseup',
+  'pointerdown',
+  'pointerup',
+  'dblclick',
+  'auxclick',
+  'contextmenu',
+  'wheel',
+  'dragstart',
+];
+
+function watchForRemoval(): void {
+  if (observerWired || typeof MutationObserver === 'undefined') return;
+  observerWired = true;
+  const root = document.documentElement;
+  if (!root) return;
+  const observer = new MutationObserver(() => {
+    if (wantedOpen && host && !host.isConnected && resurrections < 3) {
+      resurrections++;
+      (document.body || document.documentElement).appendChild(host);
+    }
+  });
+  observer.observe(root, { childList: true, subtree: true });
+}
+
+function clampToViewport(): void {
+  if (!host?.isConnected) return;
+  const rect = host.getBoundingClientRect();
+  const pos = clampDialogPosition(
+    rect.left,
+    rect.top,
+    rect.width,
+    rect.height,
+    window.innerWidth,
+    window.innerHeight
+  );
+  host.style.left = `${pos.x}px`;
+  host.style.top = `${pos.y}px`;
+  host.style.right = 'auto';
+  lastPos = pos;
+}
 
 async function readOmitPage(): Promise<boolean> {
   try {
@@ -152,6 +205,7 @@ function buildDialog(): void {
   shadow.appendChild(style);
 
   const bar = el('div', { class: 'bar', role: 'dialog', 'aria-label': 'Selekt mini' });
+  bar.setAttribute('dir', 'ltr');
 
   // Grip (drag handle) + LED
   const grip = el('span', { class: 'grip', title: 'Drag to move' });
@@ -255,6 +309,17 @@ function buildDialog(): void {
     '⤢'
   );
   expandBtn.addEventListener('click', () => cb.onExpand());
+  // Dismiss without reopening the sidebar — otherwise a failed expand
+  // (e.g. no user gesture) would strand the dialog with no way out.
+  const closeBtn = el(
+    'button',
+    { class: 'ic', title: 'Close mini dialog', 'aria-label': 'Close mini dialog' },
+    '×'
+  );
+  closeBtn.addEventListener('click', () => {
+    clearManualHighlights();
+    hideMiniDialog();
+  });
 
   const syncTabs = () => {
     const inspectActive = mode === 'inspect';
@@ -289,6 +354,7 @@ function buildDialog(): void {
   bar.appendChild(manualPane);
   bar.appendChild(resetBtn);
   bar.appendChild(expandBtn);
+  bar.appendChild(closeBtn);
   shadow.appendChild(bar);
   shadow.appendChild(verdict);
   syncTabs();
@@ -332,12 +398,30 @@ function buildDialog(): void {
 
 function ensureHost(): HTMLElement | null {
   if (host?.isConnected && shadow) return host;
-  hideMiniDialog();
+  // Direct cleanup (not hideMiniDialog — that would clear wantedOpen).
+  host?.remove();
+  host = null;
+  shadow = null;
   host = document.createElement('div');
   host.id = MINI_ROOT_ID;
   host.style.cssText = 'position:fixed;z-index:2147483647;top:16px;right:16px;margin:0;padding:0;';
   shadow = host.attachShadow({ mode: 'open' });
   (document.body || document.documentElement).appendChild(host);
+  // Contain every interaction: nothing the user does in the dialog may
+  // reach page listeners (clicks, keys, wheel). Handlers inside the shadow
+  // tree run before these, so dialog buttons keep working. Escape is let
+  // through so an armed picker can still be cancelled from the keyboard.
+  for (const type of STOPPED_EVENTS) {
+    host.addEventListener(type, (event) => event.stopPropagation());
+  }
+  host.addEventListener('keydown', (event) => {
+    if ((event as KeyboardEvent).key !== 'Escape') event.stopPropagation();
+  });
+  if (!resizeWired) {
+    resizeWired = true;
+    window.addEventListener('resize', clampToViewport);
+  }
+  watchForRemoval();
   if (lastPos) {
     host.style.left = `${lastPos.x}px`;
     host.style.top = `${lastPos.y}px`;
@@ -353,12 +437,15 @@ export function isMiniOpen(): boolean {
 export function showMiniDialog(best: MiniBest, cb: MiniCallbacks): void {
   callbacks = cb;
   currentRaw = best.raw;
+  wantedOpen = true;
+  resurrections = 0;
   if (!ensureHost()) return;
   buildDialog();
   void refreshBest(best);
 }
 
 export function hideMiniDialog(): void {
+  wantedOpen = false;
   host?.remove();
   host = null;
   shadow = null;
