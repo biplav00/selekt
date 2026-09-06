@@ -4,8 +4,8 @@ interface HeaderProps {
   isInspecting: boolean;
   locatorCount: number;
   host: string;
-  compact: boolean;
-  onToggleCompact: () => void;
+  isFloat: boolean;
+  onFloatAction: () => void;
 }
 
 export function Header({
@@ -14,8 +14,8 @@ export function Header({
   isInspecting,
   locatorCount,
   host,
-  compact,
-  onToggleCompact,
+  isFloat,
+  onFloatAction,
 }: HeaderProps) {
   const readout = isInspecting
     ? 'SCAN · hover page'
@@ -99,40 +99,55 @@ export function Header({
       )}
       <button
         type="button"
-        onClick={onToggleCompact}
-        aria-label={compact ? 'Exit compact mode' : 'Enter compact mode'}
-        title={compact ? 'Exit compact mode' : 'Compact mode'}
-        aria-pressed={compact}
+        onClick={onFloatAction}
+        aria-label={isFloat ? 'Dock back to sidebar' : 'Pop out to floating window'}
+        title={isFloat ? 'Dock back to sidebar' : 'Floating window'}
         style={{
           width: 28,
           height: 28,
           display: 'grid',
           placeItems: 'center',
-          background: compact ? 'var(--bar-ink)' : 'transparent',
-          color: compact ? 'var(--bar)' : 'var(--bar-ink)',
+          background: 'transparent',
+          color: 'var(--bar-ink)',
           border: '1px solid color-mix(in srgb, var(--bar-ink) 30%, transparent)',
           borderRadius: 8,
           cursor: 'pointer',
           flexShrink: 0,
-          opacity: compact ? 1 : 0.75,
+          opacity: 0.75,
         }}
       >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.7"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M4 14h6v6" />
-          <path d="M20 10h-6V4" />
-          <path d="M14 10l7-7" />
-          <path d="M3 21l7-7" />
-        </svg>
+        {isFloat ? (
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M19 12H5" />
+            <path d="m12 19-7-7 7-7" />
+          </svg>
+        ) : (
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M15 3h6v6" />
+            <path d="M10 14 21 3" />
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+          </svg>
+        )}
       </button>
       <button
         type="button"

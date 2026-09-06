@@ -17,6 +17,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('inspect');
   const [showSettings, setShowSettings] = useState(false);
   const { settings, updateSettings, displayLocator } = useSettings();
+  // Floating popup (?float=1) always renders the compact layout.
+  const isFloat = new URLSearchParams(window.location.search).get('float') === '1';
+  const compact = isFloat;
   const picker = usePicker();
   const manual = useManual(activeTab, picker.url);
   const { copied, copy } = useCopy(displayLocator);
@@ -28,7 +31,10 @@ export default function App() {
     onManualResult: manual.setManualResult,
   });
 
-  const { sendToTab, handleReset, handleToggleInspect } = useAppActions(picker, manual);
+  const { sendToTab, handleReset, handleToggleInspect, handleFloat, handleDock } = useAppActions(
+    picker,
+    manual
+  );
 
   useGlobalShortcuts(picker.isInspecting && !showSettings, () => {
     void sendToTab('picker:off');
@@ -59,10 +65,8 @@ export default function App() {
         isInspecting={picker.isInspecting}
         locatorCount={picker.locators.length}
         host={host}
-        compact={settings.compact}
-        onToggleCompact={() => {
-          void updateSettings({ compact: !settings.compact });
-        }}
+        isFloat={isFloat}
+        onFloatAction={isFloat ? handleDock : handleFloat}
       />
       {showSettings && (
         <SettingsDialog
@@ -71,21 +75,16 @@ export default function App() {
           onClose={() => setShowSettings(false)}
         />
       )}
-      <Tabs
-        activeTab={activeTab}
-        onSelect={setActiveTab}
-        onReset={handleReset}
-        compact={settings.compact}
-      />
+      <Tabs activeTab={activeTab} onSelect={setActiveTab} onReset={handleReset} compact={compact} />
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
         <div
           style={{
-            padding: settings.compact ? '10px' : '14px',
-            maxWidth: settings.compact ? 340 : 400,
+            padding: compact ? '10px' : '14px',
+            maxWidth: compact ? 340 : 400,
             margin: '0 auto',
             display: 'flex',
             flexDirection: 'column',
-            gap: settings.compact ? 8 : 12,
+            gap: compact ? 8 : 12,
           }}
         >
           <div
@@ -121,7 +120,7 @@ export default function App() {
               history={picker.history}
               onRestore={picker.restoreSnapshot}
               onClearHistory={picker.clearHistory}
-              compact={settings.compact}
+              compact={compact}
             />
           )}
           {activeTab === 'manual' && (
@@ -145,7 +144,7 @@ export default function App() {
               onSelectEntry={manual.setManualLocator}
               onClearHistory={manual.clearHistory}
               displayLocator={displayLocator}
-              compact={settings.compact}
+              compact={compact}
             />
           )}
         </div>

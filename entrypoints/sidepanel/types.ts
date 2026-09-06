@@ -22,7 +22,6 @@ export interface ManualResult {
 export interface Settings {
   theme: 'light' | 'dark';
   omitPage: boolean;
-  compact: boolean;
 }
 
 export type TabId = 'inspect' | 'manual';
