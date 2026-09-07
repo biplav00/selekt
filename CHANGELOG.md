@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/biplav00/selekt/compare/v0.2.0...v0.3.0) (2026-09-07)
+
+
+### Features
+
+* theme-aware floating dialog with token-driven SVG icon system ([#25](https://github.com/biplav00/selekt/issues/25)) ([5e59251](https://github.com/biplav00/selekt/commit/5e5925127426bd87b563a6074184eadd36c4c91a))
+
+
+### Bug Fixes
+
+* manual clear, mini dialog, locator chains, copy button, font + style system ([#23](https://github.com/biplav00/selekt/issues/23)) ([b5aad29](https://github.com/biplav00/selekt/commit/b5aad29e70f67e56da3dd54e80373be68f3c5d03))
+
 ## [0.2.0](https://github.com/biplav00/selekt/compare/v0.1.0...v0.2.0) (2026-09-06)
 
 
