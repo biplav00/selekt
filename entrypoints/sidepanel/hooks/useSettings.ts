@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Settings } from '../types';
+import type { ThemeName } from '../../../utils/theme';
 
 const DEFAULT_SETTINGS: Settings = { theme: 'light', omitPage: false };
 
@@ -58,7 +59,7 @@ export function useSettings() {
   };
 }
 
-function applyTheme(theme: 'light' | 'dark'): void {
+function applyTheme(theme: ThemeName): void {
   document.documentElement.setAttribute('data-theme', theme);
   if (theme === 'dark') document.documentElement.classList.add('dark');
   else document.documentElement.classList.remove('dark');

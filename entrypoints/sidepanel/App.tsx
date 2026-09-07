@@ -30,7 +30,8 @@ export default function App() {
 
   const { sendToTab, handleReset, handleToggleInspect, handleMinimize } = useAppActions(
     picker,
-    manual
+    manual,
+    settings.theme
   );
 
   useGlobalShortcuts(picker.isInspecting && !showSettings, () => {

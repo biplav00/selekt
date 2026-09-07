@@ -5,6 +5,7 @@ import {
   hideMiniDialog,
   refreshBest,
   isMiniOpen,
+  setMiniArmed,
   MINI_ROOT_ID,
 } from '@/utils/miniDialog';
 import {
@@ -15,6 +16,7 @@ import {
   clearManualHighlights,
   highlightManualElements,
 } from '@/utils/overlay';
+import { isThemeName } from '@/utils/theme';
 
 export default defineContentScript({
   matches: ['<all_urls>'],
@@ -119,7 +121,7 @@ export default defineContentScript({
         return true;
       }
       if (message.type === 'mini:show') {
-        const payload = message as { raw?: unknown; kind?: unknown };
+        const payload = message as { raw?: unknown; kind?: unknown; theme?: unknown };
         showMiniDialog(
           {
             raw: typeof payload.raw === 'string' ? payload.raw : '',
@@ -132,7 +134,8 @@ export default defineContentScript({
                 void 0;
               });
             },
-          }
+          },
+          { theme: isThemeName(payload.theme) ? payload.theme : undefined }
         );
       }
       if (message.type === 'mini:hide') hideMiniDialog();
@@ -300,6 +303,7 @@ function createPicker() {
 
   const teardown = (removeOverlay = true) => {
     active = false;
+    setMiniArmed(false);
     if (removeOverlay) hidePickerHighlight();
     document.removeEventListener('mouseover', onMouseOver, true);
     document.removeEventListener('click', onClick, true);
@@ -321,6 +325,7 @@ function createPicker() {
   const activate = () => {
     if (active) return;
     active = true;
+    setMiniArmed(true);
     lastEl = null;
     ensurePickerOverlay();
     document.addEventListener('mouseover', onMouseOver, true);

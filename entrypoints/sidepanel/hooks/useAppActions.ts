@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import type { usePicker } from './usePicker';
 import type { useManual } from './useManual';
 import { findProbeTab } from '../../../utils/tabs';
+import type { ThemeName } from '../../../utils/theme';
 
 type PickerReturn = ReturnType<typeof usePicker>;
 type ManualReturn = ReturnType<typeof useManual>;
@@ -18,7 +19,7 @@ async function sendToTab(type: string, payload?: Record<string, unknown>): Promi
   }
 }
 
-export function useAppActions(picker: PickerReturn, manual: ManualReturn) {
+export function useAppActions(picker: PickerReturn, manual: ManualReturn, theme: ThemeName) {
   const handleReset = useCallback(async () => {
     picker.clearPicker();
     picker.clearHistory();
@@ -43,7 +44,8 @@ export function useAppActions(picker: PickerReturn, manual: ManualReturn) {
   }, [picker]);
 
   // Minimize into the floating page dialog: hand the current best locator
-  // to the tab, then close the sidebar (a side panel may close itself).
+  // (plus the active theme so the dialog opens in the right mode) to the
+  // tab, then close the sidebar (a side panel may close itself).
   const handleMinimize = useCallback(async () => {
     const best = picker.locators[0];
     await sendToTab('picker:off');
@@ -51,9 +53,10 @@ export function useAppActions(picker: PickerReturn, manual: ManualReturn) {
     await sendToTab('mini:show', {
       raw: best?.value ?? '',
       kind: best?.kind ?? '',
+      theme,
     });
     window.close();
-  }, [picker]);
+  }, [picker, theme]);
 
   return { sendToTab, handleReset, handleToggleInspect, handleMinimize };
 }

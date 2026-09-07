@@ -1,4 +1,7 @@
-/* Bench — industrial instrument panel, day shift / night shift */
+/* Bench — industrial instrument panel, day shift / night shift.
+   Global design tokens live here (`:root` + `:root[data-theme='dark']`).
+   The floating mini dialog mirrors these same values on its shadow `:host`
+   — see `utils/theme.ts` (MINI_TOKENS_CSS). Keep the two in sync. */
 * {
   box-sizing: border-box;
 }
@@ -269,6 +272,9 @@ html.dark {
 }
 .tab-glyph {
   font-size: var(--text-body);
+}
+.tab-glyph svg {
+  display: block;
 }
 .tabs-reset {
   width: 36px;
