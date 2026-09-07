@@ -23,18 +23,23 @@ export default defineContentScript({
   main(ctx) {
     const picker = createPicker();
 
-    ctx.onInvalidated(() => {
+    const fullTeardown = () => {
       picker.teardown(true);
+      clearManualHighlights();
       hideMiniDialog();
+    };
+    ctx.onInvalidated(() => {
+      fullTeardown();
     });
     // @ts-expect-error wxt locationchange may not be typed
     ctx.addEventListener?.('wxt:locationchange', () => {
-      picker.teardown(true);
-      hideMiniDialog();
+      fullTeardown();
     });
     window.addEventListener('popstate', () => {
-      picker.teardown(true);
-      hideMiniDialog();
+      fullTeardown();
+    });
+    window.addEventListener('pagehide', () => {
+      fullTeardown();
     });
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden' && picker.isActive()) hidePickerHighlight();
@@ -44,7 +49,6 @@ export default defineContentScript({
       if (sender.id && sender.id !== browser.runtime.id) return false;
       const message = msg as { type?: string; locator?: string; selector?: string };
       if (message.type === 'picker:on') picker.activate();
-      if (message.type === 'picker:off') picker.teardown();
       if (message.type === 'picker:toggle') {
         if (picker.isActive()) picker.teardown();
         else picker.activate();
@@ -58,7 +62,18 @@ export default defineContentScript({
           void 0;
         }
       }
-      if (message.type === 'picker:clear') hidePickerHighlight();
+      if (message.type === 'picker:clear') {
+        hidePickerHighlight();
+        clearManualHighlights();
+        return false;
+      }
+      if (message.type === 'picker:off') {
+        // Leaving inspect mode must not strand a locked highlight, and a
+        // closing sidebar/minimize also takes manual probes down with it.
+        picker.teardown();
+        clearManualHighlights();
+        return false;
+      }
       if (message.type === 'manual:highlight' && typeof message.locator === 'string') {
         const { elements, error } = parseManualLocator(message.locator);
         if (error) {

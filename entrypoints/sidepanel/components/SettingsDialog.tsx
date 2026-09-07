@@ -16,22 +16,7 @@ function focusables(root: HTMLElement): HTMLElement[] {
 }
 
 function SettingRow({ children }: { children: ReactNode }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 10,
-        padding: '8px 10px',
-        background: 'var(--bg)',
-        border: '1px solid var(--line)',
-        borderRadius: 8,
-      }}
-    >
-      {children}
-    </div>
-  );
+  return <div className="setting-row">{children}</div>;
 }
 
 export function SettingsDialog({ settings, onUpdate, onClose }: SettingsDialogProps) {
@@ -83,48 +68,17 @@ export function SettingsDialog({ settings, onUpdate, onClose }: SettingsDialogPr
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 50,
-        background: 'color-mix(in srgb, var(--ink) 40%, transparent)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
-        display: 'grid',
-        placeItems: 'center',
-        padding: 16,
-        animation: 'rise-in 0.15s var(--ease-out-quint)',
-      }}
+      className="backdrop"
     >
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="settings-title"
-        style={{
-          width: '100%',
-          maxWidth: 320,
-          background: 'var(--panel)',
-          border: '1px solid var(--line)',
-          borderRadius: 'var(--radius)',
-          boxShadow: '0 16px 48px rgba(0,0,0,0.22)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 10,
-          padding: 14,
-        }}
+        className="dialog"
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span
-            id="settings-title"
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 10,
-              fontWeight: 600,
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-            }}
-          >
+        <div className="dialog-head">
+          <span id="settings-title" className="label">
             Calibration
           </span>
           <button
@@ -132,17 +86,7 @@ export function SettingsDialog({ settings, onUpdate, onClose }: SettingsDialogPr
             type="button"
             onClick={onClose}
             aria-label="Close settings"
-            style={{
-              width: 28,
-              height: 28,
-              display: 'grid',
-              placeItems: 'center',
-              background: 'transparent',
-              border: '1px solid var(--line)',
-              borderRadius: 6,
-              cursor: 'pointer',
-              color: 'var(--muted)',
-            }}
+            className="icon-btn"
           >
             <svg
               width="12"
@@ -161,8 +105,8 @@ export function SettingsDialog({ settings, onUpdate, onClose }: SettingsDialogPr
 
         <SettingRow>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700 }}>Shift</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)' }}>
+            <div className="setting-title">Shift</div>
+            <div className="setting-sub">
               {isNight ? 'Night bench · dark' : 'Day steel · light'}
             </div>
           </div>
@@ -173,40 +117,13 @@ export function SettingsDialog({ settings, onUpdate, onClose }: SettingsDialogPr
             aria-label="Color shift"
             title={isNight ? 'Switch to day shift' : 'Switch to night shift'}
             onClick={flipShift}
-            style={{
-              width: 58,
-              height: 30,
-              borderRadius: 9999,
-              background: isNight ? 'var(--sig)' : 'var(--panel-deep)',
-              border: '1px solid var(--line-strong)',
-              position: 'relative',
-              cursor: 'pointer',
-              flexShrink: 0,
-              transition: 'background 200ms var(--ease-out-quint)',
-            }}
+            className="switch"
           >
-            <span
-              aria-hidden="true"
-              style={{
-                position: 'absolute',
-                top: 2,
-                left: 2,
-                width: 24,
-                height: 24,
-                borderRadius: 9999,
-                background: 'var(--panel)',
-                border: '1px solid var(--line)',
-                display: 'grid',
-                placeItems: 'center',
-                color: 'var(--ink)',
-                transform: isNight ? 'translateX(28px)' : 'none',
-                transition: 'transform 220ms var(--ease-out-quint)',
-              }}
-            >
+            <span aria-hidden="true" className="switch-knob">
               {isNight ? (
                 <svg
-                  width="13"
-                  height="13"
+                  width="14"
+                  height="14"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -218,8 +135,8 @@ export function SettingsDialog({ settings, onUpdate, onClose }: SettingsDialogPr
                 </svg>
               ) : (
                 <svg
-                  width="13"
-                  height="13"
+                  width="14"
+                  height="14"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -237,23 +154,10 @@ export function SettingsDialog({ settings, onUpdate, onClose }: SettingsDialogPr
 
         <SettingRow>
           <div id="omit-label">
-            <div style={{ fontSize: 12, fontWeight: 700 }}>
-              Omit{' '}
-              <code
-                style={{
-                  fontFamily: 'var(--font-code)',
-                  background: 'var(--panel)',
-                  border: '1px solid var(--line)',
-                  padding: '0 4px',
-                  borderRadius: 4,
-                  fontSize: 11,
-                }}
-              >
-                page.
-              </code>{' '}
-              prefix
+            <div className="setting-title">
+              Omit <code className="setting-code">page.</code> prefix
             </div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)' }}>
+            <div className="setting-sub">
               Copy <code>getByTestId</code> instead of <code>page.getByTestId</code>
             </div>
           </div>
@@ -264,48 +168,13 @@ export function SettingsDialog({ settings, onUpdate, onClose }: SettingsDialogPr
             aria-labelledby="omit-label"
             title={settings.omitPage ? 'Include page. prefix' : 'Omit page. prefix'}
             onClick={() => onUpdate({ omitPage: !settings.omitPage })}
-            style={{
-              width: 48,
-              height: 26,
-              borderRadius: 9999,
-              background: settings.omitPage ? 'var(--sig)' : 'var(--panel-deep)',
-              border: '1px solid var(--line-strong)',
-              position: 'relative',
-              cursor: 'pointer',
-              flexShrink: 0,
-              alignSelf: 'center',
-              transition: 'background 200ms var(--ease-out-quint)',
-            }}
+            className="switch"
           >
-            <span
-              aria-hidden="true"
-              style={{
-                position: 'absolute',
-                top: 2,
-                left: 2,
-                width: 20,
-                height: 20,
-                borderRadius: 9999,
-                background: 'var(--panel)',
-                border: '1px solid var(--line)',
-                transform: settings.omitPage ? 'translateX(22px)' : 'none',
-                transition: 'transform 220ms var(--ease-out-quint)',
-              }}
-            />
+            <span aria-hidden="true" className="switch-knob" />
           </button>
         </SettingRow>
 
-        <div
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 10,
-            color: 'var(--muted)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            borderTop: '1px solid var(--line)',
-            paddingTop: 10,
-          }}
-        >
+        <div className="dialog-foot">
           <span>ESC closes</span>
           <span>click outside dismisses</span>
         </div>

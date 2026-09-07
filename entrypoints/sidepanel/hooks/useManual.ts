@@ -110,7 +110,9 @@ export function useManual(activeTab: 'inspect' | 'manual', url: string) {
   };
 
   const handleManualClear = async () => {
+    setManualLocator('');
     setManualResult(null);
+    setShowSuggestions(false);
     try {
       await sendToActiveTab('manual:clear', {});
     } catch {
