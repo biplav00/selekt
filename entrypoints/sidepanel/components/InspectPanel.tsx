@@ -50,209 +50,52 @@ export function InspectPanel({
         aria-pressed={isInspecting}
         aria-controls="locator-list"
         onClick={onToggleInspect}
-        style={{
-          width: '100%',
-          padding: 12,
-          borderRadius: 'var(--radius)',
-          border: '1px solid var(--line)',
-          background: 'var(--panel)',
-          color: 'var(--ink)',
-          fontFamily: 'var(--font-sans)',
-          cursor: 'pointer',
-          display: 'grid',
-          gridTemplateColumns: '1fr auto',
-          gap: 12,
-          alignItems: 'center',
-          textAlign: 'left',
-          transition: 'border-color 150ms var(--ease-out-quint)',
-        }}
+        className="inspect-btn"
       >
-        <span style={{ minWidth: 0 }}>
-          <span style={{ fontSize: 13, fontWeight: 800, display: 'block', lineHeight: 1.2 }}>
+        <span className="min-w-0">
+          <span className="inspect-title">
             {isInspecting ? 'Inspecting — click element' : 'Start inspecting'}
           </span>
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 10,
-              color: 'var(--muted)',
-              display: 'block',
-              marginTop: 2,
-            }}
-          >
-            hover highlights · click locks · ESC exits
-          </span>
+          <span className="inspect-sub">hover highlights · click locks · ESC exits</span>
         </span>
-        <span
-          aria-hidden="true"
-          style={{
-            width: 52,
-            height: 29,
-            borderRadius: 9999,
-            background: isInspecting ? 'var(--sig)' : 'var(--panel-deep)',
-            border: `1px solid ${isInspecting ? 'var(--sig-deep)' : 'var(--line)'}`,
-            position: 'relative',
-            flexShrink: 0,
-            transition: 'background 200ms var(--ease-out-quint)',
-          }}
-        >
-          <span
-            style={{
-              position: 'absolute',
-              top: 2,
-              left: 2,
-              width: 23,
-              height: 23,
-              borderRadius: 9999,
-              background: 'var(--panel)',
-              border: '1px solid var(--line)',
-              transform: isInspecting ? 'translateX(23px)' : 'none',
-              transition: 'transform 220ms var(--ease-out-quint)',
-            }}
-          />
+        <span aria-hidden="true" className={`switch switch--hero${isInspecting ? ' is-on' : ''}`}>
+          <span className="switch-knob" />
         </span>
       </button>
 
       {isInspecting && (
-        <div
-          role="status"
-          style={{
-            background: 'var(--sig-soft)',
-            border: '1px solid var(--sig)',
-            borderRadius: 'var(--radius)',
-            padding: '10px 12px',
-            fontSize: 12,
-          }}
-        >
-          <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 10,
-              fontWeight: 600,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              color: 'var(--sig-deep)',
-            }}
-          >
-            ● live scan
-          </div>
+        <div role="status" className="live-card">
+          <div className="live-tag">● live scan</div>
           {hoverPreview ? (
-            <div
-              style={{
-                fontFamily: 'var(--font-code)',
-                fontSize: 12,
-                marginTop: 4,
-                wordBreak: 'break-all',
-              }}
-            >
-              <span style={{ fontWeight: 600 }}>&lt;{hoverPreview.tag}&gt;</span>{' '}
-              <span style={{ color: 'var(--muted)' }}>
+            <div className="live-preview">
+              <span className="fw-600">&lt;{hoverPreview.tag}&gt;</span>{' '}
+              <span className="label--muted">
                 {hoverPreview.text?.slice(0, 36) || 'no text'}
                 {hoverPreview.id && ` #${hoverPreview.id}`}
               </span>
             </div>
           ) : (
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)' }}>
-              Move over the page to preview…
-            </div>
+            <div className="live-empty">Move over the page to preview…</div>
           )}
         </div>
       )}
 
       {locators.length === 0 && !isInspecting && (
-        <div
-          style={{
-            background: 'var(--panel)',
-            border: '1px solid var(--line)',
-            borderRadius: 'var(--radius)',
-            padding: 14,
-          }}
-        >
-          <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 10,
-              fontWeight: 600,
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              color: 'var(--muted)',
-            }}
-          >
-            No lock
-          </div>
-          <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 6, lineHeight: 1.55 }}>
+        <div className="empty-card">
+          <div className="label label--muted">No lock</div>
+          <div className="empty-body">
             Flip the switch, hover the page, click to lock. You get paste-ready{' '}
-            <code
-              style={{
-                fontFamily: 'var(--font-code)',
-                background: 'var(--bg)',
-                border: '1px solid var(--line)',
-                padding: '0 4px',
-                borderRadius: 4,
-                fontSize: 11,
-              }}
-            >
-              page.getBy*
-            </code>{' '}
-            lines — best first.
+            <code className="empty-code">page.getBy*</code> lines — best first.
           </div>
         </div>
       )}
 
       {meta && (
-        <div
-          style={{
-            background: 'var(--panel)',
-            border: '1px solid var(--line)',
-            borderRadius: 'var(--radius)',
-            padding: '10px 12px',
-            display: 'flex',
-            gap: 8,
-            alignItems: 'center',
-          }}
-        >
-          <span
-            style={{
-              background: 'var(--bar)',
-              color: 'var(--bar-ink)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: 11,
-              fontWeight: 600,
-              padding: '3px 9px',
-              borderRadius: 9999,
-              flexShrink: 0,
-            }}
-          >
-            &lt;{meta.tag}&gt;
-          </span>
-          {meta.id && (
-            <span
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 11,
-                border: '1px solid var(--line)',
-                padding: '2px 8px',
-                borderRadius: 9999,
-                flexShrink: 0,
-              }}
-            >
-              #{meta.id}
-            </span>
-          )}
+        <div className="meta-card">
+          <span className="tag-pill">&lt;{meta.tag}&gt;</span>
+          {meta.id && <span className="id-pill">#{meta.id}</span>}
           {attrs && (
-            <code
-              title={attrs}
-              style={{
-                fontFamily: 'var(--font-code)',
-                fontSize: 11,
-                color: 'var(--muted)',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                minWidth: 0,
-                flex: 1,
-              }}
-            >
+            <code title={attrs} className="attr-code">
               {attrs}
             </code>
           )}
@@ -260,36 +103,19 @@ export function InspectPanel({
       )}
 
       {locators.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 10,
-                fontWeight: 600,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                color: 'var(--muted)',
-              }}
-            >
+        <div className="output-stack">
+          <div className="output-head">
+            <div className="label label--muted">
               Output · {locators.length} line{locators.length === 1 ? '' : 's'}
             </div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)' }}>
-              CH-01 BEST
-            </div>
+            <div className="label label--muted">CH-01 BEST</div>
           </div>
           <div
             id="locator-list"
             tabIndex={-1}
             role="list"
             aria-label="Ranked locators"
-            style={{
-              background: 'var(--panel)',
-              border: '1px solid var(--line)',
-              borderRadius: 'var(--radius)',
-              overflow: 'hidden',
-              outline: 'none',
-            }}
+            className="loc-list"
           >
             {locators.map((loc, idx) => (
               <LocatorItem
@@ -312,13 +138,7 @@ export function InspectPanel({
             const open = openSnap === i;
             const best = snap.locators[0];
             return (
-              <div
-                key={snap.time + String(i)}
-                style={{
-                  borderBottom:
-                    i < history.length - 1 ? '1px solid var(--line)' : '1px solid transparent',
-                }}
-              >
+              <div key={snap.time + String(i)} className="snap-wrap">
                 <button
                   type="button"
                   onClick={() => {
@@ -327,56 +147,15 @@ export function InspectPanel({
                   }}
                   aria-expanded={open}
                   title="Restore this pick"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    width: '100%',
-                    padding: '9px 12px',
-                    background: 'transparent',
-                    border: 0,
-                    cursor: 'pointer',
-                    color: 'var(--ink)',
-                    font: 'inherit',
-                    textAlign: 'left',
-                  }}
+                  className="row-btn"
                 >
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span
-                      style={{
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: 10,
-                        fontWeight: 600,
-                        color: 'var(--muted)',
-                      }}
-                    >
+                  <span className="min-w-0 flex-1">
+                    <span className="snap-meta">
                       {snap.meta ? `<${snap.meta.tag}>` : 'pick'} · {snap.time}
                     </span>
-                    <code
-                      style={{
-                        display: 'block',
-                        fontFamily: 'var(--font-code)',
-                        fontSize: 11,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        marginTop: 2,
-                      }}
-                    >
-                      {best ? displayLocator(best.value) : '—'}
-                    </code>
+                    <code className="snap-code">{best ? displayLocator(best.value) : '—'}</code>
                   </span>
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      color: 'var(--muted)',
-                      display: 'grid',
-                      placeItems: 'center',
-                      flexShrink: 0,
-                      transform: open ? 'none' : 'rotate(-90deg)',
-                      transition: 'transform 180ms var(--ease-out-quint)',
-                    }}
-                  >
+                  <span aria-hidden="true" className={`snap-chev${open ? ' is-open' : ''}`}>
                     <svg
                       width="12"
                       height="12"
@@ -392,7 +171,7 @@ export function InspectPanel({
                   </span>
                 </button>
                 {open && (
-                  <div style={{ borderTop: '1px solid var(--line)' }}>
+                  <div className="snap-body">
                     {snap.locators.map((loc, idx) => (
                       <LocatorItem
                         key={loc.value + String(idx)}

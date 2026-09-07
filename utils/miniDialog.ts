@@ -4,7 +4,7 @@
  * icon tabs, locator-or-textfield, copy/test, reset, expand.
  */
 import { parseManualLocator } from './manualLocators';
-import { highlightManualElements, clearManualHighlights } from './overlay';
+import { highlightManualElements, clearManualHighlights, hidePickerHighlight } from './overlay';
 
 export const MINI_ROOT_ID = '__selekt-mini-root';
 const MINI_MIN_WIDTH = 230;
@@ -68,6 +68,7 @@ function watchForRemoval(): void {
   if (!root) return;
   const observer = new MutationObserver(() => {
     if (wantedOpen && host && !host.isConnected && resurrections < 3) {
+      if (typeof document === 'undefined') return;
       resurrections++;
       (document.body || document.documentElement).appendChild(host);
     }
@@ -301,6 +302,7 @@ function buildDialog(): void {
     code.removeAttribute('title');
     ledDot.classList.add('dim');
     clearManualHighlights();
+    hidePickerHighlight();
     verdict.classList.remove('show');
   });
   const expandBtn = el(
@@ -317,7 +319,6 @@ function buildDialog(): void {
     '×'
   );
   closeBtn.addEventListener('click', () => {
-    clearManualHighlights();
     hideMiniDialog();
   });
 
@@ -330,8 +331,13 @@ function buildDialog(): void {
       btn.classList.toggle('on', on);
       btn.setAttribute('aria-selected', String(on));
     }
-    inspectPane.style.display = inspectActive ? '' : 'none';
-    manualPane.style.display = inspectActive ? 'none' : '';
+    // Both the `.show` class and the inline display matter: the stylesheet
+    // defaults `.pane` to `display: none`, so clearing the inline style
+    // alone still leaves the pane invisible (the "missing locator" ghost).
+    inspectPane.classList.toggle('show', inspectActive);
+    manualPane.classList.toggle('show', !inspectActive);
+    inspectPane.style.display = inspectActive ? 'flex' : 'none';
+    manualPane.style.display = inspectActive ? 'none' : 'flex';
   };
   inspectTab.addEventListener('click', () => {
     if (mode === 'inspect') cb.onPick();
@@ -359,7 +365,11 @@ function buildDialog(): void {
   shadow.appendChild(verdict);
   syncTabs();
 
-  // Drag by the grip only
+  // Drag by the grip only.
+  // NOTE: the host stops propagation of pointerup/mouseup in the bubble
+  // phase (to keep dialog clicks out of the page), so the drag-end listener
+  // must run in the capture phase — otherwise releasing over the dialog
+  // never fires `up` and the dialog sticks to the mouse forever.
   grip.addEventListener('pointerdown', (event) => {
     if (!host) return;
     event.preventDefault();
@@ -386,13 +396,15 @@ function buildDialog(): void {
       lastPos = pos;
     };
     const up = () => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      window.removeEventListener('pointercancel', up);
+      window.removeEventListener('pointermove', move, true);
+      window.removeEventListener('pointerup', up, true);
+      window.removeEventListener('pointercancel', up, true);
+      window.removeEventListener('mouseup', up, true);
     };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
-    window.addEventListener('pointercancel', up);
+    window.addEventListener('pointermove', move, true);
+    window.addEventListener('pointerup', up, true);
+    window.addEventListener('pointercancel', up, true);
+    window.addEventListener('mouseup', up, true);
   });
 }
 
@@ -423,9 +435,20 @@ function ensureHost(): HTMLElement | null {
   }
   watchForRemoval();
   if (lastPos) {
-    host.style.left = `${lastPos.x}px`;
-    host.style.top = `${lastPos.y}px`;
+    // A stale position from a larger viewport could strand the dialog
+    // off-screen (the "doesn't appear" ghost) — re-clamp on every show.
+    const pos = clampDialogPosition(
+      lastPos.x,
+      lastPos.y,
+      MINI_MIN_WIDTH,
+      48,
+      window.innerWidth,
+      window.innerHeight
+    );
+    host.style.left = `${pos.x}px`;
+    host.style.top = `${pos.y}px`;
     host.style.right = 'auto';
+    lastPos = pos;
   }
   return host;
 }
@@ -446,6 +469,16 @@ export function showMiniDialog(best: MiniBest, cb: MiniCallbacks): void {
 
 export function hideMiniDialog(): void {
   wantedOpen = false;
+  try {
+    clearManualHighlights();
+  } catch {
+    void 0;
+  }
+  try {
+    hidePickerHighlight();
+  } catch {
+    void 0;
+  }
   host?.remove();
   host = null;
   shadow = null;

@@ -23,68 +23,22 @@ export function LocatorItem({
     const hasPage = !!match[1];
     return (
       <>
-        {hasPage && <span style={{ color: 'var(--muted)' }}>{match[1]}</span>}
-        <span style={{ color: 'var(--ink)', fontWeight: 600 }}>{match[2]}</span>
-        <span style={{ color: 'var(--muted)' }}>{match[3]}</span>
+        {hasPage && <span className="dim">{match[1]}</span>}
+        <span className="fn">{match[2]}</span>
+        <span className="dim">{match[3]}</span>
       </>
     );
   };
 
   return (
-    <div
-      role="listitem"
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 30px',
-        gap: 10,
-        alignItems: 'center',
-        padding: '11px 12px',
-        borderBottom: '1px solid var(--line)',
-        borderLeft: isBest ? '4px solid var(--sig)' : '4px solid transparent',
-        background: isBest ? 'var(--sig-soft)' : 'transparent',
-        animation: 'rise-in 0.3s var(--ease-out-quint)',
-      }}
-    >
-      <div style={{ minWidth: 0 }}>
-        <div
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 10,
-            fontWeight: 600,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            color: isBest ? 'var(--sig-deep)' : 'var(--muted)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-          }}
-        >
-          <span
-            aria-hidden="true"
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: 9999,
-              background: isBest ? 'var(--sig)' : 'var(--line-strong)',
-              flexShrink: 0,
-            }}
-          />
+    <div role="listitem" className={`loc-row${isBest ? ' is-best' : ''}`}>
+      <div className="min-w-0">
+        <div className="loc-kind">
+          <span aria-hidden="true" className="loc-led" />
           {locator.kind}
           {isBest && <span>· {channel} BEST</span>}
         </div>
-        <code
-          style={{
-            fontFamily: 'var(--font-code)',
-            fontSize: 11.5,
-            color: 'var(--ink)',
-            wordBreak: 'break-all',
-            lineHeight: 1.5,
-            display: 'block',
-            marginTop: 3,
-          }}
-        >
-          {renderLocator(displayValue)}
-        </code>
+        <code className="loc-code">{renderLocator(displayValue)}</code>
       </div>
       <button
         type="button"
@@ -95,19 +49,7 @@ export function LocatorItem({
         }
         onClick={() => onCopy(locator.value)}
         title={isCopied ? 'Copied' : 'Copy to clipboard'}
-        style={{
-          width: 30,
-          height: 30,
-          display: 'grid',
-          placeItems: 'center',
-          background: isCopied ? 'var(--bar)' : 'var(--panel)',
-          color: isCopied ? 'var(--bar-ink)' : 'var(--ink)',
-          border: `1px solid ${isCopied ? 'var(--bar)' : 'var(--line)'}`,
-          borderRadius: 8,
-          cursor: 'pointer',
-          flexShrink: 0,
-          transition: 'all 120ms var(--ease-out-quint)',
-        }}
+        className={`icon-btn icon-btn--md${isCopied ? ' is-active' : ''}`}
       >
         {isCopied ? (
           <svg

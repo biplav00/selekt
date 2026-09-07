@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react';
 import type { TabId } from '../types';
 
 interface TabsProps {
@@ -7,58 +6,18 @@ interface TabsProps {
   onReset: () => void;
 }
 
-function tabStyle(active: boolean): CSSProperties {
-  return {
-    flex: 1,
-    padding: '8px 6px',
-    borderRadius: 6,
-    border: 0,
-    background: active ? 'var(--bar)' : 'transparent',
-    color: active ? 'var(--bar-ink)' : 'var(--muted)',
-    fontFamily: 'var(--font-sans)',
-    fontSize: 12,
-    fontWeight: 700,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  };
-}
-
 export function Tabs({ activeTab, onSelect, onReset }: TabsProps) {
   return (
-    <div
-      style={{
-        padding: '10px 12px',
-        background: 'var(--bg)',
-        borderBottom: '1px solid var(--line)',
-        position: 'sticky',
-        top: 57,
-        zIndex: 1,
-      }}
-    >
-      <div
-        role="tablist"
-        aria-label="Panel mode"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr auto',
-          gap: 4,
-          background: 'var(--panel)',
-          border: '1px solid var(--line)',
-          borderRadius: 8,
-          padding: 4,
-        }}
-      >
+    <div className="tabs-wrap">
+      <div role="tablist" aria-label="Panel mode" className="tablist">
         <button
           type="button"
           role="tab"
           aria-selected={activeTab === 'inspect'}
           onClick={() => onSelect('inspect')}
-          style={tabStyle(activeTab === 'inspect')}
+          className={`tab${activeTab === 'inspect' ? ' is-active' : ''}`}
         >
-          <span aria-hidden="true" style={{ fontSize: 12 }}>
+          <span aria-hidden="true" className="tab-glyph">
             ⌖
           </span>{' '}
           Inspect
@@ -68,7 +27,7 @@ export function Tabs({ activeTab, onSelect, onReset }: TabsProps) {
           role="tab"
           aria-selected={activeTab === 'manual'}
           onClick={() => onSelect('manual')}
-          style={tabStyle(activeTab === 'manual')}
+          className={`tab${activeTab === 'manual' ? ' is-active' : ''}`}
         >
           <svg
             width="12"
@@ -89,17 +48,7 @@ export function Tabs({ activeTab, onSelect, onReset }: TabsProps) {
           onClick={onReset}
           aria-label="Reset all"
           title="Reset"
-          style={{
-            width: 36,
-            display: 'grid',
-            placeItems: 'center',
-            background: 'transparent',
-            color: 'var(--muted)',
-            border: '1px solid var(--line)',
-            borderRadius: 6,
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
+          className="tabs-reset"
         >
           <svg
             width="14"

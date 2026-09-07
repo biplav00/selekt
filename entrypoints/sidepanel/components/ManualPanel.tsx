@@ -8,6 +8,8 @@ interface ManualPanelProps {
   manualResult: ManualResult | null;
   onHighlight: () => void;
   onClear: () => void;
+  onCopy: (value: string) => void;
+  copied: string | null;
   suggestions: string[];
   showSuggestions: boolean;
   selectedSuggestion: number;
@@ -28,6 +30,8 @@ export function ManualPanel({
   manualResult,
   onHighlight,
   onClear,
+  onCopy,
+  copied,
   suggestions,
   showSuggestions,
   selectedSuggestion,
@@ -49,11 +53,11 @@ export function ManualPanel({
     return suggestions.filter((s) => s.toLowerCase().includes(query)).slice(0, 8);
   })();
 
-  const verdictTone = manualResult?.error
-    ? { bg: 'var(--err-bg)', line: 'var(--err-line)', ink: 'var(--err-ink)' }
+  const verdictClass = manualResult?.error
+    ? 'verdict verdict--err'
     : manualResult && manualResult.count > 0
-      ? { bg: 'var(--warn-bg)', line: 'var(--warn-line)', ink: 'var(--warn-ink)' }
-      : { bg: 'var(--bg)', line: 'var(--line)', ink: 'var(--muted)' };
+      ? 'verdict verdict--ok'
+      : 'verdict';
 
   const commitOrComplete = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (showSuggestions && filteredSuggestions.length > 0) {
@@ -89,59 +93,22 @@ export function ManualPanel({
 
   return (
     <>
-      <div
-        style={{
-          background: 'var(--panel)',
-          border: '1px solid var(--line)',
-          borderRadius: 'var(--radius)',
-          overflow: 'visible',
-          isolation: 'isolate',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '10px 12px',
-            borderBottom: '1px solid var(--line)',
-          }}
-        >
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 10,
-              fontWeight: 600,
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Manual probe
-          </span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)' }}>
-            any selector
-          </span>
+      <div className="card card--overlay">
+        <div className="card-head">
+          <span className="label">Manual probe</span>
+          <span className="label label--muted">any selector</span>
         </div>
-        <div
-          style={{
-            padding: 12,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 10,
-          }}
-        >
-          <div style={{ position: 'relative' }}>
+        <div className="card-body">
+          <div className="probe-wrap">
             <textarea
               value={manualLocator}
               rows={4}
               onChange={(event) => onLocatorChange(event.target.value)}
-              onFocus={(event) => {
-                event.currentTarget.style.borderColor = 'var(--sig-deep)';
+              onFocus={() => {
                 onShowSuggestions(true);
                 if (suggestions.length === 0) onFetchSuggestions();
               }}
-              onBlur={(event) => {
-                event.currentTarget.style.borderColor = 'var(--line)';
+              onBlur={() => {
                 setTimeout(() => onShowSuggestions(false), 150);
               }}
               onKeyDown={commitOrComplete}
@@ -150,44 +117,12 @@ export function ManualPanel({
               aria-expanded={isFocused && showSuggestions && filteredSuggestions.length > 0}
               aria-controls="manual-suggestions"
               spellCheck={false}
-              style={{
-                width: '100%',
-                minHeight: 104,
-                resize: 'vertical',
-                fontFamily: 'var(--font-code)',
-                fontSize: 13,
-                lineHeight: 1.6,
-                padding: '10px 12px',
-                border: `1px solid ${isFocused ? 'var(--sig-deep)' : 'var(--line)'}`,
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--bg)',
-                color: 'var(--ink)',
-                outline: 'none',
-                display: 'block',
-              }}
+              className="probe-input"
               onFocusCapture={() => setIsFocused(true)}
               onBlurCapture={() => setIsFocused(false)}
             />
             {isFocused && showSuggestions && filteredSuggestions.length > 0 && (
-              <div
-                id="manual-suggestions"
-                role="listbox"
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  marginTop: 4,
-                  background: 'var(--panel)',
-                  border: '1px solid var(--line)',
-                  borderRadius: 'var(--radius-sm)',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08)',
-                  zIndex: 50,
-                  maxHeight: 200,
-                  overflowY: 'auto',
-                  overflowX: 'hidden',
-                }}
-              >
+              <div id="manual-suggestions" role="listbox" className="suggest">
                 {filteredSuggestions.map((suggestion, idx) => (
                   <div
                     key={suggestion + String(idx)}
@@ -198,34 +133,10 @@ export function ManualPanel({
                       onSuggestionClick(suggestion);
                     }}
                     onMouseEnter={() => onSuggestionHover(idx)}
-                    style={{
-                      padding: '7px 10px',
-                      fontFamily: 'var(--font-code)',
-                      fontSize: 11,
-                      cursor: 'pointer',
-                      background: idx === selectedSuggestion ? 'var(--sig-soft)' : 'transparent',
-                      borderLeft:
-                        idx === selectedSuggestion
-                          ? '2px solid var(--sig)'
-                          : '2px solid transparent',
-                      color: 'var(--ink)',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 8,
-                    }}
+                    className={`suggest-item${idx === selectedSuggestion ? ' is-selected' : ''}`}
                   >
-                    <span
-                      style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                    >
-                      {displayLocator(suggestion)}
-                    </span>
-                    <span
-                      style={{ fontSize: 10, color: 'var(--muted)', flexShrink: 0, opacity: 0.7 }}
-                    >
+                    <span className="suggest-text">{displayLocator(suggestion)}</span>
+                    <span className="suggest-kind">
                       {suggestion.startsWith('page.getByTestId')
                         ? 'testId'
                         : suggestion.startsWith('page.getByRole')
@@ -247,31 +158,16 @@ export function ManualPanel({
               </div>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div className="actions-row">
             <button
               type="button"
               onClick={onHighlight}
               disabled={!manualLocator.trim()}
-              style={{
-                flex: 1,
-                height: 38,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                background: manualLocator.trim() ? 'var(--bar)' : 'var(--panel)',
-                color: manualLocator.trim() ? 'var(--bar-ink)' : 'var(--muted)',
-                border: `1px solid ${manualLocator.trim() ? 'var(--bar)' : 'var(--line)'}`,
-                borderRadius: 'var(--radius-sm)',
-                fontSize: 12.5,
-                fontWeight: 700,
-                cursor: manualLocator.trim() ? 'pointer' : 'not-allowed',
-                opacity: manualLocator.trim() ? 1 : 0.6,
-              }}
+              className="btn-primary"
             >
               <svg
-                width="15"
-                height="15"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -286,34 +182,53 @@ export function ManualPanel({
                 <path d="M11 8v6" />
               </svg>
               Test probe
-              <span
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 10,
-                  fontWeight: 400,
-                  opacity: 0.7,
-                }}
-              >
-                ↵
-              </span>
+              <span className="btn-key">↵</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onCopy(manualLocator)}
+              disabled={!manualLocator.trim()}
+              aria-label={copied === manualLocator ? 'Copied' : 'Copy manual locator'}
+              title={copied === manualLocator ? 'Copied' : 'Copy to clipboard'}
+              className={`icon-btn icon-btn--lg${copied === manualLocator ? ' is-active' : ''}`}
+            >
+              {copied === manualLocator ? (
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              ) : (
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v3" />
+                </svg>
+              )}
             </button>
             <button
               type="button"
               onClick={onClear}
               aria-label="Clear"
               title="Clear"
-              style={{
-                width: 38,
-                height: 38,
-                display: 'grid',
-                placeItems: 'center',
-                background: 'var(--panel)',
-                color: 'var(--muted)',
-                border: '1px solid var(--line)',
-                borderRadius: 'var(--radius-sm)',
-                cursor: 'pointer',
-                flexShrink: 0,
-              }}
+              className="icon-btn icon-btn--lg"
             >
               <svg
                 width="16"
@@ -332,19 +247,7 @@ export function ManualPanel({
             </button>
           </div>
           {manualResult && (
-            <div
-              role="status"
-              aria-live="polite"
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 11,
-                padding: '8px 10px',
-                borderRadius: 'var(--radius-sm)',
-                border: `1px solid ${verdictTone.line}`,
-                background: verdictTone.bg,
-                color: verdictTone.ink,
-              }}
-            >
+            <div role="status" aria-live="polite" className={verdictClass}>
               {manualResult.error ? (
                 <>✕ {manualResult.error}</>
               ) : manualResult.count === 0 ? (
@@ -356,16 +259,7 @@ export function ManualPanel({
               )}
             </div>
           )}
-          <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 10,
-              color: 'var(--muted)',
-              lineHeight: 1.5,
-            }}
-          >
-            ↵ tests · ⇧↵ new line · ↑↓ suggestions
-          </div>
+          <div className="hint">↵ tests · ⇧↵ new line · ↑↓ suggestions</div>
         </div>
       </div>
 
@@ -377,60 +271,19 @@ export function ManualPanel({
               type="button"
               onClick={() => onSelectEntry(attempt.query)}
               title="Re-run this probe"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                width: '100%',
-                padding: '9px 12px',
-                background: 'transparent',
-                border: 0,
-                borderBottom:
-                  i < history.length - 1 ? '1px solid var(--line)' : '1px solid transparent',
-                cursor: 'pointer',
-                color: 'var(--ink)',
-                font: 'inherit',
-                textAlign: 'left',
-              }}
+              className="row-btn"
             >
-              <code
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  fontFamily: 'var(--font-code)',
-                  fontSize: 11,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
+              <code className="code code--sm code--ellipsis row-code">
                 {displayLocator(attempt.query)}
               </code>
               <span
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 10,
-                  fontWeight: 600,
-                  whiteSpace: 'nowrap',
-                  color: attempt.error
-                    ? 'var(--err-ink)'
-                    : attempt.count > 0
-                      ? 'var(--ok)'
-                      : 'var(--muted)',
-                }}
+                className={`stat${
+                  attempt.error ? ' stat--err' : attempt.count > 0 ? ' stat--ok' : ' stat--muted'
+                }`}
               >
                 {attempt.error ? '✕' : attempt.count === 0 ? '0' : `▸ ${attempt.count}`}
               </span>
-              <span
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 10,
-                  color: 'var(--muted)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {attempt.time}
-              </span>
+              <span className="time">{attempt.time}</span>
             </button>
           ))}
         </HistoryAccordion>

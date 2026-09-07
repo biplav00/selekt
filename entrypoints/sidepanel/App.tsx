@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Header } from './components/Header';
 import { Tabs } from './components/Tabs';
 import { SettingsDialog } from './components/SettingsDialog';
@@ -38,6 +38,27 @@ export default function App() {
     picker.setIsInspecting(false);
   });
 
+  // Closing the sidebar must not strand highlights on the page — take the
+  // overlays down best-effort on unload. Fire-and-forget: the panel may be
+  // gone before the promise settles.
+  useEffect(() => {
+    const clearPage = () => {
+      for (const type of ['picker:off', 'picker:clear', 'manual:clear']) {
+        try {
+          void sendToTab(type);
+        } catch {
+          void 0;
+        }
+      }
+    };
+    window.addEventListener('pagehide', clearPage);
+    window.addEventListener('beforeunload', clearPage);
+    return () => {
+      window.removeEventListener('pagehide', clearPage);
+      window.removeEventListener('beforeunload', clearPage);
+    };
+  }, [sendToTab]);
+
   let host = '';
   try {
     host = new URL(picker.url).hostname;
@@ -46,16 +67,7 @@ export default function App() {
   }
 
   return (
-    <div
-      style={{
-        background: 'var(--bg)',
-        color: 'var(--ink)',
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-      }}
-    >
+    <div className="app">
       <Header
         onToggleSettings={() => setShowSettings((value) => !value)}
         showSettings={showSettings}
@@ -79,29 +91,9 @@ export default function App() {
           void handleReset();
         }}
       />
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-        <div
-          style={{
-            padding: '14px',
-            maxWidth: 400,
-            margin: '0 auto',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 12,
-          }}
-        >
-          <div
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-            style={{
-              position: 'absolute',
-              width: 1,
-              height: 1,
-              overflow: 'hidden',
-              clip: 'rect(0 0 0 0)',
-            }}
-          >
+      <div className="app-scroll">
+        <div className="app-content">
+          <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
             {copied
               ? `Copied`
               : picker.locators.length
@@ -133,7 +125,11 @@ export default function App() {
               onHighlight={() => {
                 void manual.handleManualHighlight(true);
               }}
-              onClear={manual.handleManualClear}
+              onClear={() => {
+                void manual.handleManualClear();
+              }}
+              onCopy={copy}
+              copied={copied}
               suggestions={manual.suggestions}
               showSuggestions={manual.showSuggestions}
               selectedSuggestion={manual.selectedSuggestion}
@@ -150,26 +146,8 @@ export default function App() {
           )}
         </div>
       </div>
-      <div
-        style={{
-          borderTop: '1px solid var(--line)',
-          background: 'var(--bg)',
-          padding: '10px 14px',
-          flexShrink: 0,
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 400,
-            margin: '0 auto',
-            fontFamily: 'var(--font-mono)',
-            fontSize: 10,
-            letterSpacing: '0.06em',
-            color: 'var(--muted)',
-            display: 'flex',
-            justifyContent: 'space-between',
-          }}
-        >
+      <div className="app-footer">
+        <div className="app-footer-inner">
           <span>⌥⇧C TOGGLE</span>
           <span>v0.1.0</span>
           <span>ESC CANCEL</span>
