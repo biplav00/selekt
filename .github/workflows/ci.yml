@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -24,6 +25,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -38,6 +41,30 @@ jobs:
         run: npm run format
       - name: Typecheck
         run: npm run typecheck
+      - name: Fallow audit (changed files only, non-blocking during rollout)
+        # Remove continue-on-error to enforce once backlog is triaged.
+        # Uses the pinned devDep via npx so no extra Action install cost.
+        # Verdict here never blocks: PR feedback lands as a comment + summary below.
+        run: npm run analysis:audit
+        continue-on-error: true
+      - name: Fallow report (job summary + sticky PR comment)
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Audit exits 1 on a fail verdict by design; this step is
+          # informational (feedback via summary + PR comment), so never block on it.
+          npx fallow audit --gate new-only --format github-summary >> "$GITHUB_STEP_SUMMARY" || true
+          npx fallow audit --gate new-only --format github-annotations || true
+          npx fallow audit --gate new-only --format pr-comment-github > fallow-comment.md || true
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          EXISTING_ID=$(gh api "repos/${{ github.repository }}/issues/$PR_NUMBER/comments" --paginate -q '.[] | select(.body | contains("fallow-id: fallow-results")) | .id' | head -n 1)
+          if [ -n "$EXISTING_ID" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$EXISTING_ID" -F body=@fallow-comment.md --silent
+          else
+            gh pr comment "$PR_NUMBER" --body-file fallow-comment.md
+          fi
       - name: Test
         run: npm run test
       - name: Build extension (chrome-mv3)
