@@ -9,13 +9,25 @@ Built greenfield with WXT, borrowing selector ideas from [`ruifigueira/playwrigh
 ```bash
 npm install
 npm run dev        # HMR, load .output/chrome-mv3 unpacked
-npm run build      # production
-npm run zip        # store package .output/selekt-0.1.0-chrome.zip
+npm run build      # production build in .output/chrome-mv3
+npm run zip        # extension-only package in .output/selekt-<version>-chrome.zip
+npm run zip:firefox # extension-only package in .output/selekt-<version>-firefox.zip
 ```
 
-Install from **Releases** → download `selekt-0.1.0-chrome.zip` → `chrome://extensions` → Load unpacked or drag zip.
+## Install from Releases (free, no store account)
 
-Load in `chrome://extensions` → Enable Developer mode → Load unpacked → `.output/chrome-mv3`
+No paid Chrome Web Store listing — Chrome one-click install requires a $5 dev account, so Releases use free sideload instead.
+
+**Chrome:**
+
+1. Download `selekt-<version>-chrome.zip` from **Releases** and unzip it.
+2. Go to `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select the unzipped folder.
+3. From source instead: `npm run build` → `chrome://extensions` → Developer mode → Load unpacked → `.output/chrome-mv3`.
+
+**Firefox (temporary load):**
+
+1. Download `selekt-<version>-firefox.zip` from **Releases**.
+2. Go to `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on** → select the zip.
 
 ## Usage
 

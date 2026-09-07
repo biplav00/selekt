@@ -27,10 +27,14 @@ jobs:
       - run: npm run test
       - run: npm run build
       - run: npm run zip
+      - run: npm run zip:firefox
+      - name: Verify extension zips (build output only, no repo files)
+        run: ls -lh .output/*.zip && unzip -l .output/selekt-*-chrome.zip | head -n 30
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           files: .output/*.zip
           generate_release_notes: true
           fail_on_unmatched_files: true
-      # guarded mobilefirstllc/cws-publish step here (see PR #9 discussion).
+      # No store publish: Chrome Web Store needs a paid ($5) dev account.
+      # Free path is GitHub Release sideload (Chrome) + AMO signed build later (Firefox).
