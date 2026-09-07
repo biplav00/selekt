@@ -173,7 +173,7 @@ function css(): string {
       flex-shrink: 0; margin-left: 3px; touch-action: none; }
     .grip:active { cursor: grabbing; }
     .seg { display: flex; background: var(--bg); border-radius: 999px; padding: 2px; flex-shrink: 0; }
-    .segbtn { border: 0; background: transparent; border-radius: 999px; width: 34px; height: 34px;
+    .segbtn { border: 0; background: transparent; border-radius: 999px; width: 30px; height: 30px;
       cursor: pointer; color: var(--muted);
       display: grid; place-items: center; padding: 0; }
     .segbtn.on { background: var(--bar); color: var(--bar-ink); }
@@ -190,18 +190,20 @@ function css(): string {
     .field { flex: 1; min-width: 0; font-family: var(--font-code, ui-monospace, Menlo, monospace);
       font-size: var(--text-code-sm, 11px);
       border: 0; background: transparent; outline: none; color: var(--ink); padding: 0; }
-    .ic { width: 34px; height: 34px; border-radius: 999px; border: 1px solid var(--line);
-      background: var(--panel); color: var(--ink); cursor: pointer;
+    /* Button system mirrors the sidepanel: .ic tracks .icon-btn--md
+       (30px box, 14px glyph, muted ink on panel) and .segbtn tracks the
+       tab glyph (12px). Active/filled states share bar/bar-ink. */
+    .ic { width: 30px; height: 30px; border-radius: 999px; border: 1px solid var(--line);
+      background: var(--panel); color: var(--muted); cursor: pointer;
       display: grid; place-items: center; flex-shrink: 0; padding: 0; }
-    .ic:hover { border-color: var(--ink); }
     .ic.go { background: var(--bar); color: var(--bar-ink); border-color: var(--bar); }
     .ic.done { background: var(--sig); border-color: var(--sig-deep); color: #fff; }
-    .ic:disabled { opacity: 0.4; cursor: not-allowed; }
+    .ic:disabled { opacity: 0.6; cursor: not-allowed; }
     /* Stroke icons ride the global icon scale and center geometrically —
        text glyphs can't (font-dependent bearings), so every button icon is
        an inline SVG below. */
-    .segbtn svg, .ic svg { width: var(--icon-md, 16px); height: var(--icon-md, 16px);
-      display: block; }
+    .segbtn svg { width: var(--icon-xs, 12px); height: var(--icon-xs, 12px); display: block; }
+    .ic svg { width: var(--icon-sm, 14px); height: var(--icon-sm, 14px); display: block; }
     .verdict { display: none; font-family: var(--font-code, ui-monospace, Menlo, monospace);
       font-size: var(--text-label, 10px);
       color: var(--muted); margin-top: 6px; padding: 0 12px; }

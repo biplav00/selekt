@@ -94,10 +94,20 @@ describe('mini dialog theming', () => {
   it('sizes icons from the global icon tokens', () => {
     showMiniDialog({ raw: '', kind: '' }, { onPick: () => {}, onExpand: () => {} });
     const css = shadowCss();
-    // Tab + action buttons share one 34px box; SVG glyphs ride --icon-md.
-    expect(css).toMatch(/\.segbtn\s*\{[^}]*width:\s*34px[^}]*height:\s*34px/s);
-    expect(css).toMatch(/\.ic\s*\{[^}]*width:\s*34px[^}]*height:\s*34px/s);
-    expect(css).toMatch(/\.segbtn svg,\s*\.ic svg\s*\{[^}]*var\(--icon-md/s);
+    // Mirrors the sidepanel: 30px boxes (.icon-btn--md), 12px tab glyphs
+    // (.tab-glyph), 14px action glyphs (.icon-btn svg).
+    expect(css).toMatch(/\.segbtn\s*\{[^}]*width:\s*30px[^}]*height:\s*30px/s);
+    expect(css).toMatch(/\.ic\s*\{[^}]*width:\s*30px[^}]*height:\s*30px/s);
+    expect(css).toMatch(/\.segbtn svg\s*\{[^}]*var\(--icon-xs/s);
+    expect(css).toMatch(/\.ic svg\s*\{[^}]*var\(--icon-sm/s);
+  });
+
+  it('paints action icons like sidepanel icon buttons', () => {
+    showMiniDialog({ raw: '', kind: '' }, { onPick: () => {}, onExpand: () => {} });
+    const css = shadowCss();
+    expect(css).toMatch(/\.ic\s*\{[^}]*color:\s*var\(--muted\)/s);
+    expect(css).toMatch(/\.ic:disabled\s*\{[^}]*opacity:\s*0\.6/s);
+    expect(css).not.toContain('.ic:hover');
   });
 
   it('paints the armed icon solid red with no blink and no LED', () => {
