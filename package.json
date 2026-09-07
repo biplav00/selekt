@@ -13,6 +13,7 @@
     "zip:firefox": "wxt zip -b firefox",
     "compile": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
+    "audit": "npm audit --omit=dev --audit-level=high",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --check .",

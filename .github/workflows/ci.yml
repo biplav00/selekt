@@ -33,6 +33,18 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci --legacy-peer-deps
+      - name: Security audit (production deps, blocking)
+        # Replaces Dependabot version-bump PRs: fails CI on high/critical
+        # advisories in shipped (non-dev) dependencies. Dev-only findings
+        # are excluded — audit the full tree locally with `npm audit`.
+        run: npm run audit
+      - name: Dependency review (blocks new vulns in PRs)
+        # PR-only: fails if a PR introduces dependencies with high/critical
+        # advisories. Complements the audit above (which scans the lockfile).
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v5.0.0
+        with:
+          fail-on-severity: high
       - name: Prepare WXT
         run: npm run prepare
       - name: Lint

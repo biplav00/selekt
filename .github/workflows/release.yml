@@ -10,14 +10,16 @@ concurrency:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -30,6 +32,12 @@ jobs:
       - run: npm run zip:firefox
       - name: Verify extension zips (build output only, no repo files)
         run: ls -lh .output/*.zip && unzip -l .output/selekt-*-chrome.zip | head -n 30
+      - name: Attest build provenance
+        # Sigstore attestation proving these zips were built by this workflow
+        # from this repo — verifiable by anyone sideloading the release.
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: .output/*.zip
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
