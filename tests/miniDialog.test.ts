@@ -4,6 +4,8 @@ import {
   showMiniDialog,
   hideMiniDialog,
   isMiniOpen,
+  isMiniArmed,
+  setMiniArmed,
   refreshBest,
   MINI_ROOT_ID,
 } from '../utils/miniDialog';
@@ -112,6 +114,62 @@ describe('mini dialog host', () => {
     // Escape must still reach the page so an armed picker can be cancelled.
     input?.dispatchEvent(new KeyboardEvent('keydown', { ...composed, key: 'Escape' }));
     expect(seen.sort()).toEqual(['keydown']);
+  });
+
+  it('dims the page. prefix in the locator readout', async () => {
+    showMiniDialog({ raw: "page.getByTestId('x')", kind: 'testId' }, callbacks);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const root = document.getElementById(MINI_ROOT_ID)?.shadowRoot;
+    const code = root?.querySelector('#selekt-mini-code');
+    expect(code?.textContent).toContain("getByTestId('x')");
+    expect(root?.querySelector('#selekt-mini-code .m')?.textContent).toBe('page.');
+
+    await refreshBest({ raw: 'css=.submit', kind: 'css' });
+    expect(root?.querySelector('#selekt-mini-code .m')).toBeNull();
+    expect(root?.querySelector('#selekt-mini-code')?.textContent).toContain('css=.submit');
+
+    (root?.querySelector('[aria-label="Reset"]') as HTMLElement).click();
+    expect(root?.querySelector('#selekt-mini-code')?.textContent).toContain('pick an');
+    expect(root?.querySelector('#selekt-mini-code .m')).toBeNull();
+  });
+
+  it('paints the inspect icon red while the picker is armed', () => {
+    expect(isMiniArmed()).toBe(false);
+    setMiniArmed(true); // no dialog open — must not throw
+    expect(isMiniArmed()).toBe(true);
+
+    showMiniDialog({ raw: '', kind: '' }, callbacks);
+    // A fresh dialog starts disarmed…
+    expect(isMiniArmed()).toBe(false);
+    const root = document.getElementById(MINI_ROOT_ID)?.shadowRoot;
+    expect(root?.querySelector('#selekt-mini-inspect')?.classList.contains('is-armed')).toBe(false);
+
+    setMiniArmed(true);
+    expect(isMiniArmed()).toBe(true);
+    expect(root?.querySelector('#selekt-mini-inspect')?.classList.contains('is-armed')).toBe(true);
+
+    setMiniArmed(false);
+    expect(root?.querySelector('#selekt-mini-inspect')?.classList.contains('is-armed')).toBe(false);
+  });
+
+  it('has no LED dot — armed state lives on the inspect icon alone', () => {
+    showMiniDialog({ raw: "page.getByTestId('x')", kind: 'testId' }, callbacks);
+    const root = document.getElementById(MINI_ROOT_ID)?.shadowRoot;
+    expect(root?.querySelector('.led')).toBeNull();
+  });
+
+  it('renders every button icon as a centered inline SVG', () => {
+    showMiniDialog({ raw: "page.getByTestId('x')", kind: 'testId' }, callbacks);
+    const root = document.getElementById(MINI_ROOT_ID)?.shadowRoot;
+    const buttons = [...(root?.querySelectorAll('.segbtn, .ic') ?? [])] as Element[];
+    expect(buttons.length).toBeGreaterThan(0);
+    for (const btn of buttons) {
+      const svg = btn.querySelector('svg');
+      expect(svg, `${btn.getAttribute('aria-label')} has an icon`).not.toBeNull();
+      expect(svg?.getAttribute('viewBox')).toBe('0 0 24 24');
+      // No stray text glyphs beside the icon.
+      expect(btn.textContent?.trim()).toBe('');
+    }
   });
 
   it('resurrects the dialog if the page rips it out', async () => {

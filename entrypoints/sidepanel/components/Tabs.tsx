@@ -18,7 +18,20 @@ export function Tabs({ activeTab, onSelect, onReset }: TabsProps) {
           className={`tab${activeTab === 'inspect' ? ' is-active' : ''}`}
         >
           <span aria-hidden="true" className="tab-glyph">
-            ⌖
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="6" />
+              <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+            </svg>
           </span>{' '}
           Inspect
         </button>
