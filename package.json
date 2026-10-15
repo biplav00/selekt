@@ -7,7 +7,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "wxt dev",
+    "dev": "wxt",
     "build": "wxt build",
     "preview": "wxt preview",
     "lint": "biome check .",

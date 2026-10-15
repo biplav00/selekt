@@ -35,6 +35,39 @@ export function findScopingAncestor(
   return null;
 }
 
+export interface ScopingCandidate {
+  depth: number;
+  selector: string;
+  /** 'id' = unique by id (strongest), 'class' = stable class anchor (weaker) */
+  kind: 'id' | 'class';
+}
+
+/**
+ * All viable scoping ancestors (not just the nearest one), in chain order.
+ * Mirrors Playwright's parent-walk in selectorGenerator.ts: every ancestor is
+ * a candidate, callers pick by combined score. Closer depth = tighter scope
+ * but more brittle; further depth = looser scope but more stable.
+ */
+export function findAllScopingAncestors(parentChain: AncestorInfo[]): ScopingCandidate[] {
+  const out: ScopingCandidate[] = [];
+  for (let i = 0; i < parentChain.length; i++) {
+    const a = parentChain[i];
+    if (a.id && !a.id.includes(' ')) {
+      out.push({ depth: i, selector: `#${cssEscape(a.id)}`, kind: 'id' });
+      continue;
+    }
+    const stableClasses = a.classes.filter((c) => c && !isDynamicClass(c));
+    if (stableClasses.length > 0) {
+      out.push({
+        depth: i,
+        selector: `${a.tag}.${stableClasses.slice(0, 2).map(cssEscape).join('.')}`,
+        kind: 'class',
+      });
+    }
+  }
+  return out;
+}
+
 /**
  * Check if an element's tag is unique among its siblings.
  */

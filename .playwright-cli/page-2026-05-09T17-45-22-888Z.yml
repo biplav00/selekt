@@ -1,0 +1,197 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]: Dark — Locators tab
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e10]:
+          - generic [ref=e11]: S
+          - text: Selekt
+        - generic [ref=e12]:
+          - button "Theme" [ref=e13] [cursor=pointer]:
+            - img [ref=e14]
+          - button "Settings" [ref=e18] [cursor=pointer]:
+            - img [ref=e19]
+          - button "Pin" [ref=e22] [cursor=pointer]:
+            - img [ref=e23]
+          - button "Minimize" [ref=e25] [cursor=pointer]:
+            - img [ref=e26]
+          - button "Close" [ref=e27] [cursor=pointer]:
+            - img [ref=e28]
+      - generic [ref=e31]:
+        - button "Pick ⌘⇧L" [ref=e32] [cursor=pointer]:
+          - img [ref=e33]
+          - text: Pick
+          - generic [ref=e37]: ⌘⇧L
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - generic [ref=e40]: button
+            - generic [ref=e41]: Subscribe to newsletter
+          - generic [ref=e42]:
+            - generic [ref=e43]: role=button
+            - generic [ref=e44]: ·
+            - generic [ref=e45]: id=#sub-btn
+            - generic [ref=e46]: ·
+            - generic [ref=e47]: "matches: 1"
+      - generic [ref=e48]:
+        - button "Locators5" [ref=e49] [cursor=pointer]
+        - button "Build" [ref=e50] [cursor=pointer]
+        - button "History12" [ref=e51] [cursor=pointer]
+        - button "Settings" [ref=e52] [cursor=pointer]
+      - generic [ref=e54]:
+        - generic [ref=e55] [cursor=pointer]:
+          - generic [ref=e56]: PW
+          - generic [ref=e57]: "page.getByRole('button', { name: 'Subscribe to newsletter' })"
+          - generic [ref=e58]: "95"
+          - button "Copy" [ref=e59]:
+            - img [ref=e60]
+        - generic [ref=e63] [cursor=pointer]:
+          - generic [ref=e64]: CY
+          - generic [ref=e65]: "cy.findByRole('button', { name: /Subscribe/i })"
+          - generic [ref=e66]: "90"
+          - button "Copy" [ref=e67]:
+            - img [ref=e68]
+        - generic [ref=e71] [cursor=pointer]:
+          - generic [ref=e72]: SE
+          - generic [ref=e73]: By.id("sub-btn")
+          - generic [ref=e74]: "75"
+          - button "Copy" [ref=e75]:
+            - img [ref=e76]
+        - generic [ref=e79] [cursor=pointer]:
+          - generic [ref=e80]: CSS
+          - generic [ref=e81]: "#sub-btn"
+          - generic [ref=e82]: "70"
+          - button "Copy" [ref=e83]:
+            - img [ref=e84]
+        - generic [ref=e87] [cursor=pointer]:
+          - generic [ref=e88]: XP
+          - generic [ref=e89]: //button[@id='sub-btn']
+          - generic [ref=e90]: "55"
+          - button "Copy" [ref=e91]:
+            - img [ref=e92]
+          - generic [ref=e95]:
+            - img [ref=e96]
+            - text: XPath couples to DOM structure — prefer semantic locators.
+      - generic [ref=e98]:
+        - generic [ref=e99]: Connected · 5 locators
+        - generic [ref=e101]:
+          - generic [ref=e102]: ⌘⇧LPick
+          - generic [ref=e103]: ⌘CCopy top
+  - generic [ref=e104]:
+    - generic [ref=e105]: Light — Build tab
+    - generic [ref=e106]:
+      - generic [ref=e107]:
+        - generic [ref=e112]:
+          - generic [ref=e113]: S
+          - text: Selekt
+        - generic [ref=e114]:
+          - button "Theme" [ref=e115] [cursor=pointer]:
+            - img [ref=e116]
+          - button "Settings" [ref=e118] [cursor=pointer]:
+            - img [ref=e119]
+          - button "Pin" [ref=e122] [cursor=pointer]:
+            - img [ref=e123]
+          - button "Minimize" [ref=e125] [cursor=pointer]:
+            - img [ref=e126]
+          - button "Close" [ref=e127] [cursor=pointer]:
+            - img [ref=e128]
+      - generic [ref=e131]:
+        - button "Pick ⌘⇧L" [ref=e132] [cursor=pointer]:
+          - img [ref=e133]
+          - text: Pick
+          - generic [ref=e137]: ⌘⇧L
+        - generic [ref=e138]:
+          - generic [ref=e139]:
+            - generic [ref=e140]: input
+            - generic [ref=e141]: Email address
+          - generic [ref=e142]:
+            - generic [ref=e143]: type=email
+            - generic [ref=e144]: ·
+            - generic [ref=e145]: placeholder="you@example.com"
+      - generic [ref=e146]:
+        - button "Locators5" [ref=e147] [cursor=pointer]
+        - button "Build" [ref=e148] [cursor=pointer]
+        - button "History12" [ref=e149] [cursor=pointer]
+        - button "Settings" [ref=e150] [cursor=pointer]
+      - generic [ref=e152]:
+        - generic [ref=e153]:
+          - button "Freeform" [ref=e154] [cursor=pointer]
+          - button "Structured" [ref=e155] [cursor=pointer]
+        - textbox "page.getByRole('…')" [ref=e156]: "page.getByRole('textbox', { name: 'Email address' })"
+        - generic [ref=e157]:
+          - combobox [ref=e158] [cursor=pointer]:
+            - option "PW" [selected]
+            - option "CSS"
+            - option "XPath"
+            - option "CY"
+            - option "SE"
+          - generic [ref=e159]: 1 match
+          - button "Test on page" [ref=e160] [cursor=pointer]
+        - generic [ref=e161]:
+          - generic [ref=e162]:
+            - generic [ref=e163]: getByRole with name (exact match)
+            - generic [ref=e164]: "+42"
+          - generic [ref=e165]:
+            - generic [ref=e166]: Semantic role inferred from <input type="email">
+            - generic [ref=e167]: "+5"
+          - generic [ref=e168]:
+            - generic [ref=e169]: Total score
+            - generic [ref=e170]: 97 / 100
+      - generic [ref=e171]:
+        - generic [ref=e172]: Connected
+        - generic [ref=e174]:
+          - generic [ref=e175]: ⌘↵Test
+          - generic [ref=e176]: ⌘CCopy
+  - generic [ref=e177]:
+    - generic [ref=e178]: Dark — History tab
+    - generic [ref=e179]:
+      - generic [ref=e180]:
+        - generic [ref=e185]:
+          - generic [ref=e186]: S
+          - text: Selekt
+        - generic [ref=e187]:
+          - button "Theme" [ref=e188] [cursor=pointer]:
+            - img [ref=e189]
+          - button "Close" [ref=e191] [cursor=pointer]:
+            - img [ref=e192]
+      - generic [ref=e195]:
+        - button "Pick" [ref=e196] [cursor=pointer]:
+          - img [ref=e197]
+          - text: Pick
+        - generic [ref=e201]:
+          - generic [ref=e203]: — no element picked —
+          - generic [ref=e204]: Click pick or any picked-element history row
+      - generic [ref=e205]:
+        - button "Locators" [ref=e206] [cursor=pointer]
+        - button "Build" [ref=e207] [cursor=pointer]
+        - button "History12" [ref=e208] [cursor=pointer]
+        - button "Settings" [ref=e209] [cursor=pointer]
+      - generic [ref=e211]:
+        - generic [ref=e212] [cursor=pointer]:
+          - generic [ref=e213]: 14:02
+          - generic [ref=e214]: "page.getByRole('button', { name: 'Subscribe' })"
+          - generic [ref=e215]: PW
+        - generic [ref=e216] [cursor=pointer]:
+          - generic [ref=e217]: 14:01
+          - generic [ref=e218]: "page.getByLabel('Email address', { exact: true })"
+          - generic [ref=e219]: PW
+        - generic [ref=e220] [cursor=pointer]:
+          - generic [ref=e221]: 13:58
+          - generic [ref=e222]: "[data-cy=\"signup-cta\"]"
+          - generic [ref=e223]: CSS
+        - generic [ref=e224] [cursor=pointer]:
+          - generic [ref=e225]: 13:55
+          - generic [ref=e226]: "cy.findByRole('link', { name: /pricing/i })"
+          - generic [ref=e227]: CY
+        - generic [ref=e228] [cursor=pointer]:
+          - generic [ref=e229]: 13:52
+          - generic [ref=e230]: By.cssSelector("nav.main-nav a")
+          - generic [ref=e231]: SE
+        - generic [ref=e232] [cursor=pointer]:
+          - generic [ref=e233]: 13:48
+          - generic [ref=e234]: //div[@role='dialog']//button
+          - generic [ref=e235]: XP
+      - generic [ref=e236]:
+        - generic [ref=e237]: Connected · 12 entries
+        - generic [ref=e239]:
+          - generic [ref=e240]: ⌘EExport
+          - generic [ref=e241]: ⌘⌫Clear

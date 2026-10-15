@@ -11,7 +11,7 @@ import type {
 import type { SelectorSpecialist } from './types';
 
 import { computeAccessibleName, getHeadingLevel, getInferredRole } from './helpers/aria';
-import { findScopingAncestor } from './helpers/chaining';
+import { findAllScopingAncestors } from './helpers/chaining';
 import { cssEscape, escapeSingleQuoteJs } from './helpers/escaping';
 
 // ---------------------------------------------------------------------------
@@ -234,10 +234,14 @@ function generate(element: RichElementData): GenerateResult {
     add(`page.getByTestId('${escapeSingleQuoteJs(testid)}')`);
   }
 
-  // 2. data-test
-  const dataTest = attributes['data-test'];
-  if (dataTest) {
-    add(`page.locator('[data-test="${escapeSingleQuoteJs(dataTest)}"]')`);
+  // 2. testid-like attributes (data-test, data-test-id, data-cy, data-qa)
+  // Mirrors Playwright upstream's kOtherTestIdScore tier — strong but slightly
+  // below the configured testIdAttributeName.
+  for (const attr of ['data-test', 'data-test-id', 'data-cy', 'data-qa']) {
+    const val = attributes[attr];
+    if (val) {
+      add(`page.locator('[${attr}="${escapeSingleQuoteJs(val)}"]')`);
+    }
   }
 
   // 3. Explicit role with options
@@ -302,12 +306,25 @@ function generate(element: RichElementData): GenerateResult {
     add(`page.locator('#${cssEscape(id)}')`);
   }
 
-  // 11. Chained locator scoped by the nearest identifiable ancestor.
+  // 11. Chained locator scoped by ancestor. Mirrors Playwright's parent-walk:
+  // emit a candidate per viable ancestor (id-anchored or stable-class anchored).
+  // The scoring function picks the best — closer ancestor = tighter scope,
+  // stable-id ancestor outranks class-anchored regardless of depth.
   if (element.parentChain?.length) {
-    const ancestor = findScopingAncestor(element.parentChain);
     const childPart = buildElementPart(element, /* semanticOnly */ true);
-    if (ancestor && childPart) {
-      add(`page.locator('${ancestor.selector}').${childPart}`);
+    if (childPart) {
+      const ancestors = findAllScopingAncestors(element.parentChain);
+      // Cap at 2 to avoid suggestion noise: nearest + best id-anchored.
+      const seen = new Set<string>();
+      const idAnchor = ancestors.find((a) => a.kind === 'id');
+      const picks = [ancestors[0], idAnchor].filter((a): a is NonNullable<typeof a> => Boolean(a));
+      for (const a of picks) {
+        const sel = `page.locator('${a.selector}').${childPart}`;
+        if (!seen.has(sel)) {
+          seen.add(sel);
+          add(sel);
+        }
+      }
     }
   }
 
@@ -329,6 +346,17 @@ function scoreSelector(selector: string): SpecialistScore {
       description: 'Uses getByTestId — most stable Playwright locator.',
     });
     score += 45;
+  }
+
+  // testid-like attribute selectors (data-test, data-cy, data-qa, data-test-id)
+  // Tier-2 stable ID. Mirrors Playwright's kOtherTestIdScore.
+  if (/locator\(\s*['"]\[data-(?:test(?:-id)?|cy|qa)=/.test(selector)) {
+    factors.push({
+      name: 'testIdLikeAttr',
+      impact: 35,
+      description: 'Uses testid-like attribute (data-test/cy/qa) — stable.',
+    });
+    score += 35;
   }
 
   if (/getByRole\(/.test(selector)) {
@@ -455,10 +483,10 @@ function scoreSelector(selector: string): SpecialistScore {
   if (/\.nth\(/.test(selector)) {
     factors.push({
       name: 'usesNth',
-      impact: -15,
+      impact: -25,
       description: '.nth() positioning is fragile if sibling order changes.',
     });
-    score -= 15;
+    score -= 25;
   }
 
   if (/\.first\(\)/.test(selector)) {
@@ -497,6 +525,21 @@ function scoreSelector(selector: string): SpecialistScore {
       description: '.and() intersects two locators for precision.',
     });
     score += 5;
+  }
+
+  // Length penalty: long selectors are usually deeply chained or argument-heavy
+  // and signal brittleness. Mirrors Playwright's penalizeScoreForLength —
+  // applied conservatively so short locators (~exact-match getByLabel) are
+  // unaffected. Threshold 80 chars ≈ "page.getByRole('combobox', { name: 'Foo' }).filter(...)".
+  if (selector.length > 80) {
+    const overflow = Math.min(60, selector.length - 80);
+    const penalty = -Math.ceil(overflow / 20);
+    factors.push({
+      name: 'lengthPenalty',
+      impact: penalty,
+      description: 'Long selector — usually fragile or over-specified.',
+    });
+    score += penalty;
   }
 
   return { score: Math.max(0, Math.min(100, score)), factors };
@@ -641,12 +684,20 @@ function chain(element: RichElementData, matchCount: number): ScoredSelector[] {
   const results: ScoredSelector[] = [];
   const elementPart = buildElementPart(element, /* semanticOnly */ false);
 
-  // Scoped by ancestor
-  const ancestor = findScopingAncestor(parentChain);
-  if (ancestor) {
-    const sel = `page.locator('${ancestor.selector}').${elementPart}`;
+  // Scoped by ancestor — emit per viable depth (id-anchored + nearest stable).
+  // Closer depth scores higher implicitly via shorter selector / less overhead.
+  const ancestors = findAllScopingAncestors(parentChain);
+  const idAnchor = ancestors.find((a) => a.kind === 'id');
+  const picks = [ancestors[0], idAnchor].filter((a): a is NonNullable<typeof a> => Boolean(a));
+  const seen = new Set<string>();
+  for (const a of picks) {
+    const sel = `page.locator('${a.selector}').${elementPart}`;
+    if (seen.has(sel)) continue;
+    seen.add(sel);
     const s = scoreSelector(sel);
-    results.push(buildScoredSelector(sel, Math.min(100, s.score + 5)));
+    // Bonus for chain scoping (still under length penalty if too long).
+    const bonus = a.kind === 'id' ? 7 : 5;
+    results.push(buildScoredSelector(sel, Math.min(100, s.score + bonus)));
   }
 
   // Variants for disambiguating when multiple elements match

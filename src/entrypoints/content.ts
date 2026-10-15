@@ -13,8 +13,23 @@ export default defineContentScript({
     if ((window as any)[GUARD_KEY]) return;
     (window as any)[GUARD_KEY] = true;
 
-    const floatingWidget = new FloatingWidget();
+    const floatingSurface = new FloatingWidget();
     let isFloatingMode = false;
+
+    floatingSurface.onPick(() => {
+      startElementPicker();
+    });
+
+    floatingSurface.onExpandToSidepanel(() => {
+      isFloatingMode = false;
+      floatingSurface.hide();
+      chrome.runtime.sendMessage({ type: 'ACTIVATE_SIDEPANEL' });
+    });
+
+    floatingSurface.onClose(() => {
+      isFloatingMode = false;
+      floatingSurface.hide();
+    });
 
     let isPicking = false;
     let hoveredElement: HTMLElement | null = null;
@@ -93,11 +108,11 @@ export default defineContentScript({
         sendResponse({ success: true });
       } else if (message.type === 'ACTIVATE_FLOATING') {
         isFloatingMode = true;
-        floatingWidget.show();
+        floatingSurface.show();
         sendResponse({ success: true });
       } else if (message.type === 'DEACTIVATE_FLOATING') {
         isFloatingMode = false;
-        floatingWidget.hide();
+        floatingSurface.hide();
         sendResponse({ success: true });
       } else if (message.type === 'SCRAPE_PAGE_DATA') {
         const data = scrapePageDataFromDom();
@@ -430,7 +445,7 @@ export default defineContentScript({
       stopElementPicker();
 
       if (isFloatingMode) {
-        floatingWidget.setElementData(elementData);
+        floatingSurface.setElementData(elementData);
       }
 
       chrome.runtime.sendMessage({
@@ -465,22 +480,6 @@ export default defineContentScript({
         tooltip = null;
       }
     }
-
-    // --- Floating Widget Callbacks ---
-    floatingWidget.onPick(() => {
-      startElementPicker();
-    });
-
-    floatingWidget.onExpandToSidepanel(() => {
-      isFloatingMode = false;
-      floatingWidget.hide();
-      chrome.runtime.sendMessage({ type: 'ACTIVATE_SIDEPANEL' });
-    });
-
-    floatingWidget.onClose(() => {
-      isFloatingMode = false;
-      floatingWidget.hide();
-    });
 
     // --- Selector Watching (DOM Change Detection) ---
     let watchedSelectors: Array<{ id: string; selector: string; type: 'css' | 'xpath' }> = [];

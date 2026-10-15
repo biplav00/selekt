@@ -115,6 +115,7 @@ export class SettingsModal extends LitElement {
         padding: 7px 16px;
         font-size: 12px;
       }
+
     `,
   ];
 
@@ -264,6 +265,7 @@ export class SettingsModal extends LitElement {
                 <option value="200">200 items</option>
               </select>
             </div>
+
           </div>
 
           <div class="modal-footer">
